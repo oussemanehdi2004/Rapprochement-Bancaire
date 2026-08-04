@@ -1,0 +1,594 @@
+<div style="padding: 1.5rem; max-width: 90rem; margin: 0 auto;">
+
+  <!-- ===== EN-TÊTE ===== -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+    <div>
+      <h1 style="font-size: 1.5rem; font-weight: bold; color: #1f2937;">🛡️ AI Fraud Detection</h1>
+      <p style="color: #6b7280; font-size: 0.875rem;">Plateforme de détection de fraude bancaire hybride (Règles + ML + Graphe)</p>
+    </div>
+  </div>
+
+  <!-- ===== BARRE D'ONGLETS ===== -->
+  <div style="display: flex; gap: 0.5rem; border-bottom: 1px solid #e5e7eb; margin-bottom: 1.5rem; overflow-x: auto;">
+    @for (tab of tabs; track tab.id) {
+      <button
+        (click)="tab.ready && setTab(tab.id)"
+        [disabled]="!tab.ready"
+        style="padding: 0.75rem 1rem; border: none; background: none; font-size: 0.875rem; font-weight: 500; cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 0.4rem;"
+        [style.color]="activeTab() === tab.id ? '#1d4ed8' : (tab.ready ? '#4b5563' : '#c1c7d0')"
+        [style.border-bottom-color]="activeTab() === tab.id ? '#1d4ed8' : 'transparent'"
+        [style.cursor]="tab.ready ? 'pointer' : 'not-allowed'"
+      >
+        <span>{{ tab.icon }}</span>
+        <span>{{ tab.label }}</span>
+        @if (!tab.ready) {
+          <span style="font-size: 0.65rem; background: #f3f4f6; color: #9ca3af; padding: 0.1rem 0.4rem; border-radius: 9999px;">bientôt</span>
+        }
+      </button>
+    }
+  </div>
+
+  <!-- ===== ONGLET : VUE D'ENSEMBLE ===== -->
+  @if (activeTab() === 'overview') {
+
+    <!-- Import / Démo -->
+    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h3 style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Importer des transactions</h3>
+        <p style="font-size: 0.8rem; color: #6b7280;">Fichier CSV — colonnes : tenant_id, mongo_transaction_id, id, date, description, amount, sender_balance_before, sender_balance_after, receiver_balance_before, receiver_balance_after, transaction_type</p>
+        @if (importedFileName()) {
+          <p style="font-size: 0.8rem; color: #16a34a; margin-top: 0.25rem;">✅ Fichier chargé : {{ importedFileName() }}</p>
+        }
+        @if (importError()) {
+          <p style="font-size: 0.8rem; color: #dc2626; margin-top: 0.25rem;">⚠️ {{ importError() }}</p>
+        }
+      </div>
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <label style="padding: 0.6rem 1rem; border: 1px solid #bfdbfe; color: #2563eb; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; font-weight: 500;">
+          📁 Choisir un CSV
+          <input type="file" accept=".csv" style="display: none;" (change)="onFileSelected($event)" />
+        </label>
+        <button
+          (click)="useDemoData()"
+          [disabled]="loading()"
+          style="padding: 0.6rem 1.25rem; background-color: #1d4ed8; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; font-weight: 600;"
+        >
+          {{ loading() ? 'Analyse en cours…' : '🚀 Utiliser données de démo' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
+        <p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; font-weight: 600;">Transactions analysées</p>
+        <p style="font-size: 1.75rem; font-weight: bold; color: #1f2937; margin-top: 0.5rem;">{{ totalAnalyzed() }}</p>
+      </div>
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
+        <p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; font-weight: 600;">Taux de fraude détecté</p>
+        <p style="font-size: 1.75rem; font-weight: bold; color: #dc2626; margin-top: 0.5rem;">{{ fraudRate() }}%</p>
+      </div>
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
+        <p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; font-weight: 600;">Montant total à risque</p>
+        <p style="font-size: 1.75rem; font-weight: bold; color: #1f2937; margin-top: 0.5rem;">{{ totalAtRisk() | number: '1.0-0' }} €</p>
+      </div>
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
+        <p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; font-weight: 600;">Score de risque global</p>
+        <p style="font-size: 1.75rem; font-weight: bold; color: #7c3aed; margin-top: 0.5rem;">{{ globalRiskScore() }}</p>
+      </div>
+    </div>
+
+    <!-- Boutons d'analyse -->
+    <div style="margin-bottom: 1rem; display: flex; gap: 1rem;">
+      <button (click)="analyze()" [disabled]="loading()" style="padding: 0.6rem 1.25rem; background: white; color: #1e3a8a; border: 1px solid #bfdbfe; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">
+        Relancer l'analyse locale
+      </button>
+      <button (click)="analyzeSupabaseCases()" [disabled]="loading()" style="padding: 0.6rem 1.25rem; background: #0f172a; color: white; border: 1px solid #334155; border-radius: 0.5rem; cursor: pointer; font-weight: 600;" class="analyze-btn-supa">
+        Lancer Cas Supabase
+      </button>
+    </div>
+
+    <!-- Fraud Detection Stats -->
+    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); margin-bottom: 1.5rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+        <h2 style="font-size: 1.125rem; font-weight: 600; color: #1f2937;">Statistiques de Détection de Fraude</h2>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 0.875rem; color: #6b7280;">Mise à jour:</span>
+          <span style="font-size: 0.875rem; font-weight: 500; color: #374151;">{{ getCurrentTime() }}</span>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;" class="stats-grid">
+        <div style="background: linear-gradient(to bottom right, #eff6ff, #dbeafe); border-radius: 0.75rem; padding: 1rem; border: 1px solid #bfdbfe;">
+          <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb; font-weight: 600;">Total alertes</p>
+          <p style="font-size: 1.875rem; font-weight: bold; color: #1e40af; margin-top: 0.5rem;">{{ alertsService.stats().totalAlerts }}</p>
+        </div>
+        <div style="background: linear-gradient(to bottom right, #fef2f2, #fee2e2); border-radius: 0.75rem; padding: 1rem; border: 1px solid #fecaca;">
+          <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #dc2626; font-weight: 600;">Critiques</p>
+          <p style="font-size: 1.875rem; font-weight: bold; color: #991b1b; margin-top: 0.5rem;">{{ alertsService.stats().critical }}</p>
+        </div>
+        <div style="background: linear-gradient(to bottom right, #fff7ed, #ffedd5); border-radius: 0.75rem; padding: 1rem; border: 1px solid #fed7aa;">
+          <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ea580c; font-weight: 600;">Élevées</p>
+          <p style="font-size: 1.875rem; font-weight: bold; color: #9a3412; margin-top: 0.5rem;">{{ alertsService.stats().high }}</p>
+        </div>
+        <div style="background: linear-gradient(to bottom right, #fffbeb, #fef3c7); border-radius: 0.75rem; padding: 1rem; border: 1px solid #fde68a;">
+          <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #d97706; font-weight: 600;">En investigation</p>
+          <p style="font-size: 1.875rem; font-weight: bold; color: #92400e; margin-top: 0.5rem;">{{ alertsService.stats().underInvestigation }}</p>
+        </div>
+        <div style="background: linear-gradient(to bottom right, #f0fdf4, #dcfce7); border-radius: 0.75rem; padding: 1rem; border: 1px solid #bbf7d0;">
+          <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #16a34a; font-weight: 600;">Résolues</p>
+          <p style="font-size: 1.875rem; font-weight: bold; color: #166534; margin-top: 0.5rem;">{{ alertsService.stats().totalAlerts - alertsService.stats().underInvestigation }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    @if (errorMessage()) {
+      <div style="background-color: #fef2f2; border-radius: 0.75rem; border: 1px solid #fecaca; padding: 1.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.5rem;">❌</span>
+          <div>
+            <p style="font-weight: 600; color: #991b1b; margin: 0;">Erreur lors de l'analyse</p>
+            <p style="color: #b91c1c; margin: 0.25rem 0 0 0;">{{ errorMessage() }}</p>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Loading State -->
+    @if (loading()) {
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 3rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); text-align: center; margin-bottom: 1.5rem;">
+        <div style="display: inline-block; height: 2rem; width: 2rem; border-radius: 9999px; border: 4px solid #3b82f6; border-right-color: transparent; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 1rem; color: #4b5563;">Analyse des transactions en cours...</p>
+      </div>
+    }
+
+    <!-- Empty State -->
+    @if (!loading() && filteredAlerts().length === 0 && !supabaseResults()) {
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 2.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); text-align: center;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 2.5rem;">🛡️</span>
+          <p style="color: #9ca3af;">Aucune alerte détectée. Cliquez sur un bouton d'analyse pour commencer.</p>
+        </div>
+      </div>
+    }
+
+    <!-- Alerts Table (Analyse Locale) -->
+    @if (!loading() && filteredAlerts().length > 0) {
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); overflow: hidden; margin-bottom: 1.5rem;">
+        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between;">
+          <h3 style="font-weight: 600; color: #1f2937;">Alertes de Fraude (Règles Locales)</h3>
+        </div>
+        
+        <table style="width: 100%; font-size: 0.875rem;">
+          <thead style="background-color: #f9fafb; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+            <tr>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Score</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Criticité</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Description</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Bénéficiaire</th>
+              <th style="text-align: right; padding: 0.75rem 1rem;">Montant</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (alert of filteredAlerts(); track alert.id) {
+              <tr style="border-top: 1px solid #f3f4f6;">
+                <td style="padding: 0.75rem 1rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="height: 0.5rem; width: 4rem; background-color: #f3f4f6; border-radius: 9999px; overflow: hidden;">
+                      <div
+                        style="height: 100%; background-color: #ef4444;"
+                        [style.width.%]="alert.fraudScore"
+                      ></div>
+                    </div>
+                    <span style="font-weight: 600; color: #374151;">{{ alert.fraudScore }}%</span>
+                  </div>
+                </td>
+                <td style="padding: 0.75rem 1rem;">
+                  <span
+                    style="font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 9999px; border: 1px solid;"
+                    [style.background-color]="getSeverityBgColor(alert.severity || 'LOW')"
+                    [style.color]="getSeverityTextColor(alert.severity || 'LOW')"
+                    [style.borderColor]="getSeverityBorderColor(alert.severity || 'LOW')"
+                  >
+                    {{ severityLabel(alert.severity || 'LOW') }}
+                  </span>
+                </td>
+                <td style="padding: 0.75rem 1rem; color: #374151;">{{ alert.description }}</td>
+                <td style="padding: 0.75rem 1rem; color: #6b7280;">{{ alert.beneficiary || '—' }}</td>
+                <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #1f2937;">
+                  {{ alert.amount | number: '1.2-2' }} €
+                </td>
+                <td style="padding: 0.75rem 1rem;">
+                  <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 9999px; background-color: #f3f4f6; color: #4b5563;">
+                    {{ alert.status || 'analyse' }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <!-- Résultats Supabase -->
+    @if (!loading() && supabaseResults()) {
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); overflow: hidden;">
+        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; background-color: #f8fafc;">
+          <h3 style="font-weight: 600; color: #0f172a;">Résultats — Cas Supabase (Stateful)</h3>
+        </div>
+        
+        <table style="width: 100%; font-size: 0.875rem;">
+          <thead style="background-color: #f1f5f9; color: #475569; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+            <tr>
+              <th style="text-align: left; padding: 0.75rem 1rem;">ID Transaction</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Catégorie</th>
+              <th style="text-align: center; padding: 0.75rem 1rem;">Détection</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Explication de l'IA</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of supabaseResults(); track r.id) {
+              <tr style="border-top: 1px solid #e2e8f0;">
+                <td style="padding: 0.75rem 1rem; font-weight: 500; color: #1e293b;">{{ r.id }}</td>
+                <td style="padding: 0.75rem 1rem; color: #334155;">{{ $any(r).ruleCategory || $any(r).rule_category || 'Analyse IA' }}</td>
+                <td style="padding: 0.75rem 1rem; text-align: center;">
+                  <span
+                    style="font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.75rem; border-radius: 9999px; border: 1px solid;"
+                    [style.color]="r.isFraud ? '#dc2626' : '#16a34a'"
+                    [style.backgroundColor]="r.isFraud ? '#fef2f2' : '#f0fdf4'"
+                    [style.borderColor]="r.isFraud ? '#fecaca' : '#bbf7d0'"
+                  >
+                    {{ r.isFraud ? 'FRAUDE' : 'CLEAN' }}
+                  </span>
+                </td>
+                <td style="padding: 0.75rem 1rem; color: #475569;">{{ r.explainability?.summary || 'Aucune explication fournie' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ===== ONGLET : RÉSEAUX & GRAPHE ===== -->
+  @if (activeTab() === 'graph') {
+    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 1.5rem;">
+      
+      <!-- Contrôles du Graphe -->
+      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <div>
+          <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Tenant ID (Identifiant client)</label>
+          <input 
+            type="text" 
+            [ngModel]="graphTenantId()"
+            (ngModelChange)="graphTenantId.set($event)"
+            placeholder="Ex: tenant-123" 
+            style="padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; width: 250px; font-size: 0.875rem;"
+          />
+        </div>
+        <button 
+          (click)="loadTopAccounts()" 
+          [disabled]="graphLoading()"
+          style="margin-top: 1.25rem; padding: 0.5rem 1.25rem; background-color: #0f172a; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;"
+        >
+          {{ graphLoading() ? 'Chargement...' : '🔍 Rechercher les réseaux' }}
+        </button>
+      </div>
+
+      <!-- Erreurs Graphe -->
+      @if (graphError()) {
+        <div style="background-color: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; font-size: 0.875rem;">
+          {{ graphError() }}
+        </div>
+      }
+
+      <div style="display: flex; gap: 1.5rem; min-height: 500px; border-top: 1px solid #e5e7eb; padding-top: 1.5rem;">
+        
+        <!-- Colonne de gauche : Liste des comptes -->
+        <div style="width: 300px; border-right: 1px solid #e5e7eb; padding-right: 1.5rem;">
+          <h3 style="font-size: 1rem; font-weight: 600; color: #1f2937; margin-bottom: 1rem;">Comptes suspects</h3>
+          
+          @if (!graphLoading() && topAccounts().length === 0) {
+            <p style="font-size: 0.875rem; color: #6b7280; font-style: italic;">Aucun compte chargé. Lancez une recherche.</p>
+          }
+
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            @for (acc of topAccounts(); track acc.iban) {
+              <div 
+                (click)="selectAccount(acc.iban)"
+                style="padding: 0.75rem; border-radius: 0.5rem; cursor: pointer; border: 1px solid;"
+                [style.backgroundColor]="selectedIban() === acc.iban ? '#eff6ff' : '#f9fafb'"
+                [style.borderColor]="selectedIban() === acc.iban ? '#bfdbfe' : '#e5e7eb'"
+              >
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                  <span style="font-weight: 600; font-size: 0.875rem; color: #1f2937;">{{ shortIban(acc.iban) }}</span>
+                  <span style="font-size: 0.75rem; font-weight: bold; color: #dc2626; background: #fef2f2; padding: 0.1rem 0.4rem; border-radius: 9999px;">
+                    Score: {{ ($any(acc).fraud_score || $any(acc).fraudScore) | number:'1.1-1' }}
+                  </span>
+                </div>
+                <p style="font-size: 0.75rem; color: #6b7280; margin: 0;">{{ $any(acc).transaction_count || $any(acc).transactionCount }} transaction(s)</p>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Colonne de droite : Visualisation SVG -->
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f8fafc; border-radius: 0.75rem; border: 1px solid #e2e8f0; position: relative; overflow: hidden;">
+          
+          @if (graphLoading()) {
+            <div style="display: inline-block; height: 2rem; width: 2rem; border-radius: 9999px; border: 3px solid #cbd5e1; border-right-color: #475569; animation: spin 1s linear infinite;"></div>
+          } @else if (networkData()) {
+            <!-- Titre du réseau -->
+            <div style="position: absolute; top: 1rem; left: 1rem; background: white; padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 0.875rem; font-weight: 500; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+              Réseau de : <span style="font-weight: 700; color: #0f172a;">{{ networkData()?.center_iban }}</span>
+            </div>
+
+            <!-- SVG Graph -->
+            <svg width="600" height="400" viewBox="0 0 600 400" style="max-width: 100%; height: auto;">
+              
+              <!-- Arêtes (Lignes) -->
+              @for (node of graphNodePositions(); track node.iban) {
+                @if (!node.isCenter) {
+                  <line 
+                    [attr.x1]="300" 
+                    [attr.y1]="200" 
+                    [attr.x2]="node.x" 
+                    [attr.y2]="node.y" 
+                    stroke="#94a3b8" 
+                    stroke-width="1.5" 
+                    stroke-dasharray="4"
+                  />
+                }
+              }
+
+              <!-- Nœuds (Cercles et Textes) -->
+              @for (node of graphNodePositions(); track node.iban) {
+                @if (node.isCenter) {
+                  <circle [attr.cx]="node.x" [attr.cy]="node.y" [attr.r]="35" fill="#fecaca" opacity="0.5" />
+                }
+                
+                <circle 
+                  [attr.cx]="node.x" 
+                  [attr.cy]="node.y" 
+                  [attr.r]="node.isCenter ? 25 : 15" 
+                  [attr.fill]="node.isCenter ? '#dc2626' : '#3b82f6'" 
+                  stroke="#ffffff"
+                  stroke-width="2"
+                  style="cursor: pointer;"
+                  (click)="!node.isCenter && selectAccount(node.iban)"
+                />
+                
+                <text 
+                  [attr.x]="node.x" 
+                  [attr.y]="node.y + (node.isCenter ? 40 : 25)" 
+                  text-anchor="middle" 
+                  font-size="11" 
+                  font-weight="600" 
+                  fill="#475569"
+                  style="pointer-events: none;"
+                >
+                  {{ shortIban(node.iban) }}
+                </text>
+              }
+            </svg>
+          } @else {
+            <p style="color: #94a3b8; font-size: 0.875rem;">Sélectionnez un compte pour afficher son réseau d'interactions.</p>
+          }
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- ===== ONGLET : DÉTECTION HYBRIDE ===== -->
+  @if (activeTab() === 'hybrid') {
+    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); overflow: hidden;">
+      <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="font-weight: 600; color: #1f2937;">Détail Règles + ML par transaction</h3>
+        <p style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">Score consolidé = max(règle métier, probabilité IA)</p>
+      </div>
+      @if (filteredAlerts().length === 0) {
+        <div style="padding: 2.5rem; text-align: center; color: #9ca3af;">Lancez une analyse pour voir le détail.</div>
+      } @else {
+        <table style="width: 100%; font-size: 0.875rem;">
+          <thead style="background-color: #f9fafb; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+            <tr>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Transaction</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Catégorie règle</th>
+              <th style="text-align: center; padding: 0.75rem 1rem;">Règle</th>
+              <th style="text-align: center; padding: 0.75rem 1rem;">Score IA</th>
+              <th style="text-align: center; padding: 0.75rem 1rem;">Décision finale</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Facteurs</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (alert of filteredAlerts(); track alert.id) {
+              <tr style="border-top: 1px solid #f3f4f6;">
+                <td style="padding: 0.75rem 1rem; font-weight: 500; color: #1f2937;">{{ alert.transactionId || alert.id }}</td>
+                <td style="padding: 0.75rem 1rem; color: #374151;">{{ ruleCategoryLabel(alert.category || 'NON_CATEGORISE') }}</td>
+                <td style="padding: 0.75rem 1rem; text-align: center;">
+                  @if (alert.category && alert.category !== 'NON_CATEGORISE') {
+                    <span style="font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 9999px; background: #fef2f2; color: #dc2626;">🚫 Bloqué</span>
+                  } @else {
+                    <span style="font-size: 0.75rem; color: #9ca3af;">—</span>
+                  }
+                </td>
+                <td style="padding: 0.75rem 1rem; text-align: center; font-weight: 600;" [style.color]="(alert.fraudScore ?? 0) >= 50 ? '#dc2626' : '#16a34a'">
+                  {{ alert.fraudScore ?? 0 }}%
+                </td>
+                <td style="padding: 0.75rem 1rem; text-align: center;">
+                  <span
+                    style="font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 9999px; border: 1px solid;"
+                    [style.color]="alert.status === 'new' ? '#dc2626' : '#16a34a'"
+                    [style.backgroundColor]="alert.status === 'new' ? '#fef2f2' : '#f0fdf4'"
+                    [style.borderColor]="alert.status === 'new' ? '#fecaca' : '#bbf7d0'"
+                  >
+                    {{ alert.status === 'new' ? 'FRAUDE' : 'CLEAN' }}
+                  </span>
+                </td>
+                <td style="padding: 0.75rem 1rem; color: #6b7280; font-size: 0.8rem; max-width: 320px;">
+                  {{ alert.explainability.factors.join(' · ') || '—' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  <!-- ===== ONGLET : EXPLICABILITÉ SHAP ===== -->
+  @if (activeTab() === 'shap') {
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 1.5rem;">
+        <h3 style="font-weight: 600; color: #1f2937; margin-bottom: 1rem;">Features les plus contributives (agrégat SHAP)</h3>
+        @if (shapFactorStats().length === 0) {
+          <p style="color: #9ca3af; font-size: 0.875rem;">Aucune contribution SHAP disponible (modèle ML désactivé ou pas encore lancé).</p>
+        } @else {
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            @for (f of shapFactorStats(); track f.feature) {
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
+                  <span style="font-weight: 500; color: #374151;">{{ f.feature }}</span>
+                  <span style="color: #6b7280;">{{ f.total }} occurrence(s)</span>
+                </div>
+                <div style="display: flex; height: 0.6rem; border-radius: 9999px; overflow: hidden; background: #f3f4f6;">
+                  <div style="background-color: #dc2626;" [style.width.%]="(f.positive / f.total) * 100"></div>
+                  <div style="background-color: #16a34a;" [style.width.%]="(f.negative / f.total) * 100"></div>
+                </div>
+              </div>
+            }
+          </div>
+          <p style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem;">
+            <span style="color:#dc2626;">■</span> contribue à la fraude &nbsp;
+            <span style="color:#16a34a;">■</span> réduit le risque
+          </p>
+        }
+      </div>
+
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 1.5rem;">
+        <h3 style="font-weight: 600; color: #1f2937; margin-bottom: 1rem;">Explication par transaction</h3>
+        @if (alertsWithMlFactors().length === 0) {
+          <p style="color: #9ca3af; font-size: 0.875rem;">Aucune transaction analysée par le modèle ML pour l'instant.</p>
+        }
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          @for (alert of alertsWithMlFactors(); track alert.id) {
+            <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="font-weight: 600; color: #1f2937;">{{ alert.transactionId }}</span>
+                <span style="font-size: 0.8rem; color: #6b7280;">Score IA : {{ alert.fraudScore }}%</span>
+              </div>
+              <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8rem; color: #4b5563;">
+                @for (factor of mlFactorsOf($any(alert)); track factor) {
+                  <li>{{ factor }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ===== ONGLET : RÈGLES MÉTIER ===== -->
+  @if (activeTab() === 'rules') {
+    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); overflow: hidden;">
+      <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="font-weight: 600; color: #1f2937;">Règles déclenchées sur le lot analysé</h3>
+      </div>
+      @if (ruleCategoryStats().length === 0) {
+        <div style="padding: 2.5rem; text-align: center; color: #9ca3af;">Aucune règle déclenchée sur ce lot (ou aucune analyse lancée).</div>
+      } @else {
+        <table style="width: 100%; font-size: 0.875rem;">
+          <thead style="background-color: #f9fafb; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+            <tr>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Règle</th>
+              <th style="text-align: center; padding: 0.75rem 1rem;">Occurrences</th>
+              <th style="text-align: right; padding: 0.75rem 1rem;">Montant cumulé</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Exemple de facteur</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (stat of ruleCategoryStats(); track stat.category) {
+              <tr style="border-top: 1px solid #f3f4f6;">
+                <td style="padding: 0.75rem 1rem; font-weight: 500; color: #1f2937;">{{ ruleCategoryLabel(stat.category) }}</td>
+                <td style="padding: 0.75rem 1rem; text-align: center;">
+                  <span style="background: #fef2f2; color: #dc2626; font-weight: 600; padding: 0.15rem 0.6rem; border-radius: 9999px;">{{ stat.count }}</span>
+                </td>
+                <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #1f2937;">{{ stat.amount | number: '1.2-2' }} €</td>
+                <td style="padding: 0.75rem 1rem; color: #6b7280; font-size: 0.8rem;">{{ stat.sampleFactor || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  <!-- ===== ONGLET : CONFIG SEUILS ===== -->
+  @if (activeTab() === 'config') {
+    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 1.5rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+        <div>
+          <h3 style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Configuration des Seuils de Détection</h3>
+          <p style="font-size: 0.8rem; color: #6b7280;">Ajustez la sensibilité du moteur de règles et des modèles de Machine Learning.</p>
+        </div>
+        <button 
+          (click)="saveConfig()" 
+          style="padding: 0.6rem 1.25rem; background-color: #1d4ed8; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; font-weight: 600;"
+        >
+          💾 Enregistrer les modifications
+        </button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+        <!-- Seuil Score ML -->
+        <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">
+          <label style="font-weight: 600; font-size: 0.875rem; color: #374151; display: block; margin-bottom: 0.5rem;">
+            Seuil d'alerte Machine Learning (%)
+          </label>
+          <input 
+            type="range" 
+            min="0" 
+            max="100" 
+            [(ngModel)]="mlThreshold" 
+            style="width: 100%; cursor: pointer;"
+          />
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">
+            <span>Permissif (0%)</span>
+            <span style="font-weight: 700; color: #1d4ed8;">{{ mlThreshold }}%</span>
+            <span>Strict (100%)</span>
+          </div>
+        </div>
+
+        <!-- Seuil Montant Critique -->
+        <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">
+          <label style="font-weight: 600; font-size: 0.875rem; color: #374151; display: block; margin-bottom: 0.5rem;">
+            Seuil de Montant Critique (€)
+          </label>
+          <input 
+            type="number" 
+            [(ngModel)]="criticalAmountThreshold" 
+            placeholder="Ex: 10000"
+            style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;"
+          />
+        </div>
+
+        <!-- Blocage Automatique -->
+        <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">
+          <label style="font-weight: 600; font-size: 0.875rem; color: #374151; display: block; margin-bottom: 0.5rem;">
+            Actions Automatiques
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: #4b5563; cursor: pointer;">
+            <input type="checkbox" [(ngModel)]="autoBlockEnabled" />
+            Bloquer immédiatement si Score > 85%
+          </label>
+        </div>
+      </div>
+
+    </div>
+  }
+
+</div>

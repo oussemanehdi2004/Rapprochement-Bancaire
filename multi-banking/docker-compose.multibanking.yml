@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  multi-banking:
+    build: .
+    container_name: multi_banking_standalone
+    ports:
+      - "8020:8010"
+    environment:
+      - INTERNAL_SERVICE_SECRET=internal_dev_secret
+      - DISABLE_INTERNAL_AUTH=false
+      - FRAUD_SERVICE_URL=http://fraud-service-unavailable:8005
+      - ENVIRONMENT=development
+    volumes:
+      - ./data:/app/data

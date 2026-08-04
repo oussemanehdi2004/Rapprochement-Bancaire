@@ -1,0 +1,13 @@
+.notification-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.desktop-only {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none;
+  }
+}

@@ -1,0 +1,106 @@
+# Multi-Banking Ingestion Service
+
+Microservice FastAPI indépendant qui ingère des relevés bancaires dans
+plusieurs formats (CSV, CAMT.053, MT940), les normalise vers un schéma pivot
+unique, les valide, puis les transmet au service **AI Fraud Detection** pour
+analyse.
+
+## Architecture
+
+```
+Fichier bancaire (CSV / CAMT.053 / MT940)
+        │
+        ▼
+  Multi-Banking Service (ce dépôt, port 8010)
+   ├─ parsers/          → normalisation vers PivotTransaction
+   ├─ validators.py      → validation métier (IBAN, date, montant, doublons)
+   └─ main.py             → endpoints exposés
+        │
+        ▼  (JWT interne forwardé)
+  AI Fraud Detection Service (port 8005)
+```
+
+## Endpoints
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/health` | Statut du service |
+| POST | `/api/multi-banking/parse` | Parse un fichier et retourne les transactions normalisées |
+| POST | `/api/multi-banking/validate` | Parse + applique les règles de validation métier |
+| POST | `/api/multi-banking/ingest` | Parse puis transmet directement au service Fraud Detection (`/api/analyze`) |
+
+Tous les endpoints (sauf `/health`) attendent :
+- un `multipart/form-data` avec `file`, `format` (`csv` \| `camt053` \| `mt940`), `tenant_id`, `bank_id`
+- un header `Authorization: Bearer <token_interne>`
+
+## Authentification
+
+Le service valide un **JWT interne** (HS256, secret partagé
+`INTERNAL_SERVICE_SECRET`) contenant au minimum `tenantId` et `type: "internal"`.
+Voir `internal_auth.py`.
+
+En développement, deux options :
+- Générer un token de test avec `scripts/gen_internal_token.py`
+- Passer `DISABLE_INTERNAL_AUTH=true` pour désactiver temporairement la
+  vérification (⚠️ ne jamais activer en production)
+
+## Lancer le service
+
+### Seul (sans Fraud Detection)
+
+```bash
+cp .env.example .env
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8010
+```
+
+Ou via Docker :
+```bash
+docker compose -f docker-compose.multibanking.yml up --build
+```
+
+### Avec Fraud Detection (stack complète)
+
+Voir `banking-platform/docker-compose.yml`.
+
+## Générer un token interne de test
+
+```bash
+python scripts/gen_internal_token.py
+```
+
+## Exemple d'appel
+
+```bash
+TOKEN=$(python scripts/gen_internal_token.py)
+
+curl -X POST http://localhost:8010/api/multi-banking/parse \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@data/sample.csv" \
+  -F "format=csv" \
+  -F "tenant_id=demo_retail" \
+  -F "bank_id=bank-a"
+```
+
+## Tests
+
+```bash
+pytest tests/ -v
+```
+
+Couvre : parsing CSV, CAMT.053, MT940, validation métier.
+
+## Formats supportés
+
+| Format | Fichier exemple | Statut |
+|---|---|---|
+| CSV | `data/sample.csv` | ✅ testé |
+| CAMT.053 (ISO 20022) | `data/sample_camt.xml` | ✅ testé |
+| MT940 (SWIFT) | — | ✅ testé |
+
+## Variables d'environnement
+
+Voir `.env.example` :
+- `INTERNAL_SERVICE_SECRET`
+- `DISABLE_INTERNAL_AUTH`
+- `FRAUD_SERVICE_URL` (utilisé par `/ingest`)

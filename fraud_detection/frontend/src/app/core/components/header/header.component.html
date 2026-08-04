@@ -1,0 +1,64 @@
+<header style="background-color: white; border-bottom: 1px solid #e5e7eb; height: 4rem; position: fixed; top: 0; right: 0; left: 16rem; z-index: 30; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem;">
+  <!-- Left side - Breadcrumb/Title -->
+  <div style="display: flex; align-items: center; gap: 1rem;">
+    <h2 style="font-size: 1.25rem; font-weight: 600; color: #1f2937;">Détection de Fraude</h2>
+  </div>
+
+  <!-- Right side - User & Notifications -->
+  <div style="display: flex; align-items: center; gap: 1rem;">
+    <!-- Date & Time -->
+    <div style="text-align: right; display: none;" class="desktop-only">
+      <p style="font-size: 0.875rem; font-weight: 500; color: #1f2937;">{{ getCurrentTime() }}</p>
+      <p style="font-size: 0.75rem; color: #6b7280;">{{ getCurrentDate() }}</p>
+    </div>
+
+    <!-- Notifications -->
+    <div style="position: relative;">
+      <button
+        (click)="toggleNotifications()"
+        style="position: relative; padding: 0.5rem; border-radius: 0.5rem; background: none; border: none; cursor: pointer; transition: background-color 0.2s;"
+        class="notification-btn"
+      >
+        <span style="font-size: 1.25rem;">🔔</span>
+        @if (notifications() > 0) {
+          <span style="position: absolute; top: -0.25rem; right: -0.25rem; height: 1.25rem; width: 1.25rem; background-color: #ef4444; color: white; font-size: 0.75rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center;">
+            {{ notifications() }}
+          </span>
+        }
+      </button>
+
+      @if (showNotifications()) {
+        <div style="position: absolute; right: 0; top: 100%; margin-top: 0.5rem; width: 20rem; background-color: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb; padding: 1rem; z-index: 50;">
+          <h3 style="font-weight: 600; color: #1f2937; margin-bottom: 0.75rem;">Notifications</h3>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.5rem; background-color: #fef2f2; border-radius: 0.5rem;">
+              <span style="font-size: 1.125rem;">🚨</span>
+              <div>
+                <p style="font-size: 0.875rem; font-weight: 500; color: #1f2937;">Nouvelle alerte critique</p>
+                <p style="font-size: 0.75rem; color: #6b7280;">Transaction suspecte détectée</p>
+              </div>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.5rem; background-color: #fff7ed; border-radius: 0.5rem;">
+              <span style="font-size: 1.125rem;">⚠️</span>
+              <div>
+                <p style="font-size: 0.875rem; font-weight: 500; color: #1f2937;">Règle déclenchée</p>
+                <p style="font-size: 0.75rem; color: #6b7280;">Montant exceptionnel > 10 000€</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- User Profile -->
+    <div style="display: flex; align-items: center; gap: 0.75rem; padding-left: 1rem; border-left: 1px solid #e5e7eb;">
+      <div style="text-align: right; display: none;" class="desktop-only">
+        <p style="font-size: 0.875rem; font-weight: 500; color: #1f2937;">{{ currentUser().name }}</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">{{ currentUser().role }}</p>
+      </div>
+      <div style="height: 2.5rem; width: 2.5rem; background: linear-gradient(to bottom right, #3b82f6, #1d4ed8); border-radius: 9999px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.125rem;">
+        {{ currentUser().avatar }}
+      </div>
+    </div>
+  </div>
+</header>

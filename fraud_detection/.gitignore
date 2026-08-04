@@ -1,0 +1,57 @@
+# ====================================================================
+# 1. FICHIERS LOURDS ET DONNÉES (À NE JAMAIS UPLOADER)
+# ====================================================================
+# Ignore le gros dataset de cartes bancaires et n'importe quel autre CSV
+*.csv
+**/creditcard.csv
+# Ignore les gros fichiers de modèles entraînés s'ils dépassent 50 Mo
+# *.json (optionnel, laissez model_xgb.json si vous voulez le partager sur GitHub)
+
+
+# ====================================================================
+# 2. FRONTEND (ANGULAR)
+# ====================================================================
+# Ignore le dossier géant de dépendances d'Angular
+**/node_modules/
+**/.angular/
+**/dist/
+
+# Fichiers de configuration locale de l'éditeur
+**/.vscode/
+**/.idea/
+
+
+# ====================================================================
+# 3. BACKEND (PYTHON)
+# ====================================================================
+# Fichiers temporaires générés par Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Environnements virtuels Python (si vous en créez un plus tard)
+**/.venv/
+**/.venv-test/
+**/venv/
+**/env/
+
+# Artefacts de tests et de couverture
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+
+
+# ====================================================================
+# 4. FICHIERS TEMPORAIRES OFFICE & SYSTÈME
+# ====================================================================
+# Ignore les fichiers temporaires créés par Word quand un document est ouvert
+~$*.docx
+~$*.xlsx
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example

@@ -1,0 +1,27 @@
+{
+  "/api/analyze": {
+    "target": "http://127.0.0.1:8005",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/config": {
+    "target": "http://127.0.0.1:8005",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/graph": {
+    "target": "http://127.0.0.1:8005",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/fraud": {
+    "target": "http://127.0.0.1:8005",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api": {
+    "target": "http://127.0.0.1:8005",
+    "secure": false,
+    "changeOrigin": true
+  }
+}

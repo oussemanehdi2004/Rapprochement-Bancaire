@@ -1,0 +1,170 @@
+<div style="padding: 1.5rem; max-width: 80rem; margin: 0 auto;">
+  <!-- Page Header -->
+  <div style="margin-bottom: 1.5rem;">
+    <h1 style="font-size: 1.5rem; font-weight: bold; color: #1f2937;">Transactions</h1>
+    <p style="color: #6b7280; margin-top: 0.25rem;">Historique des transactions bancaires</p>
+  </div>
+
+  <!-- Filters -->
+  <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
+    <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+      <!-- Import Filter -->
+      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase;">Import</label>
+        <select
+          style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; min-width: 180px;"
+          [ngModel]="'tous'"
+        >
+          <option value="tous">Tous les imports</option>
+          <option value="import1">Import Juin 2026</option>
+          <option value="import2">Import Mai 2026</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase;">Statut</label>
+        <select
+          style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; min-width: 160px;"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event)"
+        >
+          <option value="tous">Tous</option>
+          <option value="rapproche">Rapproché</option>
+          <option value="non-rapproche">Non rapproché</option>
+          <option value="attente">En attente</option>
+        </select>
+      </div>
+
+      <!-- Date From -->
+      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase;">Date du</label>
+        <input
+          type="text"
+          placeholder="jj/mm/aaaa"
+          style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; width: 128px;"
+          [ngModel]="dateFrom()"
+          (ngModelChange)="dateFrom.set($event)"
+        />
+      </div>
+
+      <!-- Date To -->
+      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase;">Date au</label>
+        <input
+          type="text"
+          placeholder="jj/mm/aaaa"
+          style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; width: 128px;"
+          [ngModel]="dateTo()"
+          (ngModelChange)="dateTo.set($event)"
+        />
+      </div>
+
+      <!-- Search -->
+      <div style="display: flex; flex-direction: column; gap: 0.25rem; flex: 1; min-width: 200px;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase;">Recherche</label>
+        <input
+          type="text"
+          placeholder="Rechercher par libellé, réf"
+          style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem;"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+        />
+      </div>
+
+      <!-- Reset Button -->
+      <button
+        (click)="resetFilters()"
+        style="padding: 0.5rem 1rem; font-size: 0.875rem; color: #2563eb; background: none; border: 1px solid #bfdbfe; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s;"
+        class="reset-btn"
+      >
+        Réinitialiser les filtres
+      </button>
+    </div>
+  </div>
+<!-- Ajoute ceci juste au-dessus de ton tableau pour gérer les erreurs -->
+@if (errorMessage()) {
+  <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 1rem; margin-bottom: 1rem;">
+    <p style="color: #b91c1c; margin: 0; font-size: 0.875rem;">{{ errorMessage() }}</p>
+  </div>
+}
+  <!-- Transactions Table -->
+  <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; margin-top: 1.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); overflow: hidden;">
+    <table style="width: 100%; font-size: 0.875rem;">
+      <thead style="background-color: #f9fafb; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+        <tr>
+          <th style="text-align: left; padding: 0.75rem 1rem;">Date</th>
+          <th style="text-align: left; padding: 0.75rem 1rem;">Libellé</th>
+          <th style="text-align: right; padding: 0.75rem 1rem;">Montant</th>
+          <th style="text-align: left; padding: 0.75rem 1rem;">Statut</th>
+          <th style="text-align: left; padding: 0.75rem 1rem;">Référence</th>
+          <th style="text-align: center; padding: 0.75rem 1rem;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (tx of transactions(); track tx.id) {
+          <tr style="border-top: 1px solid #f3f4f6;">
+            <td style="padding: 0.75rem 1rem; color: #374151;">{{ tx.date }}</td>
+            <td style="padding: 0.75rem 1rem; color: #1f2937; font-weight: 500;">{{ tx.description }}</td>
+            <td style="padding: 0.75rem 1rem; text-align: right; color: #374151;">
+              {{ tx.amount | number: '1.2-2' }} €
+            </td>
+            <td style="padding: 0.75rem 1rem;">
+              <span style="font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 9999px;" 
+                [style.background-color]="getStatusBgColor(tx.reconciliationStatus)" 
+                [style.color]="getStatusTextColor(tx.reconciliationStatus)">
+                {{ tx.reconciliationStatus }}
+              </span>
+            </td>
+            <td style="padding: 0.75rem 1rem; color: #6b7280;">{{ tx.id }}</td>
+            <td style="padding: 0.75rem 1rem;">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <button style="padding: 0.25rem; background: none; border: none; cursor: pointer; border-radius: 0.25rem;" class="action-btn" title="Modifier">
+                  ✏️
+                </button>
+                <button style="padding: 0.25rem; background: none; border: none; cursor: pointer; border-radius: 0.25rem;" class="action-btn" title="Supprimer">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" style="text-align: center; color: #9ca3af; padding: 2.5rem;">
+              @if (loading()) { 
+                Chargement en cours... 
+              } @else { 
+                Aucune transaction trouvée 
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 1rem;">
+    <p style="font-size: 0.875rem; color: #6b7280;">
+      Affichage de 1 à {{ transactions().length }} sur {{ transactions().length }} transactions
+    </p>
+    <div style="display: flex; gap: 0.5rem;">
+      <button style="padding: 0.25rem 0.75rem; font-size: 0.875rem; border: 1px solid #e5e7eb; border-radius: 0.25rem; background: white; cursor: pointer; opacity: 0.5;" disabled>
+        Précédent
+      </button>
+      <button style="padding: 0.25rem 0.75rem; font-size: 0.875rem; border: 1px solid #e5e7eb; border-radius: 0.25rem; background: white; cursor: pointer; opacity: 0.5;" disabled>
+        Suivant
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+.reset-btn:hover {
+  background-color: #eff6ff;
+}
+
+.action-btn:hover {
+  background-color: #f3f4f6;
+}
+</style>

@@ -1,0 +1,187 @@
+openapi: 3.0.3
+info:
+  title: API de Rapprochement Bancaire et Détection de Fraude
+  description: API pour envoyer des transactions financières et obtenir une prédiction de fraude par IA.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8005
+    description: Serveur de développement local (FastAPI)
+
+paths:
+  /api/analyze:
+    post:
+      summary: Analyser des transactions pour détecter les fraudes
+      operationId: analyzeTransactions
+      security:
+        - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/TransactionInput'
+      responses:
+        '200':
+          description: Analyse complétée avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransactionOutput'
+
+components:
+  schemas:
+    ShapContribution:
+      type: object
+      required:
+        - feature
+        - value
+        - direction
+      properties:
+        feature:
+          type: string
+        value:
+          type: number
+        direction:
+          type: string
+          enum: [positive, negative]
+
+    TransactionInput:
+      type: object
+      required:
+        - tenant_id
+        - mongo_transaction_id
+        - id
+        - date
+        - description
+        - amount
+        - sender_balance_before
+        - sender_balance_after
+        - receiver_balance_before
+        - receiver_balance_after
+        - transaction_type
+      properties:
+        tenant_id:
+          type: string
+          example: "tenant-123"
+        mongo_transaction_id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        id:
+          type: string
+          example: "TX-10024"
+        date:
+          type: string
+          format: date
+          example: "2026-07-16"
+        description:
+          type: string
+          example: "VIREMENT ENTRANT CASINO"
+        amount:
+          type: number
+          format: float
+          example: 1500.50
+        sender_balance_before:
+          type: number
+          format: float
+          example: 5000.0
+        sender_balance_after:
+          type: number
+          format: float
+          example: 3499.5
+        receiver_balance_before:
+          type: number
+          format: float
+          example: 200.0
+        receiver_balance_after:
+          type: number
+          format: float
+          example: 1700.5
+        transaction_type:
+          type: string
+          description: Type de transaction (TRANSFER, CASH_OUT, PAYMENT, etc.)
+          example: "TRANSFER"
+        account_iban:
+          type: string
+          nullable: true
+        beneficiary_iban:
+          type: string
+          nullable: true
+        sender_account:
+          type: string
+          nullable: true
+        receiver_account:
+          type: string
+          nullable: true
+
+    Explainability:
+      type: object
+      required:
+        - summary
+        - factors
+      properties:
+        summary:
+          type: string
+        factors:
+          type: array
+          items:
+            type: string
+        shap_contributions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShapContribution'
+          default: []
+
+    TransactionOutput:
+      type: object
+      required:
+        - mongo_transaction_id
+        - id
+        - date
+        - description
+        - amount
+        - isFraud
+        - fraudProbability
+        - reconciliationStatus
+        - explainability
+      properties:
+        tenant_id:
+          type: string
+          description: Ignoré si fourni  dérivé du token d'authentification côté serveur.
+        mongo_transaction_id:
+          type: string
+        id:
+          type: string
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        amount:
+          type: number
+          format: float
+        isFraud:
+          type: boolean
+          description: Flag indiquant si la transaction est suspecte
+        fraudProbability:
+          type: number
+          format: float
+          description: Probabilité de fraude (de 0.0 à 1.0)
+        reconciliationStatus:
+          type: string
+          enum: [MATCHED, UNMATCHED, SUSPICIOUS]
+          description: Statut du rapprochement bancaire
+        ruleCategory:
+          type: string
+          nullable: true
+          default: NON_CATEGORISE
+        explainability:
+          $ref: '#/components/schemas/Explainability'
+
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer

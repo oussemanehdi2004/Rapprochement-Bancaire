@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+  <BkToCstmrStmt>
+    <Stmt>
+      <Acct>
+        <Id>
+          <IBAN>FR761234567890</IBAN>
+        </Id>
+      </Acct>
+      <Ntry>
+        <Amt Ccy="EUR">1500.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <ValDt>
+          <Dt>2026-07-01</Dt>
+        </ValDt>
+        <AddtlNtryInf>SALAIRE</AddtlNtryInf>
+        <AcctSvcrRef>REFCAMT001</AcctSvcrRef>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">500.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <ValDt>
+          <Dt>2026-07-02</Dt>
+        </ValDt>
+        <AddtlNtryInf>LOYER</AddtlNtryInf>
+        <AcctSvcrRef>REFCAMT002</AcctSvcrRef>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>

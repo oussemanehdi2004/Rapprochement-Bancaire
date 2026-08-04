@@ -1,0 +1,803 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API de Rapprochement Bancaire, Fraude Hybride et Persistance",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/analyze-demo": {
+      "post": {
+        "summary": "Analyze Transactions Demo",
+        "operationId": "analyze_transactions_demo_api_analyze_demo_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/TransactionInput"
+                },
+                "type": "array",
+                "title": "Transactions"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionOutput"
+                  },
+                  "type": "array",
+                  "title": "Response Analyze Transactions Demo Api Analyze Demo Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analyze": {
+      "post": {
+        "summary": "Analyze Transactions Secure",
+        "operationId": "analyze_transactions_secure_api_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/TransactionInput"
+                },
+                "type": "array",
+                "title": "Transactions"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionOutput"
+                  },
+                  "type": "array",
+                  "title": "Response Analyze Transactions Secure Api Analyze Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/config/thresholds": {
+      "get": {
+        "summary": "Get Config Thresholds",
+        "operationId": "get_config_thresholds_api_config_thresholds_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThresholdsModel"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Put Config Thresholds",
+        "operationId": "put_config_thresholds_api_config_thresholds_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThresholdsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThresholdsModel"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/graph/top-accounts": {
+      "get": {
+        "summary": "Get Top Flagged Accounts",
+        "operationId": "get_top_flagged_accounts_api_graph_top_accounts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "default",
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/graph/network": {
+      "get": {
+        "summary": "Get Account Network",
+        "operationId": "get_account_network_api_graph_network_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "iban",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Iban"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphNetworkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "Endpoint Healthcheck de base.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/token": {
+      "get": {
+        "summary": "Get Test Token",
+        "description": "Endpoint de génération de token pour le test suite HTTP.",
+        "operationId": "get_test_token_api_token_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ExplainabilityOutput": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "factors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Factors"
+          },
+          "shap_contributions": {
+            "items": {
+              "$ref": "#/components/schemas/ShapContribution"
+            },
+            "type": "array",
+            "title": "Shap Contributions",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "factors"
+        ],
+        "title": "ExplainabilityOutput"
+      },
+      "GraphEdge": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "is_fraud": {
+            "type": "boolean",
+            "title": "Is Fraud"
+          },
+          "tx_id": {
+            "type": "string",
+            "title": "Tx Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "target",
+          "amount",
+          "is_fraud",
+          "tx_id"
+        ],
+        "title": "GraphEdge"
+      },
+      "GraphNetworkResponse": {
+        "properties": {
+          "center_iban": {
+            "type": "string",
+            "title": "Center Iban"
+          },
+          "nodes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Nodes"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEdge"
+            },
+            "type": "array",
+            "title": "Edges"
+          }
+        },
+        "type": "object",
+        "required": [
+          "center_iban",
+          "nodes",
+          "edges"
+        ],
+        "title": "GraphNetworkResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ShapContribution": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "direction": {
+            "type": "string",
+            "title": "Direction"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "value",
+          "direction"
+        ],
+        "title": "ShapContribution"
+      },
+      "ThresholdsModel": {
+        "properties": {
+          "SEUIL_REGLEMENTAIRE": {
+            "type": "number",
+            "title": "Seuil Reglementaire"
+          },
+          "SEUIL_APPROCHE_RATIO": {
+            "type": "number",
+            "title": "Seuil Approche Ratio"
+          },
+          "SEUIL_CASH_OUT": {
+            "type": "number",
+            "title": "Seuil Cash Out"
+          },
+          "SEUIL_MONTANT_ABERRANT": {
+            "type": "number",
+            "title": "Seuil Montant Aberrant"
+          },
+          "RATIO_MONTANT_INHABITUEL": {
+            "type": "number",
+            "title": "Ratio Montant Inhabituel"
+          },
+          "SEUIL_JOURS_COMPTE_DORMANT": {
+            "type": "integer",
+            "title": "Seuil Jours Compte Dormant"
+          },
+          "MOTS_CLES_SENSIBLES": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Mots Cles Sensibles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "SEUIL_REGLEMENTAIRE",
+          "SEUIL_APPROCHE_RATIO",
+          "SEUIL_CASH_OUT",
+          "SEUIL_MONTANT_ABERRANT",
+          "RATIO_MONTANT_INHABITUEL",
+          "SEUIL_JOURS_COMPTE_DORMANT",
+          "MOTS_CLES_SENSIBLES"
+        ],
+        "title": "ThresholdsModel"
+      },
+      "ThresholdsPatch": {
+        "properties": {
+          "SEUIL_REGLEMENTAIRE": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seuil Reglementaire"
+          },
+          "SEUIL_APPROCHE_RATIO": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seuil Approche Ratio"
+          },
+          "SEUIL_CASH_OUT": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seuil Cash Out"
+          },
+          "SEUIL_MONTANT_ABERRANT": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seuil Montant Aberrant"
+          },
+          "RATIO_MONTANT_INHABITUEL": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ratio Montant Inhabituel"
+          },
+          "SEUIL_JOURS_COMPTE_DORMANT": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seuil Jours Compte Dormant"
+          },
+          "MOTS_CLES_SENSIBLES": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mots Cles Sensibles"
+          }
+        },
+        "type": "object",
+        "title": "ThresholdsPatch"
+      },
+      "TransactionInput": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "mongo_transaction_id": {
+            "type": "string",
+            "title": "Mongo Transaction Id"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "sender_balance_before": {
+            "type": "number",
+            "title": "Sender Balance Before"
+          },
+          "sender_balance_after": {
+            "type": "number",
+            "title": "Sender Balance After"
+          },
+          "receiver_balance_before": {
+            "type": "number",
+            "title": "Receiver Balance Before"
+          },
+          "receiver_balance_after": {
+            "type": "number",
+            "title": "Receiver Balance After"
+          },
+          "transaction_type": {
+            "type": "string",
+            "title": "Transaction Type"
+          },
+          "account_iban": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Iban"
+          },
+          "beneficiary_iban": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beneficiary Iban"
+          },
+          "sender_account": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Account"
+          },
+          "receiver_account": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receiver Account"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id",
+          "mongo_transaction_id",
+          "id",
+          "date",
+          "description",
+          "amount",
+          "sender_balance_before",
+          "sender_balance_after",
+          "receiver_balance_before",
+          "receiver_balance_after",
+          "transaction_type"
+        ],
+        "title": "TransactionInput"
+      },
+      "TransactionOutput": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id",
+            "description": "Ignoré si fourni : dérivé du token d'authentification côté serveur."
+          },
+          "mongo_transaction_id": {
+            "type": "string",
+            "title": "Mongo Transaction Id"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "isFraud": {
+            "type": "boolean",
+            "title": "Isfraud"
+          },
+          "fraudProbability": {
+            "type": "number",
+            "title": "Fraudprobability"
+          },
+          "reconciliationStatus": {
+            "type": "string",
+            "title": "Reconciliationstatus"
+          },
+          "ruleCategory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rulecategory",
+            "default": "NON_CATEGORISE"
+          },
+          "explainability": {
+            "$ref": "#/components/schemas/ExplainabilityOutput"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id",
+          "mongo_transaction_id",
+          "id",
+          "date",
+          "description",
+          "amount",
+          "isFraud",
+          "fraudProbability",
+          "reconciliationStatus",
+          "explainability"
+        ],
+        "title": "TransactionOutput"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

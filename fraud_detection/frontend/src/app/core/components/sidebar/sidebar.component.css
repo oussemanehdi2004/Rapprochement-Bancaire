@@ -1,0 +1,12 @@
+.sidebar-link:hover {
+  background-color: #f9fafb;
+}
+
+.sidebar-link.active-link {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.sidebar-toggle:hover {
+  background-color: #f9fafb;
+}

@@ -1,0 +1,135 @@
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f8fafc;
+  color: #1f2937;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Utility classes */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mt-6 { margin-top: 1.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.text-sm { font-size: 0.875rem; }
+.text-lg { font-size: 1.125rem; }
+.text-xl { font-size: 1.25rem; }
+.text-2xl { font-size: 1.5rem; }
+.text-3xl { font-size: 1.875rem; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+.text-gray-400 { color: #9ca3af; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-700 { color: #374151; }
+.text-gray-800 { color: #1f2937; }
+.text-white { color: white; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-700 { color: #1d4ed8; }
+.text-blue-900 { color: #1e3a8a; }
+.text-red-600 { color: #dc2626; }
+.text-orange-500 { color: #f97316; }
+.text-amber-500 { color: #f59e0b; }
+.text-green-600 { color: #16a34a; }
+.bg-white { background-color: white; }
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-blue-900 { background-color: #1e3a8a; }
+.bg-blue-700 { background-color: #1d4ed8; }
+.bg-red-50 { background-color: #fef2f2; }
+.bg-orange-50 { background-color: #fff7ed; }
+.bg-amber-50 { background-color: #fffbeb; }
+.bg-green-50 { background-color: #f0fdf4; }
+.border { border: 1px solid #e5e7eb; }
+.border-gray-200 { border-color: #e5e7eb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-t { border-top: 1px solid #e5e7eb; }
+.border-b { border-bottom: 1px solid #e5e7eb; }
+.border-l { border-left: 1px solid #e5e7eb; }
+.border-r { border-right: 1px solid #e5e7eb; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-2xl { border-radius: 1rem; }
+.rounded-full { border-radius: 9999px; }
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.h-8 { height: 2rem; }
+.h-10 { height: 2.5rem; }
+.h-12 { height: 3rem; }
+.w-8 { width: 2rem; }
+.w-10 { width: 2.5rem; }
+.w-12 { width: 3rem; }
+.w-16 { width: 4rem; }
+.w-64 { width: 16rem; }
+.min-w-160 { min-width: 160px; }
+.max-w-7xl { max-width: 80rem; }
+.grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.gap-4 { gap: 1rem; }
+.overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
+.transition-colors { transition: color 0.2s; }
+.hover\:bg-gray-53:hover { background-color: #f9fafb; }
+.hover\:bg-blue-50:hover { background-color: #eff6ff; }
+.uppercase { text-transform: uppercase; }
+.tracking-wide { letter-spacing: 0.05em; }
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+.relative { position: relative; }
+.fixed { position: fixed; }
+.left-0 { left: 0; }
+.right-0 { right: 0; }
+.top-0 { top: 0; }
+.z-30 { z-index: 30; }
+.z-40 { z-index: 40; }
+.z-50 { z-index: 50; }
+.ml-64 { margin-left: 16rem; }
+.pt-16 { padding-top: 4rem; }
+.cursor-pointer { cursor: pointer; }
