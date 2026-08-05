@@ -11,7 +11,7 @@ def transaction_payload(**overrides: Any) -> dict:
     """Return a valid transaction payload dict, with optional field overrides."""
     payload: dict = {
         "tenant_id": "tenant-123",
-        "mongo_transaction_id": "507f1f77bcf86cd799439011",
+        "transaction_reference": "507f1f77bcf86cd799439011",  # Renamed from mongo_transaction_id
         "id": "TX-10024",
         "date": "2026-07-16",
         "description": "ACHAT SUPERMARCHE",

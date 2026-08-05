@@ -7,6 +7,8 @@ import jwt
 import joblib
 import numpy as np
 import shap
+import uuid
+import json
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -97,6 +99,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def log_requests(request, call_next):
+    request_id = str(uuid.uuid4())
+    start = time.perf_counter()
+
+    response = await call_next(request)
+
+    duration_ms = round(
+        (time.perf_counter() - start) * 1000,
+        2,
+    )
+
+    logger.info(
+        json.dumps(
+            {
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": duration_ms,
+                "environment": ENVIRONMENT,
+            }
+        )
+    )
+
+    response.headers["X-Request-ID"] = request_id
+    return response
+
 # =====================================================================
 # 2. CONFIGURATION ET CONNEXION SUPABASE (PHASE 4)
 # =====================================================================
@@ -165,7 +195,7 @@ class ExplainabilityOutput(BaseModel):
 
 class TransactionOutput(BaseModel):
     tenant_id: str
-    mongo_transaction_id: str
+    transaction_reference: str  # Renamed from mongo_transaction_id (SHA-256 hash, not true Mongo ObjectId)
     id: str
     date: str
     description: str
@@ -384,7 +414,7 @@ def build_transaction_output(
     conf_data = probability_to_confidence(fraud_probability)
     return TransactionOutput(
         tenant_id=tx.tenant_id,
-        mongo_transaction_id=tx.mongo_transaction_id,
+        transaction_reference=tx.transaction_reference,
         id=tx.id,
         date=tx.date,
         description=tx.description,
@@ -537,7 +567,7 @@ async def analyze_transactions_secure(
                 for r in results:
                     supabase.table("fraud_alerts").insert({
                         "tenant_id": r.tenant_id,
-                        "mongo_transaction_id": r.mongo_transaction_id,
+                        "transaction_reference": r.transaction_reference,
                         "transaction_id": r.id,
                         "date": r.date,
                         "amount": r.amount,
@@ -726,7 +756,7 @@ async def get_test_token():
 class TransactionListItem(BaseModel):
     id: str
     tenant_id: Optional[str] = None
-    mongo_transaction_id: Optional[str] = None
+    transaction_reference: Optional[str] = None  # Renamed from mongo_transaction_id
     date: str
     description: Optional[str] = None
     amount: float
@@ -784,7 +814,7 @@ async def list_transactions(
         TransactionListItem(
             id=str(row.get("transaction_id") or row.get("id") or ""),
             tenant_id=row.get("tenant_id") or "",
-            mongo_transaction_id=row.get("mongo_transaction_id") or "",
+            transaction_reference=row.get("transaction_reference") or row.get("mongo_transaction_id") or "",
             date=str(row.get("date") or ""),
             description=row.get("description"),
             amount=float(row.get("amount") or 0.0),

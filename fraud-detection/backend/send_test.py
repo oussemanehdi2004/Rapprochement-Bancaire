@@ -9,7 +9,7 @@ payload = [
     # Transaction 1 : B envoie à C
     {
         "tenant_id": "tenant-123",
-        "mongo_transaction_id": "60f1e9b2c9e1f80015b3a1a2",
+        "transaction_reference": "60f1e9b2c9e1f80015b3a1a2",  # Renamed from mongo_transaction_id
         "id": "TX-REAL-002",
         "date": "2026-07-26",
         "description": "AVANCE FOURNISSEUR",
@@ -25,7 +25,7 @@ payload = [
     # Transaction 2 : C renvoie vers A (Fermeture du cycle !)
     {
         "tenant_id": "tenant-123",
-        "mongo_transaction_id": "60f1e9b2c9e1f80015b3a1a3",
+        "transaction_reference": "60f1e9b2c9e1f80015b3a1a3",  # Renamed from mongo_transaction_id
         "id": "TX-REAL-003",
         "date": "2026-07-26",
         "description": "REVENUE FRAUDEUR",

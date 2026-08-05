@@ -12,7 +12,7 @@ from config_store import get_thresholds
 # =====================================================================
 class TransactionInput(BaseModel):
     tenant_id: Optional[str] = None  # Ignoré si fourni ; toujours dérivé du token serveur
-    mongo_transaction_id: str
+    transaction_reference: str  # Renamed from mongo_transaction_id (SHA-256 hash, not true Mongo ObjectId)
     id: str
     date: str
     description: str

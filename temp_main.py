@@ -1,8 +1,7 @@
-import json
-import logging
+﻿import json
+import logging`nimport json`nimport json`nimport json`nimport json`nimport json`nimport json
 import os
 import time
-import uuid
 
 import httpx
 from fastapi import (
@@ -17,12 +16,11 @@ from fastapi import (
 from internal_auth import verify_internal_token
 from parsers import camt053, csv_bank, mt940
 from validators import validate_transactions
-from bankmatch_client import generate_service_token, import_transactions, start_matching
 
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format="%(message)s",
 )
 
 logger = logging.getLogger("multi-banking")
@@ -53,7 +51,6 @@ app = FastAPI(
 
 @app.middleware("http")
 async def log_requests(request, call_next):
-    request_id = str(uuid.uuid4())
     start = time.perf_counter()
 
     response = await call_next(request)
@@ -66,17 +63,14 @@ async def log_requests(request, call_next):
     logger.info(
         json.dumps(
             {
-                "request_id": request_id,
                 "method": request.method,
                 "path": request.url.path,
                 "status_code": response.status_code,
                 "duration_ms": duration_ms,
-                "environment": ENVIRONMENT,
             }
         )
     )
 
-    response.headers["X-Request-ID"] = request_id
     return response
 
 
@@ -87,7 +81,7 @@ def parse_content(
     bank_id: str,
 ):
     """
-    Parse le contenu selon le format demandé.
+    Parse le contenu selon le format demandÃ©.
     """
 
     if normalized_format == "csv":
@@ -114,8 +108,8 @@ def parse_content(
     raise HTTPException(
         status_code=400,
         detail=(
-            f"Format non supporté : {normalized_format}. "
-            "Formats acceptés : csv, camt053, mt940"
+            f"Format non supportÃ© : {normalized_format}. "
+            "Formats acceptÃ©s : csv, camt053, mt940"
         ),
     )
 
@@ -127,7 +121,7 @@ def build_fraud_payload(transactions: list) -> list[dict]:
 
     Remarque : Fraud Detection ne supporte pas les
     valeurs nulles pour les soldes. Une valeur par
-    défaut 0.0 est donc utilisée lorsque le solde
+    dÃ©faut 0.0 est donc utilisÃ©e lorsque le solde
     n'est pas disponible dans le fichier source.
     """
 
@@ -286,7 +280,7 @@ async def ingest_file(
     if not transactions:
         raise HTTPException(
             status_code=400,
-            detail="Aucune transaction n'a pu être extraite du fichier",
+            detail="Aucune transaction n'a pu Ãªtre extraite du fichier",
         )
 
     fraud_payload = build_fraud_payload(transactions)
@@ -336,47 +330,11 @@ async def ingest_file(
             detail="Fraud service returned an invalid JSON response",
         )
 
-    bankmatch_result = None
-    
-    if BANKMATCH_INTEGRATION_ENABLED:
-        try:
-            service_token = generate_service_token(tenant_id)
-            
-            transactions_for_bankmatch = [
-                transaction.model_dump() 
-                for transaction in transactions
-            ]
-            
-            import_response = await import_transactions(
-                transactions_for_bankmatch,
-                service_token
-            )
-            
-            bankmatch_result = import_response
-            
-            if import_response.get("session_id"):
-                session_id = import_response["session_id"]
-                matching_response = await start_matching(
-                    session_id,
-                    service_token
-                )
-                bankmatch_result["matching"] = matching_response
-                
-        except Exception as exc:
-            logger.error(
-                json.dumps({
-                    "event": "bankmatch_integration_error",
-                    "error": str(exc),
-                    "tenant_id": tenant_id,
-                })
-            )
-            bankmatch_result = {"error": str(exc)}
-
     return {
         "success": True,
         "parsed_count": len(transactions),
         "fraud_result": fraud_result,
-        "bankmatch_result": bankmatch_result,
+        "bankmatch_result": None,
         "metadata": {
             "filename": file.filename,
             "format": normalized_format,

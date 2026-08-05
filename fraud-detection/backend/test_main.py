@@ -8,7 +8,7 @@ def test_analyze_success_with_valid_token():
     headers = {"Authorization": f"Bearer {token}"}
 
     payload = [{
-        "mongo_transaction_id": "60d5ecb8b5c9c22234567890",
+        "transaction_reference": "60d5ecb8b5c9c22234567890",  # Renamed from mongo_transaction_id
         "id": "TX_DEMO_001",
         "date": "2026-03-30T10:00:00Z",
         "description": "Virement classique demo",
