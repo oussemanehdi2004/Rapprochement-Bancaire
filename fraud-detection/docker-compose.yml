@@ -16,7 +16,7 @@ services:
       - banking_net
 
   fraud-service:
-    build: ../fraud_detection/backend
+    build: ./backend
     container_name: fraud_service
     ports:
       - "8005:8005"
@@ -26,6 +26,11 @@ services:
       - NEO4J_PASSWORD=password_super_securise
       - INTERNAL_SERVICE_SECRET=internal_dev_secret
       - DISABLE_INTERNAL_AUTH=false
+      - JWT_SECRET=${JWT_SECRET}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
     depends_on:
       - neo4j_db
     networks:
@@ -44,6 +49,7 @@ services:
       - fraud-service
     networks:
       - banking_net
+
   api-gateway:
     image: nginx:latest
     container_name: api_gateway
