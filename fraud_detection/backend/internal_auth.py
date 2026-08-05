@@ -4,8 +4,7 @@ from fastapi import Header, HTTPException
 
 INTERNAL_SERVICE_SECRET = os.getenv("INTERNAL_SERVICE_SECRET", "internal_dev_secret")
 # Bascule dev : laisse passer sans token tant que BankMatch n'appelle pas encore le service
-DISABLE_INTERNAL_AUTH = os.getenv("DISABLE_INTERNAL_AUTH", "true").lower() == "true"
-
+DISABLE_INTERNAL_AUTH = os.getenv("DISABLE_INTERNAL_AUTH", "false").lower() == "true"
 def verify_internal_token(authorization: str = Header(default=None)):
     if DISABLE_INTERNAL_AUTH:
         # Contexte de dev/démo : reproduit ce que fait déjà get_current_user_context()
