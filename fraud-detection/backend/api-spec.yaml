@@ -53,7 +53,7 @@ components:
       type: object
       required:
         - tenant_id
-        - mongo_transaction_id
+        - transaction_reference
         - id
         - date
         - description
@@ -67,9 +67,9 @@ components:
         tenant_id:
           type: string
           example: "tenant-123"
-        mongo_transaction_id:
+        transaction_reference:
           type: string
-          example: "507f1f77bcf86cd799439011"
+          example: "TX-10024"
         id:
           type: string
           example: "TX-10024"
@@ -138,7 +138,7 @@ components:
     TransactionOutput:
       type: object
       required:
-        - mongo_transaction_id
+        - transaction_reference
         - id
         - date
         - description
@@ -151,7 +151,7 @@ components:
         tenant_id:
           type: string
           description: Ignoré si fourni  dérivé du token d'authentification côté serveur.
-        mongo_transaction_id:
+        transaction_reference:
           type: string
         id:
           type: string

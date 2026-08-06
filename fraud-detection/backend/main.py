@@ -746,9 +746,7 @@ async def root():
         "database_connected": supabase is not None
     }
 
-@app.get("/api/token")
-async def get_test_token():
-    return generate_test_token()
+
 
 # =====================================================================
 # 10. LISTE DES TRANSACTIONS ANALYSÉES (lecture Supabase fraud_alerts)

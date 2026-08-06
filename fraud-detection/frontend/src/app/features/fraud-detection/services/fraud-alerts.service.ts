@@ -25,7 +25,7 @@ export interface ExplainabilityOutput {
 export interface TransactionOutput {
   tenant_id?: string;
   tenantId?: string;
-  mongo_transaction_id?: string;
+  transaction_reference?: string;
   id?: string;
   transactionId?: string;
   date: string;
@@ -96,7 +96,7 @@ export class FraudAlertsService {
 
       return {
         ...tx,
-        transactionId: tx.transactionId || tx.id || tx.mongo_transaction_id,
+        transactionId: tx.transactionId || tx.id || tx.transaction_reference,
         category: tx.category || tx.ruleCategory || 'NON_CATEGORISE',
         confidence: derivedConfidence, // On écrase avec la règle métier stricte
         severity: tx.severity || (derivedConfidence === 'HIGH' ? 'CRITICAL' : derivedConfidence === 'MEDIUM' ? 'HIGH' : 'LOW'),

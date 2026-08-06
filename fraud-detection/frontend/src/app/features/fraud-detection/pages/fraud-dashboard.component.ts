@@ -14,7 +14,7 @@ export interface CsvTransaction {
   id?: string | number;
   amount: number;
   tenant_id?: string;
-  mongo_transaction_id?: string;
+  transaction_reference?: string;
   date?: string;
   description?: string;
   sender_balance_before?: number;
@@ -61,79 +61,79 @@ export class FraudDashboardComponent {
   // Données de démonstration
   public readonly mockTransactionsToAnalyze: CsvTransaction[] = [
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_001", id: "tx_seuil",
+      tenant_id: "tenant-123", transaction_reference: "mongo_001", id: "tx_seuil",
       date: "2026-07-24T10:00:00Z", description: "Virement fournisseur externe",
       amount: 15000.0, sender_balance_before: 50000.0, sender_balance_after: 35000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 15000.0, transaction_type: "TRANSFER"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_002", id: "tx_approche",
+      tenant_id: "tenant-123", transaction_reference: "mongo_002", id: "tx_approche",
       date: "2026-07-24T10:02:00Z", description: "Virement fournisseur B",
       amount: 9500.0, sender_balance_before: 20000.0, sender_balance_after: 10500.0,
       receiver_balance_before: 0.0, receiver_balance_after: 9500.0, transaction_type: "TRANSFER"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_003", id: "tx_cash",
+      tenant_id: "tenant-123", transaction_reference: "mongo_003", id: "tx_cash",
       date: "2026-07-24T10:05:00Z", description: "Retrait exceptionnel PARIS",
       amount: 6000.0, sender_balance_before: 10000.0, sender_balance_after: 4000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 0.0, transaction_type: "CASH_OUT"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_004", id: "tx_casino",
+      tenant_id: "tenant-123", transaction_reference: "mongo_004", id: "tx_casino",
       date: "2026-07-24T10:07:00Z", description: "Virement casino en ligne",
       amount: 250.0, sender_balance_before: 2000.0, sender_balance_after: 1750.0,
       receiver_balance_before: 0.0, receiver_balance_after: 250.0, transaction_type: "TRANSFER"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_005", id: "tx_dup_1",
+      tenant_id: "tenant-123", transaction_reference: "mongo_005", id: "tx_dup_1",
       date: "2026-07-24T11:00:00Z", description: "Paiement Fournisseur ABC",
       amount: 2500.0, sender_balance_before: 8000.0, sender_balance_after: 5500.0,
       receiver_balance_before: 0.0, receiver_balance_after: 2500.0, transaction_type: "PAYMENT"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_006", id: "tx_dup_2",
+      tenant_id: "tenant-123", transaction_reference: "mongo_006", id: "tx_dup_2",
       date: "2026-07-24T11:01:00Z", description: "Paiement Fournisseur ABC",
       amount: 2500.0, sender_balance_before: 5500.0, sender_balance_after: 3000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 2500.0, transaction_type: "PAYMENT"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_007", id: "tx_rep_1",
+      tenant_id: "tenant-123", transaction_reference: "mongo_007", id: "tx_rep_1",
       date: "2026-07-24T12:00:00Z", description: "Abonnement mensuel Service X",
       amount: 800.0, sender_balance_before: 3000.0, sender_balance_after: 2200.0,
       receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_008", id: "tx_rep_2",
+      tenant_id: "tenant-123", transaction_reference: "mongo_008", id: "tx_rep_2",
       date: "2026-07-24T12:01:00Z", description: "Abonnement mensuel Service X",
       amount: 800.0, sender_balance_before: 2200.0, sender_balance_after: 1400.0,
       receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_009", id: "tx_rep_3",
+      tenant_id: "tenant-123", transaction_reference: "mongo_009", id: "tx_rep_3",
       date: "2026-07-24T12:02:00Z", description: "Abonnement mensuel Service X",
       amount: 800.0, sender_balance_before: 1400.0, sender_balance_after: 600.0,
       receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_010", id: "tx_frac_1",
+      tenant_id: "tenant-123", transaction_reference: "mongo_010", id: "tx_frac_1",
       date: "2026-07-24T13:00:00Z", description: "Virement partiel A",
       amount: 4000.0, sender_balance_before: 20000.0, sender_balance_after: 16000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 4000.0, transaction_type: "TRANSFER"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_011", id: "tx_frac_2",
+      tenant_id: "tenant-123", transaction_reference: "mongo_011", id: "tx_frac_2",
       date: "2026-07-24T13:10:00Z", description: "Virement partiel B",
       amount: 4000.0, sender_balance_before: 16000.0, sender_balance_after: 12000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 4000.0, transaction_type: "TRANSFER"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_012", id: "tx_frac_3",
+      tenant_id: "tenant-123", transaction_reference: "mongo_012", id: "tx_frac_3",
       date: "2026-07-24T13:20:00Z", description: "Virement partiel C",
       amount: 3000.0, sender_balance_before: 12000.0, sender_balance_after: 9000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 3000.0, transaction_type: "TRANSFER"
     },
     {
-      tenant_id: "tenant-123", mongo_transaction_id: "mongo_013", id: "tx_clean",
+      tenant_id: "tenant-123", transaction_reference: "mongo_013", id: "tx_clean",
       date: "2026-07-24T14:00:00Z", description: "Achat fournitures de bureau",
       amount: 45.0, sender_balance_before: 1000.0, sender_balance_after: 955.0,
       receiver_balance_before: 0.0, receiver_balance_after: 45.0, transaction_type: "PAYMENT"
@@ -521,7 +521,7 @@ export class FraudDashboardComponent {
     const transactionsSupabase: TransactionInput[] = [
       {
         tenant_id: "tenant-123",
-        mongo_transaction_id: "mongo_supa_001",
+        transaction_reference: "mongo_supa_001",
         id: "tx_montant_except",
         date: "2026-07-27T09:00:00Z",
         description: "Virement urgent fournisseur",
@@ -537,7 +537,7 @@ export class FraudDashboardComponent {
       },
       {
         tenant_id: "tenant-123",
-        mongo_transaction_id: "mongo_supa_002",
+        transaction_reference: "mongo_supa_002",
         id: "tx_compte_dormant",
         date: "2026-07-27T09:05:00Z",
         description: "Virement réactivation compte",
@@ -553,7 +553,7 @@ export class FraudDashboardComponent {
       },
       {
         tenant_id: "tenant-123",
-        mongo_transaction_id: "mongo_supa_003",
+        transaction_reference: "mongo_supa_003",
         id: "tx_nouvel_iban",
         date: "2026-07-27T09:10:00Z",
         description: "Virement nouveau bénéficiaire",

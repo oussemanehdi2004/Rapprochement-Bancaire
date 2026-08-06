@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 export interface TransactionListItem {
   id: string;
   tenant_id: string;
-  mongo_transaction_id: string;
+  transaction_reference: string;
   date: string;
   description?: string;
   amount: number;

@@ -12,7 +12,7 @@ import { Explainability } from './explainability';
 
 export interface TransactionOutput { 
     tenant_id: string;
-    mongo_transaction_id: string;
+    transaction_reference: string;
     id: string;
     date: string;
     description: string;

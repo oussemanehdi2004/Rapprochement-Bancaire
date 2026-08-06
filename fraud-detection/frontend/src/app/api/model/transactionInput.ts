@@ -11,7 +11,7 @@
 
 export interface TransactionInput { 
     tenant_id: string;
-    mongo_transaction_id: string;
+    transaction_reference: string;
     id: string;
     date: string;
     description: string;

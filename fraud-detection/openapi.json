@@ -581,9 +581,9 @@
             "type": "string",
             "title": "Tenant Id"
           },
-          "mongo_transaction_id": {
+          "transaction_reference": {
             "type": "string",
-            "title": "Mongo Transaction Id"
+            "title": "Transaction Reference"
           },
           "id": {
             "type": "string",
@@ -669,7 +669,7 @@
         "type": "object",
         "required": [
           "tenant_id",
-          "mongo_transaction_id",
+          "transaction_reference",
           "id",
           "date",
           "description",
@@ -689,9 +689,9 @@
             "title": "Tenant Id",
             "description": "Ignoré si fourni : dérivé du token d'authentification côté serveur."
           },
-          "mongo_transaction_id": {
+          "transaction_reference": {
             "type": "string",
-            "title": "Mongo Transaction Id"
+            "title": "Transaction Reference"
           },
           "id": {
             "type": "string",
@@ -740,7 +740,7 @@
         "type": "object",
         "required": [
           "tenant_id",
-          "mongo_transaction_id",
+          "transaction_reference",
           "id",
           "date",
           "description",
