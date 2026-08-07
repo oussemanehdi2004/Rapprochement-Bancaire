@@ -25,7 +25,7 @@ services:
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=password_super_securise
       - INTERNAL_SERVICE_SECRET=internal_dev_secret
-      - DISABLE_INTERNAL_AUTH=false
+      - DISABLE_INTERNAL_AUTH=true
       - JWT_SECRET=${JWT_SECRET}
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}

@@ -16,9 +16,10 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Generic, TypeVar, Optional, Any, List
 from dotenv import load_dotenv
+load_dotenv()
+
 from internal_auth import verify_internal_token
 
-load_dotenv()
 NODE_BACKEND_URL = os.environ.get("NODE_BACKEND_URL", "http://localhost:3000")
 
 # Import du moteur de graphe Neo4j (Phase 3)
