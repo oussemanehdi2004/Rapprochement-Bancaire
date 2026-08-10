@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -14,10 +15,13 @@ from fastapi import (
     UploadFile,
 )
 
+from bankmatch_client import (
+    generate_service_token,
+    import_transactions,
+    start_matching,
+)
 from internal_auth import verify_internal_token
 from parsers import camt053, csv_bank, mt940
-from validators import validate_transactions
-from bankmatch_client import generate_service_token, import_transactions, start_matching
 
 
 logging.basicConfig(
@@ -39,14 +43,12 @@ BANKMATCH_INTEGRATION_ENABLED = (
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
-DEBUG_PAYLOAD = (
-    os.getenv("DEBUG_PAYLOAD", "false").lower() == "true"
-)
+DEBUG_PAYLOAD = os.getenv("DEBUG_PAYLOAD", "false").lower() == "true"
 
 
 app = FastAPI(
     title="Multi-Banking Ingestion Service",
-    version="0.1.0",
+    version="0.2.0",
     root_path="/banking",
 )
 
@@ -86,9 +88,7 @@ def parse_content(
     tenant_id: str,
     bank_id: str,
 ):
-    """
-    Parse le contenu selon le format demandé.
-    """
+    """Parse le contenu selon le format demandé (csv, camt053, mt940, pain001)."""
 
     if normalized_format == "csv":
         return csv_bank.parse_csv(
@@ -111,52 +111,70 @@ def parse_content(
             bank_id,
         )
 
+    if normalized_format in ("pain001", "pain.001"):
+        try:
+            from parsers import pain001
+
+            return pain001.parse_pain001(
+                content,
+                tenant_id,
+                bank_id,
+            )
+        except ImportError:
+            raise HTTPException(
+                status_code=400,
+                detail="Le parser ISO 20022 pain.001 n'est pas encore disponible.",
+            )
+
     raise HTTPException(
         status_code=400,
         detail=(
             f"Format non supporté : {normalized_format}. "
-            "Formats acceptés : csv, camt053, mt940"
+            "Formats acceptés : csv, camt053, mt940, pain.001"
         ),
     )
 
 
 def build_fraud_payload(transactions: list) -> list[dict]:
-    """
-    Convertit les transactions pivot vers le format
-    attendu par le service Fraud Detection.
+    """Convertit les transactions pivot vers le format attendu par Fraud Detection.
 
-    Remarque : Fraud Detection ne supporte pas les
-    valeurs nulles pour les soldes. Une valeur par
-    défaut 0.0 est donc utilisée lorsque le solde
-    n'est pas disponible dans le fichier source.
+    Reconstruit dynamiquement les soldes si certaines valeurs manquent afin d'éviter
+    de pousser systématiquement des valeurs 0.0 au moteur de fraude.
     """
 
     payload = []
 
     for transaction in transactions:
-        sender_balance_before = (
-            transaction.balance_before
-            if transaction.balance_before is not None
-            else 0.0
-        )
+        amount = getattr(transaction, "amount", 0.0)
+        raw_before = getattr(transaction, "balance_before", None)
+        raw_after = getattr(transaction, "balance_after", None)
+        account_bal = getattr(transaction, "account_balance", None)
 
-        sender_balance_after = (
-            transaction.balance_after
-            if transaction.balance_after is not None
-            else 0.0
-        )
+        # Déduction intelligente des soldes manquants
+        if raw_before is not None and raw_after is not None:
+            sender_balance_before = raw_before
+            sender_balance_after = raw_after
+        elif raw_before is not None:
+            sender_balance_before = raw_before
+            sender_balance_after = raw_before + amount
+        elif raw_after is not None:
+            sender_balance_before = raw_after - amount
+            sender_balance_after = raw_after
+        elif account_bal is not None:
+            sender_balance_before = account_bal
+            sender_balance_after = account_bal + amount
+        else:
+            sender_balance_before = 0.0
+            sender_balance_after = 0.0
 
         payload.append(
             {
                 "tenant_id": transaction.tenant_id,
                 "transaction_reference": transaction.source_line_hash,
-                "id": (
-                    transaction.reference
-                    or transaction.source_line_hash
-                ),
+                "id": (transaction.reference or transaction.source_line_hash),
                 "date": transaction.value_date,
                 "description": transaction.label,
-                "amount": abs(transaction.amount),
+                "amount": abs(amount),
                 "sender_balance_before": sender_balance_before,
                 "sender_balance_after": sender_balance_after,
                 "receiver_balance_before": 0.0,
@@ -209,10 +227,7 @@ async def parse_file(
     return {
         "success": True,
         "count": len(transactions),
-        "data": [
-            transaction.model_dump()
-            for transaction in transactions
-        ],
+        "data": [transaction.model_dump() for transaction in transactions],
         "metadata": {
             "filename": file.filename,
             "format": normalized_format,
@@ -286,7 +301,7 @@ async def ingest_file(
     if not transactions:
         raise HTTPException(
             status_code=400,
-            detail="Aucune transaction n'a pu être extraite du fichier",
+            detail="Aucune transaction n'a pou être extraite du fichier",
         )
 
     fraud_payload = build_fraud_payload(transactions)
@@ -302,34 +317,53 @@ async def ingest_file(
             )
         )
 
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{FRAUD_SERVICE_URL}/api/analyze",
-                json=fraud_payload,
-                headers={
-                    "Authorization": (
-                        f"Bearer {ctx.get('raw_token')}"
+    # Appel vers Fraud Detection avec Retry & Backoff exponentiel
+    max_retries = 3
+    backoff_seconds = 0.5
+    response = None
+
+    async with httpx.AsyncClient() as client:
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = await client.post(
+                    f"{FRAUD_SERVICE_URL}/api/analyze",
+                    json=fraud_payload,
+                    headers={"Authorization": f"Bearer {ctx.get('raw_token')}"},
+                    timeout=30.0,
+                )
+                if response.status_code == 200:
+                    break
+
+                if (
+                    response.status_code in (502, 503, 504)
+                    and attempt < max_retries
+                ):
+                    logger.warning(
+                        f"Fraud service returned {response.status_code}. Retry {attempt}/{max_retries}..."
                     )
-                },
-                timeout=30.0,
-            )
+                    await asyncio.sleep(backoff_seconds * (2 ** (attempt - 1)))
+                    continue
 
-    except httpx.RequestError as exc:
+            except (httpx.RequestError, httpx.TimeoutException) as exc:
+                if attempt == max_retries:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Fraud service unreachable after {max_retries} retries: {exc}",
+                    )
+                logger.warning(
+                    f"Fraud service request failed ({exc}). Retry {attempt}/{max_retries}..."
+                )
+                await asyncio.sleep(backoff_seconds * (2 ** (attempt - 1)))
+
+    if response is None or response.status_code != 200:
+        error_detail = response.text if response else "No response"
         raise HTTPException(
             status_code=502,
-            detail=f"Fraud service unreachable: {exc}",
-        )
-
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Fraud service error: {response.text}",
+            detail=f"Fraud service error: {error_detail}",
         )
 
     try:
         fraud_result = response.json()
-
     except ValueError:
         raise HTTPException(
             status_code=502,
@@ -337,38 +371,37 @@ async def ingest_file(
         )
 
     bankmatch_result = None
-    
+
     if BANKMATCH_INTEGRATION_ENABLED:
         try:
             service_token = generate_service_token(tenant_id)
-            
+
             transactions_for_bankmatch = [
-                transaction.model_dump() 
-                for transaction in transactions
+                transaction.model_dump() for transaction in transactions
             ]
-            
+
             import_response = await import_transactions(
-                transactions_for_bankmatch,
-                service_token
+                transactions_for_bankmatch, service_token
             )
-            
+
             bankmatch_result = import_response
-            
+
             if import_response.get("session_id"):
                 session_id = import_response["session_id"]
                 matching_response = await start_matching(
-                    session_id,
-                    service_token
+                    session_id, service_token
                 )
                 bankmatch_result["matching"] = matching_response
-                
+
         except Exception as exc:
             logger.error(
-                json.dumps({
-                    "event": "bankmatch_integration_error",
-                    "error": str(exc),
-                    "tenant_id": tenant_id,
-                })
+                json.dumps(
+                    {
+                        "event": "bankmatch_integration_error",
+                        "error": str(exc),
+                        "tenant_id": tenant_id,
+                    }
+                )
             )
             bankmatch_result = {"error": str(exc)}
 
@@ -382,15 +415,6 @@ async def ingest_file(
             "format": normalized_format,
             "tenant_id": tenant_id,
             "bank_id": bank_id,
-            "bankmatch_integration_enabled": (
-                BANKMATCH_INTEGRATION_ENABLED
-            ),
+            "bankmatch_integration_enabled": BANKMATCH_INTEGRATION_ENABLED,
         },
     }
-
-
-
-
-
-
-

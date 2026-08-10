@@ -1,30 +1,42 @@
-import time
 import datetime
-import os
-import logging
-import httpx
-import jwt
-import joblib
-import numpy as np
-import shap
-import uuid
 import json
-from fastapi import FastAPI, Header, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from typing import Generic, TypeVar, Optional, Any, List
-from dotenv import load_dotenv
-load_dotenv()
+import logging
+import os
+import time
+import uuid
+from typing import Any, Generic, List, Optional, TypeVar
 
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+import httpx
+import joblib
+import jwt
+import numpy as np
+from pydantic import BaseModel
+import shap
+from supabase import create_client
+
+from auth import create_internal_token, get_jwt_secret
+from config_store import get_thresholds, update_thresholds
+from features import FEATURE_NAMES, receiver_balance_error, sender_balance_error
 from internal_auth import verify_internal_token
+from rules_engine import (
+    TransactionInput,
+    apply_batch_rules,
+    apply_business_rules,
+)
+
+load_dotenv()
 
 NODE_BACKEND_URL = os.environ.get("NODE_BACKEND_URL", "http://localhost:3000")
 
 # Import du moteur de graphe Neo4j (Phase 3)
 try:
     from graph_engine import create_graph_engine
+
     graph_engine = create_graph_engine()
 except Exception:
     graph_engine = None
@@ -34,17 +46,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("fraud_api")
-
-# Import de Supabase
-from supabase import create_client
-
-# Import du moteur de règles (Phase 1 + Phase 2 + Phase 3 batch rules)
-from rules_engine import TransactionInput, apply_business_rules, apply_batch_rules
-from config_store import get_thresholds, update_thresholds
-
-# Utilitaires partagés
-from features import FEATURE_NAMES, sender_balance_error, receiver_balance_error
-from auth import get_jwt_secret, create_internal_token
 
 # =====================================================================
 # ENVIRONNEMENT & INITIALISATION FASTAPI (SÉCURISATION PROD)
@@ -58,7 +59,6 @@ app = FastAPI(
     redoc_url=None if IS_PRODUCTION else "/redoc",
     openapi_url=None if IS_PRODUCTION else "/openapi.json",
     root_path="/fraud",
-
 )
 
 # =====================================================================
@@ -90,6 +90,7 @@ def _parse_allowed_origins() -> list[str]:
         "http://127.0.0.1:8005",
     ]
 
+
 origins = _parse_allowed_origins()
 
 app.add_middleware(
@@ -99,6 +100,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.middleware("http")
 async def log_requests(request, call_next):
@@ -128,27 +130,36 @@ async def log_requests(request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 
+
 # =====================================================================
 # 2. CONFIGURATION ET CONNEXION SUPABASE (PHASE 4)
 # =====================================================================
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
-supabase = None  
+supabase = None
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    logger.warning("SUPABASE_URL / SUPABASE_KEY manquants dans l'environnement. Persistance désactivée.")
+    logger.warning(
+        "SUPABASE_URL / SUPABASE_KEY manquants dans l'environnement. Persistance désactivée."
+    )
 else:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         logger.info("Connexion à Supabase établie avec succès.")
     except Exception:
-        logger.exception("Erreur lors de la connexion à Supabase. Persistance désactivée.")
+        logger.exception(
+            "Erreur lors de la connexion à Supabase. Persistance désactivée."
+        )
 
 # =====================================================================
-# 3. CHARGEMENT DE L'IA ET DE SHAP
+# 3. CHARGEMENT DE L'IA ET DE SHAP (AVEC MODÈLE CALIBRÉ SI PRÉSENT)
 # =====================================================================
-MODEL_PATH = "model_fraud.pkl"
+MODEL_PATH = (
+    "model_fraud_calibrated.pkl"
+    if os.path.exists("model_fraud_calibrated.pkl")
+    else "model_fraud.pkl"
+)
 model = None
 explainer = None
 
@@ -157,65 +168,113 @@ feature_names = FEATURE_NAMES
 if os.path.exists(MODEL_PATH):
     try:
         model = joblib.load(MODEL_PATH)
-        explainer = shap.TreeExplainer(model)
-        logger.info("Modèle Random Forest et outil SHAP chargés avec succès.")
+
+        # Extraction de l'arbre sous-jacent si le modèle est enveloppé par CalibratedClassifierCV
+        tree_model = model
+        if hasattr(model, "calibrated_classifiers_") and model.calibrated_classifiers_:
+            first_cal = model.calibrated_classifiers_[0]
+            tree_model = getattr(first_cal, "estimator", getattr(first_cal, "base_estimator", model))
+
+        explainer = shap.TreeExplainer(tree_model)
+        logger.info(
+            f"Modèle ({MODEL_PATH}) et outil SHAP chargés avec succès."
+        )
     except Exception:
         model = None
         explainer = None
         logger.exception("Erreur lors du chargement de l'IA. Mode dégradé actif.")
 else:
-    logger.warning("'model_fraud.pkl' introuvable. Mode dégradé actif.")
+    logger.warning(f"Fichier modèle '{MODEL_PATH}' introuvable. Mode dégradé actif.")
 
 # =====================================================================
-# 4. SCHÉMAS DE SORTIE API (WRAPPERS & SHAP)
+# 4. PONDÉRATIONS ET FUSION DE SCORES CONTINUS
+# =====================================================================
+RULE_SEVERITY_WEIGHTS = {
+    "SEUIL_REGLEMENTAIRE": 0.95,
+    "MOTCLE_SENSIBLE": 0.90,
+    "FRACTIONNEMENT_SUSPECT": 0.85,
+    "RETRAIT_CASH_IMPORTANT": 0.80,
+    "MONTANT_EXCEPTIONNEL": 0.75,
+    "PAIEMENT_DUPLIQUE": 0.60,
+    "NOUVEL_IBAN": 0.55,
+    "COMPTE_RAREMENT_UTILISE": 0.50,
+    "SEUIL_APPROCHE": 0.45,
+}
+
+
+def fuse_scores(
+    ml_probability: float, rule_category: Optional[str], is_blocked: bool
+) -> float:
+    """Combine de manière continue le score prédictif ML et le risque lié aux règles.
+
+    Formule probabiliste : 1 - (1 - p1) * (1 - p2)
+    """
+    if not is_blocked or not rule_category:
+        return ml_probability
+
+    rule_score = RULE_SEVERITY_WEIGHTS.get(rule_category, 0.70)
+    combined_score = 1.0 - ((1.0 - ml_probability) * (1.0 - rule_score))
+    return round(combined_score, 4)
+
+
+# =====================================================================
+# 5. SCHÉMAS DE SORTIE API (WRAPPERS & SHAP)
 # =====================================================================
 T = TypeVar("T")
+
 
 class APIResponse(BaseModel, Generic[T]):
     success: bool = True
     data: T
 
+
 class APIErrorDetail(BaseModel):
     code: str
     message: str
+
 
 class APIErrorResponse(BaseModel):
     success: bool = False
     error: APIErrorDetail
     requestId: Optional[str] = None
 
+
 class ShapContribution(BaseModel):
     feature: str
     value: float
-    direction: str  
+    direction: str
+
 
 class ExplainabilityOutput(BaseModel):
     summary: str
-    factors: List[str]  
-    shap_contributions: List[ShapContribution] = []  
+    factors: List[str]
+    shap_contributions: List[ShapContribution] = []
+
 
 class TransactionOutput(BaseModel):
     tenant_id: str
-    transaction_reference: str  # Renamed from mongo_transaction_id (SHA-256 hash, not true Mongo ObjectId)
+    transaction_reference: str
     id: str
     date: str
     description: str
     amount: float
     isFraud: bool
     fraudProbability: float
-    score: int          
-    confidence: str     
+    score: int
+    confidence: str
     reconciliationStatus: str
     ruleCategory: Optional[str] = "NON_CATEGORISE"
     explainability: ExplainabilityOutput
 
+
 # =====================================================================
-# 5. UTILITAIRES, SÉCURITÉ ET PRÉTRAITEMENT
+# 6. UTILITAIRES, SÉCURITÉ ET PRÉTRAITEMENT
 # =====================================================================
 def probability_to_confidence(probability: float) -> dict:
-    """
-    Convertit une probabilité brute (0.0-1.0) en score (0-100)
-    et applique les seuils officiels BankMatch :
+    """Convertit une probabilité brute (0.0-1.0) en score (0-100) et applique les seuils
+
+    officiels BankMatch :
+
     - HIGH >= 85
     - MEDIUM 70-84
     - LOW < 70
@@ -227,28 +286,24 @@ def probability_to_confidence(probability: float) -> dict:
         confidence = "MEDIUM"
     else:
         confidence = "LOW"
-        
-    return {
-        "score": score,
-        "confidence": confidence
-    }
+
+    return {"score": score, "confidence": confidence}
+
 
 JWT_SECRET = get_jwt_secret()
 logger.info("JWT_SECRET chargé avec succès.")
 
 security = HTTPBearer(auto_error=False)
 
-async def get_current_user_context(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """
-    Valide le token utilisateur ou du proxy.
-    Tente le décodage JWT interne en premier pour un temps de réponse instantané.
-    """
+
+async def get_current_user_context(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     if not credentials:
         return {"user_id": "demo_user", "tenant_id": "default", "is_internal": False}
-    
+
     token = credentials.credentials
 
-    # 1. Validation immédiate du token JWT interne (Proxy Node / Démo / Interne)
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
         if payload.get("purpose") == "internal_api_call":
@@ -258,9 +313,8 @@ async def get_current_user_context(credentials: HTTPAuthorizationCredentials = D
                 "is_internal": True,
             }
     except jwt.PyJWTError:
-        pass # Ce n'est pas un JWT signé par notre secret, on tente le backend externe
+        pass
 
-    # 2. Authentification déléguée à un backend Node.js externe si présent
     if NODE_BACKEND_URL and NODE_BACKEND_URL != "NONE":
         try:
             async with httpx.AsyncClient(timeout=1.5) as client:
@@ -273,13 +327,13 @@ async def get_current_user_context(credentials: HTTPAuthorizationCredentials = D
                     return {
                         "user_id": user_data.get("id"),
                         "tenant_id": user_data.get("tenantId", "default"),
-                        "is_internal": False
+                        "is_internal": False,
                     }
         except httpx.HTTPError:
             logger.debug("Backend Node externe (%s) injoignable.", NODE_BACKEND_URL)
 
-    # 3. Fallback dev pour les requêtes de test
     return {"user_id": "dev_user", "tenant_id": "default", "is_internal": False}
+
 
 def preprocess_transaction(tx: TransactionInput) -> list:
     tx_type = tx.transaction_type.upper()
@@ -287,25 +341,34 @@ def preprocess_transaction(tx: TransactionInput) -> list:
     is_cash_out = 1 if tx_type == "CASH_OUT" else 0
 
     return [
-        tx.amount, tx.sender_balance_before, tx.sender_balance_after,
-        tx.receiver_balance_before, tx.receiver_balance_after,
-        sender_balance_error(tx.amount, tx.sender_balance_before, tx.sender_balance_after),
-        receiver_balance_error(tx.amount, tx.receiver_balance_before, tx.receiver_balance_after),
-        is_transfer, is_cash_out
+        tx.amount,
+        tx.sender_balance_before,
+        tx.sender_balance_after,
+        tx.receiver_balance_before,
+        tx.receiver_balance_after,
+        sender_balance_error(
+            tx.amount, tx.sender_balance_before, tx.sender_balance_after
+        ),
+        receiver_balance_error(
+            tx.amount, tx.receiver_balance_before, tx.receiver_balance_after
+        ),
+        is_transfer,
+        is_cash_out,
     ]
+
 
 def extract_rule_evaluation(
     tx: TransactionInput,
     batch_finding: Optional[dict] = None,
     account_aggregate: Optional[dict] = None,
-    beneficiary_history: Optional[List[dict]] = None
+    beneficiary_history: Optional[List[dict]] = None,
 ):
     tx_dict = tx.model_dump()
 
     rule_res = apply_business_rules(
         transaction=tx_dict,
         account_aggregate=account_aggregate,
-        beneficiary_history=beneficiary_history
+        beneficiary_history=beneficiary_history,
     )
 
     if isinstance(rule_res, tuple):
@@ -313,16 +376,22 @@ def extract_rule_evaluation(
             rule_flag, rule_reason, rule_category = rule_res
         elif len(rule_res) == 2:
             rule_flag, rule_reason = rule_res
-            rule_category = "SEUIL_REGLEMENTAIRE" if rule_flag else "NON_CATEGORISE"
+            rule_category = (
+                "SEUIL_REGLEMENTAIRE" if rule_flag else "NON_CATEGORISE"
+            )
         else:
             rule_flag, rule_reason, rule_category = False, "", "NON_CATEGORISE"
         rule_factors = [rule_reason] if rule_reason else []
     elif isinstance(rule_res, dict):
-        rule_flag = rule_res.get("is_blocked", False) or rule_res.get("rule_flag", False)
+        rule_flag = rule_res.get("is_blocked", False) or rule_res.get(
+            "rule_flag", False
+        )
         rule_category = rule_res.get("ruleCategory", "NON_CATEGORISE")
         rule_factors = rule_res.get("factors", [])
         if not rule_factors:
-            single_reason = rule_res.get("reason", "") or rule_res.get("rule_reason", "")
+            single_reason = rule_res.get("reason", "") or rule_res.get(
+                "rule_reason", ""
+            )
             rule_factors = [single_reason] if single_reason else []
     else:
         rule_flag, rule_category, rule_factors = False, "NON_CATEGORISE", []
@@ -344,33 +413,41 @@ def build_transaction_output(
     tx: TransactionInput,
     batch_finding: Optional[dict] = None,
     account_aggregate: Optional[dict] = None,
-    beneficiary_history: Optional[List[dict]] = None
+    beneficiary_history: Optional[List[dict]] = None,
 ) -> TransactionOutput:
-    rule_flag, rule_reason, rule_category, factors_from_rules = extract_rule_evaluation(
-        tx, batch_finding, account_aggregate, beneficiary_history
+    rule_flag, rule_reason, rule_category, factors_from_rules = (
+        extract_rule_evaluation(
+            tx, batch_finding, account_aggregate, beneficiary_history
+        )
     )
 
     model_flag = False
-    fraud_probability = 0.0
+    raw_ml_probability = 0.0
     factors_text = list(factors_from_rules)
     main_ml_factor = ""
-    shap_contributions_list = []  
-    
+    shap_contributions_list = []
+
     if model is not None and explainer is not None:
         features_vector = preprocess_transaction(tx)
         probabilities = model.predict_proba([features_vector])[0]
-        fraud_probability = float(probabilities[1])
-        model_flag = fraud_probability > 0.50
+        raw_ml_probability = float(probabilities[1])
+        model_flag = raw_ml_probability > 0.50
 
         features_array = np.array([features_vector])
         shap_values = explainer(features_array)
 
         shap_vals_vector = shap_values.values[0]
-        if hasattr(shap_vals_vector, "shape") and len(shap_vals_vector.shape) == 2 and shap_vals_vector.shape[1] == 2:
+        if (
+            hasattr(shap_vals_vector, "shape")
+            and len(shap_vals_vector.shape) == 2
+            and shap_vals_vector.shape[1] == 2
+        ):
             shap_vals_vector = shap_vals_vector[:, 1]
 
         contributions = list(zip(feature_names, shap_vals_vector))
-        top_factors = sorted(contributions, key=lambda x: abs(x[1]), reverse=True)[:3]
+        top_factors = sorted(contributions, key=lambda x: abs(x[1]), reverse=True)[
+            :3
+        ]
 
         main_ml_factor = top_factors[0][0]
 
@@ -378,7 +455,7 @@ def build_transaction_output(
             ShapContribution(
                 feature=name,
                 value=float(val),
-                direction="positive" if val > 0 else "negative"
+                direction="positive" if val > 0 else "negative",
             )
             for name, val in top_factors
         ]
@@ -390,13 +467,19 @@ def build_transaction_output(
 
     is_fraud = model_flag or rule_flag
 
+    # Fusion continue du score ML et du score de règle métier (plus d'écrasement binaire à 1.0)
+    final_fraud_probability = fuse_scores(
+        raw_ml_probability, rule_category, rule_flag
+    )
+
     if rule_flag and model_flag:
         summary_text = f"ALERTE CRITIQUE : Bloqué par règle métier ({rule_reason}) et validé par l'IA."
     elif rule_flag:
         summary_text = f"Bloqué par conformité : {rule_reason}."
-        fraud_probability = max(fraud_probability, 1.0)
     elif model_flag:
-        summary_text = f"Détection IA : Comportement suspect identifié via {main_ml_factor}."
+        summary_text = (
+            f"Détection IA : Comportement suspect identifié via {main_ml_factor}."
+        )
     else:
         summary_text = "Aucune anomalie détectée par l'IA ou les filtres métiers."
 
@@ -410,9 +493,10 @@ def build_transaction_output(
     explainability_data = ExplainabilityOutput(
         summary=summary_text,
         factors=factors_text,
-        shap_contributions=shap_contributions_list
+        shap_contributions=shap_contributions_list,
     )
-    conf_data = probability_to_confidence(fraud_probability)
+    conf_data = probability_to_confidence(final_fraud_probability)
+
     return TransactionOutput(
         tenant_id=tx.tenant_id,
         transaction_reference=tx.transaction_reference,
@@ -421,13 +505,14 @@ def build_transaction_output(
         description=tx.description,
         amount=tx.amount,
         isFraud=is_fraud,
-        fraudProbability=round(fraud_probability, 4),
-        score=conf_data["score"],             
-        confidence=conf_data["confidence"],   
+        fraudProbability=final_fraud_probability,
+        score=conf_data["score"],
+        confidence=conf_data["confidence"],
         reconciliationStatus=rec_status,
         ruleCategory=rule_category,
-        explainability=explainability_data
+        explainability=explainability_data,
     )
+
 
 # =====================================================================
 # ENDPOINT SYSTEM HEALTH
@@ -436,14 +521,17 @@ def build_transaction_output(
 async def health_check():
     return APIResponse(success=True, data={"status": "ok"})
 
+
 # =====================================================================
 # FONCTION AUXILIAIRE PHASE 3 : APPLICATION DES RÈGLES DE GRAPHE NEO4J
 # =====================================================================
-def _apply_graph_findings(result: TransactionOutput, iban: str, tenant_id: str) -> None:
+def _apply_graph_findings(
+    result: TransactionOutput, iban: str, tenant_id: str
+) -> None:
     if graph_engine is None:
         return
     OVERWRITABLE_CATEGORIES = {"NON_CATEGORISE", "NOUVEL_IBAN"}
-    
+
     network = graph_engine.detect_fraud_network(tenant_id, iban)
     if network:
         result.isFraud = True
@@ -458,7 +546,9 @@ def _apply_graph_findings(result: TransactionOutput, iban: str, tenant_id: str) 
     if cycle:
         result.isFraud = True
         result.reconciliationStatus = "SUSPICIOUS"
-        result.explainability.factors.append("Paiement circulaire détecté : " + " → ".join(cycle))
+        result.explainability.factors.append(
+            "Paiement circulaire détecté : " + " → ".join(cycle)
+        )
         if result.ruleCategory in OVERWRITABLE_CATEGORIES:
             result.ruleCategory = "PAIEMENT_CIRCULAIRE"
 
@@ -481,25 +571,34 @@ def analyze_batch(transactions: List[TransactionInput]) -> List[TransactionOutpu
 
     if supabase is not None:
         try:
-            account_ibans = list({
-                tx_dict.get("account_iban") or tx_dict.get("sender_account")
-                for tx_dict in tx_dicts
-                if tx_dict.get("account_iban") or tx_dict.get("sender_account")
-            })
+            account_ibans = list(
+                {
+                    tx_dict.get("account_iban") or tx_dict.get("sender_account")
+                    for tx_dict in tx_dicts
+                    if tx_dict.get("account_iban")
+                    or tx_dict.get("sender_account")
+                }
+            )
 
             if account_ibans:
-                res_agg = supabase.table("account_aggregates")\
-                    .select("*")\
-                    .in_("account_iban", account_ibans)\
+                res_agg = (
+                    supabase.table("account_aggregates")
+                    .select("*")
+                    .in_("account_iban", account_ibans)
                     .execute()
+                )
 
                 if res_agg.data:
-                    aggregates_map = {item["account_iban"]: item for item in res_agg.data}
+                    aggregates_map = {
+                        item["account_iban"]: item for item in res_agg.data
+                    }
 
-                res_ben = supabase.table("beneficiary_history")\
-                    .select("*")\
-                    .in_("account_iban", account_ibans)\
+                res_ben = (
+                    supabase.table("beneficiary_history")
+                    .select("*")
+                    .in_("account_iban", account_ibans)
                     .execute()
+                )
                 if res_ben.data:
                     for item in res_ben.data:
                         iban = item["account_iban"]
@@ -507,7 +606,9 @@ def analyze_batch(transactions: List[TransactionInput]) -> List[TransactionOutpu
                             beneficiaries_map[iban] = []
                         beneficiaries_map[iban].append(item)
         except Exception as e:
-            logger.warning(f"Impossible de charger le contexte Phase 2 depuis Supabase : {e}")
+            logger.warning(
+                f"Impossible de charger le contexte Phase 2 depuis Supabase : {e}"
+            )
 
     results = []
     for tx in transactions:
@@ -517,7 +618,7 @@ def analyze_batch(transactions: List[TransactionInput]) -> List[TransactionOutpu
             tx=tx,
             batch_finding=batch_findings.get(tx.id),
             account_aggregate=aggregates_map.get(iban),
-            beneficiary_history=beneficiaries_map.get(iban, [])
+            beneficiary_history=beneficiaries_map.get(iban, []),
         )
         results.append(tx_output)
 
@@ -525,9 +626,13 @@ def analyze_batch(transactions: List[TransactionInput]) -> List[TransactionOutpu
         for tx, result in zip(transactions, results):
             tx_dict = tx.model_dump()
             try:
-                graph_engine.sync_transaction(tx_dict, result.isFraud, result.ruleCategory)
+                graph_engine.sync_transaction(
+                    tx_dict, result.isFraud, result.ruleCategory
+                )
             except Exception as e:
-                logger.warning(f"Échec de synchronisation Neo4j pour {tx.id} : {e}")
+                logger.warning(
+                    f"Échec de synchronisation Neo4j pour {tx.id} : {e}"
+                )
 
         for tx, result in zip(transactions, results):
             tx_dict = tx.model_dump()
@@ -549,13 +654,13 @@ def analyze_batch(transactions: List[TransactionInput]) -> List[TransactionOutpu
 async def analyze_transactions_secure(
     transactions: List[TransactionInput],
     token_payload: dict = Depends(get_current_user_context),
-    internal_ctx: dict = Depends(verify_internal_token),        # flux BankMatch futur
-
+    internal_ctx: dict = Depends(verify_internal_token),
 ):
     logger.info("Accès API sécurisé via token validé.")
     start_time = time.perf_counter()
-    auth_tenant_id = internal_ctx.get("tenantId") or token_payload.get("tenant_id", "default")
-    print("Tenant from internal token:", internal_ctx.get("tenantId"))
+    auth_tenant_id = internal_ctx.get("tenantId") or token_payload.get(
+        "tenant_id", "default"
+    )
 
     for tx in transactions:
         tx.tenant_id = auth_tenant_id
@@ -566,20 +671,26 @@ async def analyze_transactions_secure(
         if supabase is not None:
             try:
                 for r in results:
-                    supabase.table("fraud_alerts").insert({
-                        "tenant_id": r.tenant_id,
-                        "transaction_reference": r.transaction_reference,
-                        "transaction_id": r.id,
-                        "date": r.date,
-                        "amount": r.amount,
-                        "is_fraud": r.isFraud,
-                        "fraud_probability": r.fraudProbability,
-                        "score": r.score,              
-                        "reconciliation_status": r.reconciliationStatus,
-                        "rule_category": r.ruleCategory,
-                        "explainability": r.explainability.model_dump()
-                    }).execute()
-                logger.info("%d alertes enregistrées pour le tenant '%s'.", len(results), auth_tenant_id)
+                    supabase.table("fraud_alerts").insert(
+                        {
+                            "tenant_id": r.tenant_id,
+                            "transaction_reference": r.transaction_reference,
+                            "transaction_id": r.id,
+                            "date": r.date,
+                            "amount": r.amount,
+                            "is_fraud": r.isFraud,
+                            "fraud_probability": r.fraudProbability,
+                            "score": r.score,
+                            "reconciliation_status": r.reconciliationStatus,
+                            "rule_category": r.ruleCategory,
+                            "explainability": r.explainability.model_dump(),
+                        }
+                    ).execute()
+                logger.info(
+                    "%d alertes enregistrées pour le tenant '%s'.",
+                    len(results),
+                    auth_tenant_id,
+                )
             except Exception as database_error:
                 logger.exception("Échec de la sauvegarde dans Supabase.")
                 raise HTTPException(
@@ -590,8 +701,16 @@ async def analyze_transactions_secure(
         elapsed_ms = (time.perf_counter() - start_time) * 1000
         nb_fraudes = sum(1 for r in results if r.isFraud)
 
-        logger.info("Temps de traitement : %.2f ms pour %d transaction(s)", elapsed_ms, len(results))
-        logger.info("Taux de détection : %d/%d transaction(s) suspecte(s)", nb_fraudes, len(results))
+        logger.info(
+            "Temps de traitement : %.2f ms pour %d transaction(s)",
+            elapsed_ms,
+            len(results),
+        )
+        logger.info(
+            "Taux de détection : %d/%d transaction(s) suspecte(s)",
+            nb_fraudes,
+            len(results),
+        )
 
         return APIResponse(success=True, data=results)
 
@@ -603,6 +722,7 @@ async def analyze_transactions_secure(
             status_code=500,
             detail="Erreur interne du serveur lors de l'analyse des transactions.",
         )
+
 
 # =====================================================================
 # 8. CONFIGURATION DES SEUILS (Phase 5 — Sécurisé par JWT)
@@ -626,12 +746,12 @@ class ThresholdsPatch(BaseModel):
     SEUIL_JOURS_COMPTE_DORMANT: Optional[int] = None
     MOTS_CLES_SENSIBLES: Optional[List[str]] = None
 
+
 @app.get("/api/config/thresholds", response_model=APIResponse[ThresholdsModel])
 async def get_config_thresholds(
     token_payload: dict = Depends(get_current_user_context),
     internal_ctx: dict = Depends(verify_internal_token),
 ):
-    auth_tenant_id = internal_ctx.get("tenantId") or token_payload.get("tenant_id", "default")
     return APIResponse(success=True, data=get_thresholds())
 
 
@@ -641,18 +761,20 @@ async def put_config_thresholds(
     token_payload: dict = Depends(get_current_user_context),
     internal_ctx: dict = Depends(verify_internal_token),
 ):
-    auth_tenant_id = internal_ctx.get("tenantId") or token_payload.get("tenant_id", "default")
     updates = {k: v for k, v in patch.model_dump().items() if v is not None}
     if not updates:
         raise HTTPException(status_code=400, detail="Aucun champ à mettre à jour.")
     return APIResponse(success=True, data=update_thresholds(updates))
+
+
 # =====================================================================
-# 9. ENDPOINTS DE VISUALISATION DU GRAPHE NEO4J (Sécurisés par JWT)
+# 9. ENDPOINTS DE VISUALISATION DU GRAPHE NEO4J
 # =====================================================================
 class GraphAccountNode(BaseModel):
     iban: str
     alert_count: int
     categories: List[str]
+
 
 class GraphEdge(BaseModel):
     source: str
@@ -661,10 +783,12 @@ class GraphEdge(BaseModel):
     is_fraud: bool
     tx_id: str
 
+
 class GraphNetworkResponse(BaseModel):
     center_iban: str
     nodes: List[str]
     edges: List[GraphEdge]
+
 
 @app.get("/api/graph/top-accounts")
 async def get_top_flagged_accounts(
@@ -675,25 +799,33 @@ async def get_top_flagged_accounts(
 ):
     if graph_engine is None:
         raise HTTPException(
-            status_code=503, 
-            detail="Moteur de graphe Neo4j non disponible"
+            status_code=503, detail="Moteur de graphe Neo4j non disponible"
         )
-    auth_tenant_id = internal_ctx.get("tenantId") or token_payload.get("tenant_id", "default")
+    auth_tenant_id = internal_ctx.get("tenantId") or token_payload.get(
+        "tenant_id", "default"
+    )
     effective_tenant_id = tenant_id or auth_tenant_id
-    mock_data = [{"iban": "MOCK_IBAN_123", "alert_count": 5, "categories": ["TEST"]}]
-    
+    mock_data = [
+        {"iban": "MOCK_IBAN_123", "alert_count": 5, "categories": ["TEST"]}
+    ]
+
     try:
         if hasattr(graph_engine, "get_top_flagged_accounts"):
-            data = graph_engine.get_top_flagged_accounts(tenant_id=effective_tenant_id, limit=limit)
+            data = graph_engine.get_top_flagged_accounts(
+                tenant_id=effective_tenant_id, limit=limit
+            )
         elif hasattr(graph_engine, "get_top_accounts"):
-            data = graph_engine.get_top_accounts(tenant_id=effective_tenant_id, limit=limit)
+            data = graph_engine.get_top_accounts(
+                tenant_id=effective_tenant_id, limit=limit
+            )
         else:
             data = mock_data
-            
+
         return APIResponse(success=True, data=data)
-        
+
     except Exception:
         return APIResponse(success=True, data=mock_data)
+
 
 @app.get("/api/graph/network", response_model=APIResponse[GraphNetworkResponse])
 async def get_account_network(
@@ -703,14 +835,20 @@ async def get_account_network(
     internal_ctx: dict = Depends(verify_internal_token),
 ):
     if graph_engine is None:
-        raise HTTPException(status_code=503, detail="Moteur de graphe Neo4j non disponible.")
-    
-    auth_tenant_id = internal_ctx.get("tenantId") or token_payload.get("tenant_id", "default")
+        raise HTTPException(
+            status_code=503, detail="Moteur de graphe Neo4j non disponible."
+        )
+
+    auth_tenant_id = internal_ctx.get("tenantId") or token_payload.get(
+        "tenant_id", "default"
+    )
     effective_tenant_id = tenant_id or auth_tenant_id
     try:
         data = graph_engine.get_account_network(effective_tenant_id, iban)
         if data is None:
-            raise HTTPException(status_code=404, detail="Compte introuvable dans le graphe.")
+            raise HTTPException(
+                status_code=404, detail="Compte introuvable dans le graphe."
+            )
         return APIResponse(success=True, data=data)
     except HTTPException:
         raise
@@ -718,35 +856,42 @@ async def get_account_network(
         logger.exception("Erreur récupération réseau de compte")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # ====================================================================
 # HELPER & ROUTE POUR LES TESTS AUTOMATISÉS
 # ====================================================================
-ENABLE_TEST_TOKEN_ENDPOINT = os.environ.get("ENABLE_TEST_TOKEN_ENDPOINT", "false").lower() == "true"
+ENABLE_TEST_TOKEN_ENDPOINT = (
+    os.environ.get("ENABLE_TEST_TOKEN_ENDPOINT", "false").lower() == "true"
+)
+
 
 def generate_test_token() -> dict:
     payload = {
         "service": "express_backend",
         "purpose": "internal_api_call",
         "tenant_id": "default",
-        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)
+        "exp": datetime.datetime.now(datetime.timezone.utc)
+        + datetime.timedelta(minutes=15),
     }
     token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
     return {"access_token": token}
 
-# Seulement accessible en dev/test explicite
+
 if not IS_PRODUCTION and ENABLE_TEST_TOKEN_ENDPOINT:
+
     @app.get("/api/token")
     async def get_test_token():
         return generate_test_token()
+
+
 @app.get("/")
 async def root():
     return {
-        "status": "production_ready", 
+        "status": "production_ready",
         "service": "Fraud Detection API",
-        "model_loaded": True,  
-        "database_connected": supabase is not None
+        "model_loaded": model is not None,
+        "database_connected": supabase is not None,
     }
-
 
 
 # =====================================================================
@@ -755,26 +900,28 @@ async def root():
 class TransactionListItem(BaseModel):
     id: str
     tenant_id: Optional[str] = None
-    transaction_reference: Optional[str] = None  # Renamed from mongo_transaction_id
+    transaction_reference: Optional[str] = None
     date: str
     description: Optional[str] = None
     amount: float
     isFraud: bool
     fraudProbability: float
-    score: Optional[int] = 0           
-    confidence: Optional[str] = "LOW"   
+    score: Optional[int] = 0
+    confidence: Optional[str] = "LOW"
     reconciliationStatus: str
     ruleCategory: Optional[str] = "NON_CATEGORISE"
     explainability: Optional[dict] = None
 
 
-@app.get("/api/transactions", response_model=APIResponse[List[TransactionListItem]])
+@app.get(
+    "/api/transactions", response_model=APIResponse[List[TransactionListItem]]
+)
 async def list_transactions(
     tenant_id: Optional[str] = None,
-    status: Optional[str] = None,          
-    date_from: Optional[str] = None,       
-    date_to: Optional[str] = None,         
-    search: Optional[str] = None,          
+    status: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    search: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
     token_payload: dict = Depends(get_current_user_context),
@@ -799,11 +946,15 @@ async def list_transactions(
         if search:
             query = query.ilike("transaction_id", f"%{search}%")
 
-        query = query.order("date", desc=True).range(offset, offset + limit - 1)
+        query = query.order("date", desc=True).range(
+            offset, offset + limit - 1
+        )
         result = query.execute()
         rows = result.data or []
     except Exception:
-        logger.exception("Échec de la récupération des transactions depuis Supabase.")
+        logger.exception(
+            "Échec de la récupération des transactions depuis Supabase."
+        )
         raise HTTPException(
             status_code=502,
             detail="Impossible de récupérer les transactions depuis la base de données.",
@@ -813,21 +964,31 @@ async def list_transactions(
         TransactionListItem(
             id=str(row.get("transaction_id") or row.get("id") or ""),
             tenant_id=row.get("tenant_id") or "",
-            transaction_reference=row.get("transaction_reference") or row.get("mongo_transaction_id") or "",
+            transaction_reference=row.get("transaction_reference")
+            or row.get("mongo_transaction_id")
+            or "",
             date=str(row.get("date") or ""),
             description=row.get("description"),
             amount=float(row.get("amount") or 0.0),
             isFraud=bool(row.get("is_fraud", False)),
             fraudProbability=float(row.get("fraud_probability") or 0.0),
-            score=int(row.get("score") or round(float(row.get("fraud_probability") or 0.0) * 100)), 
-            confidence=row.get("confidence") or probability_to_confidence(float(row.get("fraud_probability") or 0.0))["confidence"], 
+            score=int(
+                row.get("score")
+                or round(float(row.get("fraud_probability") or 0.0) * 100)
+            ),
+            confidence=row.get("confidence")
+            or probability_to_confidence(
+                float(row.get("fraud_probability") or 0.0)
+            )["confidence"],
             reconciliationStatus=row.get("reconciliation_status", "UNMATCHED"),
             ruleCategory=row.get("rule_category", "NON_CATEGORISE"),
             explainability=row.get("explainability"),
-        ) for row in rows
+        )
+        for row in rows
     ]
 
     return APIResponse(success=True, data=items)
+
 
 # =====================================================================
 # GESTIONNAIRE GLOBAL D'EXCEPTIONS
@@ -838,14 +999,13 @@ async def custom_http_exception_handler(request, exc: HTTPException):
         status_code=exc.status_code,
         content={
             "success": False,
-            "error": {
-                "code": f"HTTP_{exc.status_code}",
-                "message": exc.detail
-            },
-            "requestId": None
-        }
+            "error": {"code": f"HTTP_{exc.status_code}", "message": exc.detail},
+            "requestId": None,
+        },
     )
+
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8005)

@@ -21,20 +21,21 @@ FEATURE_NAMES = [
     "receiver_balance_error",
     "is_transfer",
     "is_cash_out",
+    # --- Features v2 (Granularité accrue) ---
+    "amount_to_avg_ratio",       # Montant / Moyenne historique du compte
+    "hour_of_day",                 # Heure de la transaction (0-23)
+    "days_since_last_tx",          # Fraîcheur / inactivité du compte
+    "beneficiary_tx_count"         # Nombre de transactions passées vers ce bénéficiaire
 ]
 
 
-def sender_balance_error(amount, balance_before, balance_after):
-    """Écart sur le solde de l'émetteur (attendu ~0 pour une transaction saine).
+def sender_balance_error(amount: float, before: float, after: float) -> float:
+    return round((before - amount) - after, 2)
 
-    Fonctionne avec des scalaires (float) comme avec des colonnes pandas.
-    """
-    return balance_before - amount - balance_after
+def receiver_balance_error(amount: float, before: float, after: float) -> float:
+    return round((before + amount) - after, 2)
 
-
-def receiver_balance_error(amount, balance_before, balance_after):
-    """Écart sur le solde du destinataire (attendu ~0 pour une transaction saine).
-
-    Fonctionne avec des scalaires (float) comme avec des colonnes pandas.
-    """
-    return balance_before + amount - balance_after
+def calculate_amount_ratio(amount: float, avg_amount: float) -> float:
+    if not avg_amount or avg_amount == 0:
+        return 1.0
+    return round(amount / avg_amount, 2)

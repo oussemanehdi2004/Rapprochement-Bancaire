@@ -22,6 +22,8 @@ export interface CsvTransaction {
   receiver_balance_before?: number;
   receiver_balance_after?: number;
   transaction_type?: string;
+  account_iban?: string;
+  beneficiary_iban?: string;
   [key: string]: any;
 }
 
@@ -45,7 +47,7 @@ export class FraudDashboardComponent {
   private graphService = inject(GraphService);
   private apiService = inject(DefaultService); 
   
-  // Exposition de Math pour le template HTML (barres SHAP)
+  // Exposition de Math pour le template HTML
   protected readonly Math = Math;
 
   // Colonnes requises & colonnes numériques pour CSV
@@ -140,7 +142,7 @@ export class FraudDashboardComponent {
     }
   ];
 
-  // Exposition des signaux du service pour le HTML
+  // Exposition des signaux du service
   public filteredAlerts = this.alertsService.alerts;
   public loading = this.alertsService.loading;
   public errorMessage = signal<string | null>(null);
@@ -152,6 +154,14 @@ export class FraudDashboardComponent {
   public statusFilter = signal<string>('tous');
   public severityFilter = signal<string>('tous');
   public search = signal<string>('');
+
+  // ===== SEUILS CONFIGURABLES =====
+  public mlThreshold: number = 50; 
+  public criticalAmountThreshold: number = 5000;
+  public autoBlockEnabled: boolean = false;
+
+  // Signal réactif pour diffuser le seuil appliqué aux calculs
+  public appliedMlThreshold = signal<number>(50);
 
   // ===== GESTION DES ONGLETS =====
   public activeTab = signal<TabId>('overview');
@@ -169,6 +179,24 @@ export class FraudDashboardComponent {
     this.activeTab.set(id);
     if (id === 'config' && !this.editableThresholds()) {
       this.loadThresholdsFromApi();
+    }
+  }
+
+  /**
+   * Sauvegarde et applique la nouvelle configuration de seuil
+   */
+  public saveConfig(): void {
+    console.log(`Nouveau seuil appliqué : ${this.mlThreshold}%`);
+    this.appliedMlThreshold.set(Number(this.mlThreshold));
+    this.configSaved.set(true);
+    setTimeout(() => this.configSaved.set(false), 3000);
+  }
+
+  private resetLocalAlerts(): void {
+    if (typeof (this.alertsService as any).clearAlerts === 'function') {
+      (this.alertsService as any).clearAlerts();
+    } else if ((this.alertsService as any).alerts?.set) {
+      (this.alertsService as any).alerts.set([]);
     }
   }
 
@@ -213,7 +241,7 @@ export class FraudDashboardComponent {
       .sort((a, b) => b.count - a.count);
   });
 
-  // ===== ONGLET EXPLICABILITÉ SHAP (AMÉLIORÉ AVEC SHAP_CONTRIBUTIONS) =====
+  // ===== ONGLET EXPLICABILITÉ SHAP =====
   public shapFactorStats = computed(() => {
     const groups = new Map<string, { positive: number; negative: number }>();
     
@@ -252,28 +280,12 @@ export class FraudDashboardComponent {
     return alert.explainability.factors.filter(f => !/ a contribué (positivement|négativement)$/.test(f));
   }
 
-  // ===== ONGLET CONFIG SEUILS =====
+  // ===== CONFIG API SERVICE =====
   private configService = inject(ConfigService);
-
   public configLoading = signal(false);
   public configError = signal<string | null>(null);
   public configSaved = signal(false);
   public editableThresholds = signal<ThresholdsConfig | null>(null);
-
-  // === PROPRIÉTÉS AJOUTÉES POUR RÉSOUDRE L'ERREUR DE COMPILATION ===
-  public mlThreshold: number = 50; 
-  public criticalAmountThreshold: number = 5000;
-  public autoBlockEnabled: boolean = false;
-  
-  // === MÉTHODE AJOUTÉE POUR RÉSOUDRE L'ERREUR DU BOUTON SAVE (click)="saveConfig()" ===
-  public saveConfig(): void {
-    console.log('Configuration locale sauvegardée :', {
-      mlThreshold: this.mlThreshold,
-      criticalAmountThreshold: this.criticalAmountThreshold,
-      autoBlockEnabled: this.autoBlockEnabled
-    });
-    // Si tu veux, tu pourras relier ces valeurs à ton configService plus tard !
-  }
 
   public loadThresholdsFromApi(): void {
     this.configError.set(null);
@@ -325,7 +337,6 @@ export class FraudDashboardComponent {
   public graphLoading = signal(false);
   public graphError = signal<string | null>(null);
 
-  // ===== LOGIQUE DU GRAPHE =====
   public loadTopAccounts(): void {
     this.graphError.set(null);
     this.graphLoading.set(true);
@@ -337,7 +348,7 @@ export class FraudDashboardComponent {
         if (accounts.length > 0) {
           this.selectAccount(accounts[0].iban);
         } else {
-          this.graphError.set('Aucun compte signalé trouvé pour ce tenant_id. Vérifiez qu\'il correspond exactement à celui utilisé lors de l\'analyse.');
+          this.graphError.set('Aucun compte signalé trouvé pour ce tenant_id.');
         }
       },
       error: (err) => {
@@ -423,7 +434,6 @@ export class FraudDashboardComponent {
     if (lines.length < 2) return [];
 
     const separator = lines[0].includes(';') ? ';' : ',';
-
     const rawHeader = this.splitCsvLine(lines[0], separator);
     const header = rawHeader.map(h => h.toLowerCase().trim());
 
@@ -435,13 +445,12 @@ export class FraudDashboardComponent {
     const rows = lines.slice(1);
 
     return rows
-      .map(line => {
+      .map((line, index) => {
         const values = this.splitCsvLine(line, separator);
         const record: Record<string, any> = {};
 
         header.forEach((col, i) => {
           let val = values[i] ?? '';
-          
           if (this.NUMERIC_COLUMNS.includes(col)) {
             val = val.replace(',', '.');
             record[col] = parseFloat(val) || 0;
@@ -450,7 +459,25 @@ export class FraudDashboardComponent {
           }
         });
 
-        return record as CsvTransaction;
+        const amount = record['amount'] || 0;
+        const senderBefore = record['sender_balance_before'] ?? 10000.0;
+        const senderAfter = record['sender_balance_after'] ?? Math.max(0, senderBefore - amount);
+
+        return {
+          tenant_id: record['tenant_id'] || 'tenant_demo',
+          transaction_reference: record['transaction_reference'] || record['id'] || `REF_CSV_${index + 1}`,
+          id: String(record['id'] || `TX_${index + 1}`),
+          date: record['date'] || new Date().toISOString(),
+          description: record['description'] || 'Transaction Importée CSV',
+          amount: amount,
+          sender_balance_before: senderBefore,
+          sender_balance_after: senderAfter,
+          receiver_balance_before: record['receiver_balance_before'] ?? 0.0,
+          receiver_balance_after: record['receiver_balance_after'] ?? amount,
+          transaction_type: record['transaction_type'] || 'TRANSFER',
+          account_iban: record['account_iban'] || 'FR7612345678901234567890123',
+          beneficiary_iban: record['beneficiary_iban'] || 'FR7698765432109876543210987'
+        } as CsvTransaction;
       })
       .filter(r => Boolean(r.id) && !isNaN(r.amount)); 
   }
@@ -462,43 +489,81 @@ export class FraudDashboardComponent {
   public useDemoData(): void {
     this.importError.set(null);
     this.importedFileName.set(null);
+    this.supabaseResults.set(null);
+    this.resetLocalAlerts();
     this.analyze();
   }
 
   private runAnalysis(transactions: any[]): void {
+    this.errorMessage.set(null);
+    this.supabaseResults.set(null);
+    this.resetLocalAlerts();
+
     this.alertsService.analyzeTransactions(transactions).subscribe({
       next: () => console.log('Import CSV analysé avec succès'),
-      error: (err : any) => {
+      error: (err: any) => {
         this.errorMessage.set(`Erreur: ${err.message || 'Échec de l\'analyse du fichier importé'}`);
       }
     });
   }
 
-  // ===== KPIS CALCULÉS =====
-  public totalAnalyzed = computed(() => this.filteredAlerts().length);
+  // ===== KPIS CALCULÉS STRICTEMENT SELON LE SEUIL DÉFINI (appliedMlThreshold) =====
 
+  public totalAnalyzed = computed(() => {
+    const supa = this.supabaseResults();
+    if (supa && supa.length > 0) return supa.length;
+    return this.filteredAlerts().length;
+  });
+
+  // Calcul du taux de fraude strictement filtré par le score >= seuil configuré
   public fraudRate = computed(() => {
-    const total = this.totalAnalyzed();
+    const supa = this.supabaseResults();
+    const list: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
+    const total = list.length;
     if (total === 0) return 0;
-    const fraudCount = this.filteredAlerts().filter(a => a.status === 'new').length;
+
+    const threshold = this.appliedMlThreshold();
+
+    const fraudCount = list.filter(item => {
+      const score = item.fraudScore ?? item.fraud_score ?? item.score ?? 0;
+      return score >= threshold;
+    }).length;
+
     return Math.round((fraudCount / total) * 100);
   });
 
-  public totalAtRisk = computed(() => this.alertsService.stats()?.totalAmountAtRisk ?? 0);
+  // Calcul du montant à risque strictement filtré par le score >= seuil configuré
+  public totalAtRisk = computed(() => {
+    const supa = this.supabaseResults();
+    const list: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
+    const threshold = this.appliedMlThreshold();
 
-  public globalRiskScore = computed(() => {
-    const alerts = this.filteredAlerts();
-    if (alerts.length === 0) return 0;
-    const avg = alerts.reduce((sum, a) => sum + (a.fraudScore || 0), 0) / alerts.length;
-    return Math.round(avg * 100) / 100;
+    const suspiciousItems = list.filter(item => {
+      const score = item.fraudScore ?? item.fraud_score ?? item.score ?? 0;
+      return score >= threshold;
+    });
+
+    return suspiciousItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   });
 
-  /**
-   * Analyse Locale (Stateless) — Données de démo
-   */
+  public globalRiskScore = computed(() => {
+    const supa = this.supabaseResults();
+    const list: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
+    if (list.length === 0) return 0;
+
+    const sumScore = list.reduce((acc, item) => {
+      const score = item.fraudScore ?? item.fraud_score ?? item.score ?? 0;
+      return acc + score;
+    }, 0);
+
+    return Math.round((sumScore / list.length) * 100) / 100;
+  });
+
   public analyze(): void {
     this.errorMessage.set(null);
     this.importError.set(null);
+    this.supabaseResults.set(null);
+    this.resetLocalAlerts();
 
     this.alertsService.analyzeTransactions(this.mockTransactionsToAnalyze).subscribe({
       next: (resultats: any) => {
@@ -511,12 +576,10 @@ export class FraudDashboardComponent {
     });
   }
 
-  /**
-   * Cas d'usage Supabase (Stateful)
-   */
   public analyzeSupabaseCases(): void {
     this.errorMessage.set(null);
     this.loading.set(true);
+    this.resetLocalAlerts();
 
     const transactionsSupabase: TransactionInput[] = [
       {
@@ -573,25 +636,17 @@ export class FraudDashboardComponent {
       next: (resultats: TransactionOutput[]) => {
         this.supabaseResults.set(resultats);
         this.loading.set(false);
-        console.log('Résultats cas Supabase :', resultats);
       },
       error: (erreur: any) => {
         this.loading.set(false);
         this.errorMessage.set(`Erreur Supabase: ${erreur.message || 'Échec de connexion'}`);
-        console.error('Erreur cas Supabase', erreur);
       }
     });
   }
 
-  // ===== FONCTIONS UTILITAIRES AFFICHAGE =====
+  // ===== FONCTIONS UTILITAIRES D'AFFICHAGE =====
   public getCurrentDate(): string {
-    const now = new Date();
-    return now.toLocaleDateString('fr-FR', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
+    return new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
 
   public getCurrentTime(): string {
