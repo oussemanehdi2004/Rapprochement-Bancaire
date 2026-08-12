@@ -10,3 +10,4 @@ PyJWT
 python-dotenv
 joblib
 neo4j
+prometheus-fastapi-instrumentator

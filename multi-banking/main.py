@@ -6,6 +6,7 @@ import time
 import uuid
 
 import httpx
+from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi import (
     Depends,
     FastAPI,
@@ -51,6 +52,7 @@ app = FastAPI(
     version="0.2.0",
     root_path="/banking",
 )
+Instrumentator().instrument(app).expose(app)
 
 
 @app.middleware("http")

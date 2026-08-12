@@ -14,6 +14,13 @@ services:
       - neo4j_data:/data
     networks:
       - banking_net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          memory: 512M
 
   fraud-service:
     build: ./backend
@@ -35,6 +42,13 @@ services:
       - neo4j_db
     networks:
       - banking_net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1G
+        reservations:
+          memory: 256M
 
   multi-banking:
     build: ../multi-banking
@@ -49,6 +63,13 @@ services:
       - fraud-service
     networks:
       - banking_net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 128M
 
   api-gateway:
     image: nginx:latest
@@ -62,9 +83,33 @@ services:
       - fraud-service
     networks:
       - banking_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks: [banking_net]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin_dev_only
+    networks: [banking_net]
+
 
 networks:
   banking_net:
 
 volumes:
   neo4j_data:
+

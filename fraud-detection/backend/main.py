@@ -28,7 +28,7 @@ from rules_engine import (
     apply_batch_rules,
     apply_business_rules,
 )
-
+from prometheus_fastapi_instrumentator import Instrumentator
 load_dotenv()
 
 NODE_BACKEND_URL = os.environ.get("NODE_BACKEND_URL", "http://localhost:3000")
@@ -60,6 +60,7 @@ app = FastAPI(
     openapi_url=None if IS_PRODUCTION else "/openapi.json",
     root_path="/fraud",
 )
+Instrumentator().instrument(app).expose(app)
 
 # =====================================================================
 # 1. CONFIGURATION CORS SÉCURISÉE (DYNAMIQUE ET RESTREINTE)
