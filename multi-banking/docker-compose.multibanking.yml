@@ -7,7 +7,7 @@ services:
     ports:
       - "8020:8010"
     environment:
-      - INTERNAL_SERVICE_SECRET=internal_dev_secret
+      - INTERNAL_SERVICE_SECRET=${MULTIBANKING_INTERNAL_SECRET:-multibanking_dev_secret_456}
       - DISABLE_INTERNAL_AUTH=false
       - FRAUD_SERVICE_URL=http://fraud-service-unavailable:8005
       - ENVIRONMENT=development

@@ -1,10 +1,6 @@
 """
-Stockage et accès aux seuils réglementaires configurables.
-
-Persistance dans un fichier JSON local (thresholds.json) avec :
-- Écriture atomique (protection contre la corruption de fichier lors d'un crash)
-- Mise en cache en mémoire avec validation mtime (gain de performances lors des analyses batch)
-- Isolation par copie profonde (évite la mutation involontaire des listes/dicts en mémoire)
+Stockage et accès aux seuils réglementaires configurables,
+ainsi que le chargement des variables d'environnement de sécurité.
 """
 
 from __future__ import annotations
@@ -19,6 +15,18 @@ from typing import Any
 
 logger = logging.getLogger("fraud_api.config")
 
+# =====================================================================
+# VARIABLES D'ENVIRONNEMENT & SÉCURITÉ INTER-SERVICES (Points 1 & 2)
+# =====================================================================
+# Par défaut à False pour imposer l'auth (aligné avec Docker)
+DISABLE_INTERNAL_AUTH = os.getenv("DISABLE_INTERNAL_AUTH", "false").lower() == "true"
+# Secret unique isolé pour le service Fraud-Detection
+FRAUD_INTERNAL_SECRET = os.getenv("FRAUD_INTERNAL_SECRET", os.getenv("INTERNAL_SERVICE_SECRET", "default_fraud_secret"))
+
+
+# =====================================================================
+# CONFIGURATION DES SEUILS METIER
+# =====================================================================
 # Permet de surcharger le chemin via une variable d'environnement (pratique pour les volumes Docker)
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "thresholds.json")
 CONFIG_PATH = os.getenv("THRESHOLDS_CONFIG_PATH", DEFAULT_CONFIG_PATH)
@@ -52,7 +60,6 @@ def _read_file_unlocked() -> dict[str, Any]:
 
     try:
         current_mtime = os.path.getmtime(CONFIG_PATH)
-        # Si le cache est valide et que le fichier n'a pas été modifié sur disque, on retourne le cache
         if _cached_thresholds is not None and current_mtime == _last_mtime:
             return _cached_thresholds
 
@@ -75,7 +82,7 @@ def _read_file_unlocked() -> dict[str, Any]:
 
 
 def _write_file_atomic_unlocked(data: dict[str, Any]) -> None:
-    """Écriture atomique dans un fichier temporaire puis remplacement (remplace un fichier corrompu en cas de crash)."""
+    """Écriture atomique dans un fichier temporaire puis remplacement."""
     dir_name = os.path.dirname(CONFIG_PATH) or "."
     os.makedirs(dir_name, exist_ok=True)
 
@@ -104,7 +111,6 @@ def update_thresholds(patch: dict[str, Any]) -> dict[str, Any]:
         valid_updates: dict[str, Any] = {}
         for key, val in patch.items():
             if key in DEFAULT_THRESHOLDS and val is not None:
-                # Transtypage préventif
                 expected_type = type(DEFAULT_THRESHOLDS[key])
                 if expected_type is float:
                     valid_updates[key] = float(val)
@@ -122,8 +128,6 @@ def update_thresholds(patch: dict[str, Any]) -> dict[str, Any]:
 
         try:
             _write_file_atomic_unlocked(current)
-            
-            # Mise à jour immédiate du cache en mémoire
             global _cached_thresholds, _last_mtime
             _cached_thresholds = current
             _last_mtime = os.path.getmtime(CONFIG_PATH) if os.path.exists(CONFIG_PATH) else 0.0
