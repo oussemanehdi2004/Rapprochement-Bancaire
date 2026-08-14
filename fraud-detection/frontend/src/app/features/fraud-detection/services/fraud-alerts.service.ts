@@ -118,7 +118,7 @@ export class FraudAlertsService {
   // Utilise les transactions reçues en paramètre (ou un tableau vide par défaut)
   const payload = transactions || [];
 
-  return this.http.post<APIResponse>(`${this.apiUrl}/analyze`, payload).pipe(
+  return this.http.post<APIResponse>(`${this.apiUrl}/analyze`, payload, { headers: this.getHeaders() }).pipe(
     map((res) => this.mapTransactionData(res.data)),
     tap((data) => {
       const newAlerts = Array.isArray(data) ? data : [data];
@@ -166,7 +166,7 @@ analyze(transactions?: any[]): Observable<any> {
       );
   }
 
-  private updateStats(data: TransactionOutput[]): void {
+  public updateStats(data: TransactionOutput[]): void {
     const totalAlerts = data.length;
     
     // Application des seuils de Dhirar pour les KPIs

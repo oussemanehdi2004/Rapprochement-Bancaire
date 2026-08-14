@@ -88,6 +88,13 @@
       </button>
     </div>
 
+    <!-- Graphiques globaux -->
+    <app-fraud-charts
+      [severityCounts]="severityCounts()"
+      [categoryStats]="categoryChartStats()"
+      style="display:block; margin-bottom: 1.5rem;"
+    ></app-fraud-charts>
+
     <!-- Fraud Detection Stats -->
     <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); margin-bottom: 1.5rem;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
@@ -166,6 +173,7 @@
               <th style="text-align: left; padding: 0.75rem 1rem;">Score</th>
               <th style="text-align: left; padding: 0.75rem 1rem;">Criticité</th>
               <th style="text-align: left; padding: 0.75rem 1rem;">Description</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Règle</th>
               <th style="text-align: left; padding: 0.75rem 1rem;">Bénéficiaire</th>
               <th style="text-align: right; padding: 0.75rem 1rem;">Montant</th>
               <th style="text-align: left; padding: 0.75rem 1rem;">Statut</th>
@@ -186,16 +194,12 @@
                   </div>
                 </td>
                 <td style="padding: 0.75rem 1rem;">
-                  <span
-                    style="font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 9999px; border: 1px solid;"
-                    [style.background-color]="getSeverityBgColor(alert.severity || 'LOW')"
-                    [style.color]="getSeverityTextColor(alert.severity || 'LOW')"
-                    [style.borderColor]="getSeverityBorderColor(alert.severity || 'LOW')"
-                  >
-                    {{ severityLabel(alert.severity || 'LOW') }}
-                  </span>
+                  <app-severity-badge [severity]="alert.severity || 'LOW'"></app-severity-badge>
                 </td>
                 <td style="padding: 0.75rem 1rem; color: #374151;">{{ alert.description }}</td>
+                <td style="padding: 0.75rem 1rem;">
+                  <app-category-badge [category]="alert.category || 'NON_CATEGORISE'"></app-category-badge>
+                </td>
                 <td style="padding: 0.75rem 1rem; color: #6b7280;">{{ alert.beneficiary || '—' }}</td>
                 <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #1f2937;">
                   {{ alert.amount | number: '1.2-2' }} €
@@ -396,8 +400,7 @@
           <thead style="background-color: #f9fafb; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
             <tr>
               <th style="text-align: left; padding: 0.75rem 1rem;">Transaction</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Catégorie règle</th>
-              <th style="text-align: center; padding: 0.75rem 1rem;">Règle</th>
+              <th style="text-align: left; padding: 0.75rem 1rem;">Règle</th>
               <th style="text-align: center; padding: 0.75rem 1rem;">Score IA</th>
               <th style="text-align: center; padding: 0.75rem 1rem;">Décision finale</th>
               <th style="text-align: left; padding: 0.75rem 1rem;">Facteurs</th>
@@ -407,26 +410,14 @@
             @for (alert of filteredAlerts(); track alert.id) {
               <tr style="border-top: 1px solid #f3f4f6;">
                 <td style="padding: 0.75rem 1rem; font-weight: 500; color: #1f2937;">{{ alert.transactionId || alert.id }}</td>
-                <td style="padding: 0.75rem 1rem; color: #374151;">{{ ruleCategoryLabel(alert.category || 'NON_CATEGORISE') }}</td>
-                <td style="padding: 0.75rem 1rem; text-align: center;">
-                  @if (alert.category && alert.category !== 'NON_CATEGORISE') {
-                    <span style="font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 9999px; background: #fef2f2; color: #dc2626;">🚫 Bloqué</span>
-                  } @else {
-                    <span style="font-size: 0.75rem; color: #9ca3af;">—</span>
-                  }
+                <td style="padding: 0.75rem 1rem; color: #374151;">
+                  <app-category-badge [category]="alert.category || 'NON_CATEGORISE'"></app-category-badge>
                 </td>
                 <td style="padding: 0.75rem 1rem; text-align: center; font-weight: 600;" [style.color]="(alert.fraudScore ?? 0) >= 50 ? '#dc2626' : '#16a34a'">
                   {{ alert.fraudScore ?? 0 }}%
                 </td>
                 <td style="padding: 0.75rem 1rem; text-align: center;">
-                  <span
-                    style="font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 9999px; border: 1px solid;"
-                    [style.color]="alert.status === 'new' ? '#dc2626' : '#16a34a'"
-                    [style.backgroundColor]="alert.status === 'new' ? '#fef2f2' : '#f0fdf4'"
-                    [style.borderColor]="alert.status === 'new' ? '#fecaca' : '#bbf7d0'"
-                  >
-                    {{ alert.status === 'new' ? 'FRAUDE' : 'CLEAN' }}
-                  </span>
+                  <app-severity-badge [severity]="alert.severity || (((alert.fraudScore ?? 0) >= 70) ? 'HIGH' : 'LOW')"></app-severity-badge>
                 </td>
                 <td style="padding: 0.75rem 1rem; color: #6b7280; font-size: 0.8rem; max-width: 320px;">
                   {{ alert.explainability.factors.join(' · ') || '—' }}
@@ -544,6 +535,14 @@
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+        <!-- Simulateur de Seuils -->
+        <div style="grid-column: 1 / -1;">
+          <app-threshold-simulator 
+            [thresholds]="currentSimulation()" 
+            (thresholdChange)="onSimulationChange($event)"
+          ></app-threshold-simulator>
+        </div>
+
         <!-- Seuil Score ML -->
         <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">
           <label style="font-weight: 600; font-size: 0.875rem; color: #374151; display: block; margin-bottom: 0.5rem;">
