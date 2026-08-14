@@ -328,7 +328,7 @@ def build_transaction_output(tx: TransactionInput, batch_finding: Optional[dict]
         features_vector = preprocess_transaction(tx)
         probabilities = model.predict_proba([features_vector])[0]
         raw_ml_probability = float(probabilities[1])
-        model_flag = raw_ml_probability > 0.50
+        model_flag = raw_ml_probability >= 0.4758
 
         features_array = np.array([features_vector])
         shap_values = explainer(features_array)
