@@ -257,12 +257,33 @@ def preprocess_transaction(tx: TransactionInput) -> list:
     is_transfer = 1 if tx_type == "TRANSFER" else 0
     is_cash_out = 1 if tx_type == "CASH_OUT" else 0
 
+    # --- Features V2 (Granularité accrue) ---
+    # Extraction de l'heure depuis la date ISO (ex: "2026-08-14T14:30:00Z")
+    try:
+        hour_of_day = int(tx.date[11:13]) if tx.date and "T" in tx.date else 12
+    except (ValueError, IndexError):
+        hour_of_day = 12
+
+    # Valeurs par défaut pour les autres métriques (pourront être connectées à Supabase plus tard)
+    amount_to_avg_ratio = 1.0
+    days_since_last_tx = 5.0
+    beneficiary_tx_count = 0
+
     return [
-        tx.amount, tx.sender_balance_before, tx.sender_balance_after,
-        tx.receiver_balance_before, tx.receiver_balance_after,
+        tx.amount, 
+        tx.sender_balance_before, 
+        tx.sender_balance_after,
+        tx.receiver_balance_before, 
+        tx.receiver_balance_after,
         sender_balance_error(tx.amount, tx.sender_balance_before, tx.sender_balance_after),
         receiver_balance_error(tx.amount, tx.receiver_balance_before, tx.receiver_balance_after),
-        is_transfer, is_cash_out,
+        is_transfer, 
+        is_cash_out,
+        # Ajout strict des 4 variables V2 dans l'ordre de FEATURE_NAMES
+        amount_to_avg_ratio,
+        hour_of_day,
+        days_since_last_tx,
+        beneficiary_tx_count
     ]
 
 def extract_rule_evaluation(tx: TransactionInput, batch_finding: Optional[dict] = None, account_aggregate: Optional[dict] = None, beneficiary_history: Optional[List[dict]] = None):
