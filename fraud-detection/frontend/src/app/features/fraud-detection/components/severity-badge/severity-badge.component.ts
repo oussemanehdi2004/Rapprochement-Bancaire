@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -6,58 +6,21 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <span [class]="'severity-badge severity-' + severityClass()">
-      {{ severityLabel() }}
+    <span [ngClass]="badgeClass" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border">
+      {{ severity | uppercase }}
     </span>
-  `,
-  styles: [`
-    .severity-badge {
-      display: inline-block;
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .severity-critical {
-      background: #ffebee;
-      color: #c62828;
-      border: 1px solid #ef9a9a;
-    }
-    .severity-high {
-      background: #fff3e0;
-      color: #ef6c00;
-      border: 1px solid #ffcc80;
-    }
-    .severity-medium {
-      background: #fff8e1;
-      color: #f57f17;
-      border: 1px solid #ffe082;
-    }
-    .severity-low {
-      background: #e8f5e9;
-      color: #2e7d32;
-      border: 1px solid #a5d6a7;
-    }
-  `]
+  `
 })
 export class SeverityBadgeComponent {
-  severity = input.required<string>();
+  @Input() severity: 'critical' | 'high' | 'medium' | 'low' | string = 'low';
 
-  severityClass(): string {
-    const sev = this.severity().toUpperCase();
-    if (sev === 'CRITICAL' || sev === 'CRITIQUE') return 'critical';
-    if (sev === 'HIGH' || sev === 'ÉLEVÉ') return 'high';
-    if (sev === 'MEDIUM' || sev === 'MOYEN') return 'medium';
-    return 'low';
-  }
-
-  severityLabel(): string {
-    const sev = this.severity().toUpperCase();
-    if (sev === 'CRITICAL' || sev === 'CRITIQUE') return 'Critique';
-    if (sev === 'HIGH' || sev === 'ÉLEVÉ') return 'Élevé';
-    if (sev === 'MEDIUM' || sev === 'MOYEN') return 'Moyen';
-    return 'Faible';
+  get badgeClass(): string {
+    switch (this.severity.toLowerCase()) {
+      case 'critical': return 'bg-red-50 text-red-700 border-red-200';
+      case 'high': return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'medium': return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'low': return 'bg-green-50 text-green-700 border-green-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
   }
 }

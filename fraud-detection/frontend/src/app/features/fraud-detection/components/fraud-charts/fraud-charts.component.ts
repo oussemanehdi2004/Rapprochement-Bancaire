@@ -1,5 +1,17 @@
-import { Component, input } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Input,
+  OnChanges,
+  OnDestroy,
+  SimpleChanges,
+  ViewChild,
+  AfterViewInit
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Chart, ChartConfiguration, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 export interface SeverityCounts {
   critical: number;
@@ -8,7 +20,7 @@ export interface SeverityCounts {
   low: number;
 }
 
-export interface CategoryStat {
+export interface CategoryCount {
   category: string;
   count: number;
 }
@@ -18,219 +30,156 @@ export interface CategoryStat {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="fraud-charts">
-      <div class="chart-container">
-        <h3>Distribution par Sévérité</h3>
-        <div class="donut-chart">
-          <svg viewBox="0 0 200 200" class="donut-svg">
-            <circle cx="100" cy="100" r="80" fill="none" stroke="#e0e0e0" stroke-width="20"/>
-            <circle 
-              *ngFor="let segment of severitySegments()" 
-              cx="100" cy="100" r="80" 
-              fill="none" 
-              [attr.stroke]="segment.color"
-              stroke-width="20"
-              [attr.stroke-dasharray]="segment.dashArray"
-              [attr.stroke-dashoffset]="segment.offset"
-              transform="rotate(-90 100 100)"
-            />
-          </svg>
-          <div class="donut-center">
-            <div class="total-count">{{ totalCount() }}</div>
-            <div class="total-label">Total</div>
-          </div>
-        </div>
-        <div class="legend">
-          <div class="legend-item" *ngFor="let item of legendItems()">
-            <span [class]="'legend-color ' + item.class"></span>
-            <span class="legend-label">{{ item.label }}</span>
-            <span class="legend-value">{{ item.value }}</span>
-          </div>
+    <div style="display: grid; grid-template-columns: 1fr; gap: 1rem; width: 100%;">
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
+        <h3 style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem;">Répartition par sévérité</h3>
+        <p style="font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.75rem;">{{ totalAlerts() }} alerte(s) au total</p>
+        <div style="position: relative; height: 14rem; width: 100%; overflow: hidden;">
+          @if (totalAlerts() === 0) {
+            <div style="height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #9ca3af;">Aucune donnée</div>
+          }
+          <canvas #severityCanvas style="display: block; width: 100%; height: 100%;"></canvas>
         </div>
       </div>
-      
-      <div class="chart-container" *ngIf="categoryStats().length > 0">
-        <h3>Distribution par Catégorie</h3>
-        <div class="bar-chart">
-          <div class="bar-row" *ngFor="let stat of categoryStats()">
-            <div class="bar-label">{{ stat.category }}</div>
-            <div class="bar-track">
-              <div class="bar-fill" [style.width.%]="getBarWidth(stat.count, maxCount())"></div>
-            </div>
-            <div class="bar-value">{{ stat.count }}</div>
-          </div>
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
+        <h3 style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem;">Règles les plus déclenchées</h3>
+        <p style="font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.75rem;">Top {{ Math.min(categoryStats.length, 6) }} catégorie(s)</p>
+        <div style="position: relative; height: 14rem; width: 100%; overflow: hidden;">
+          @if (categoryStats.length === 0) {
+            <div style="height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #9ca3af;">Aucune règle déclenchée</div>
+          }
+          <canvas #categoryCanvas style="display: block; width: 100%; height: 100%;"></canvas>
         </div>
       </div>
     </div>
   `,
-  styles: [`
-    .fraud-charts {
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-    }
-    .chart-container {
-      background: #fff;
-      padding: 1.5rem;
-      border-radius: 8px;
-      border: 1px solid #e0e0e0;
-    }
-    .chart-container h3 {
-      margin-top: 0;
-      margin-bottom: 1rem;
-      color: #333;
-      font-size: 1.1rem;
-    }
-    .donut-chart {
-      position: relative;
-      width: 200px;
-      height: 200px;
-      margin: 0 auto;
-    }
-    .donut-svg {
-      width: 100%;
-      height: 100%;
-    }
-    .donut-center {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-    }
-    .total-count {
-      font-size: 2rem;
-      font-weight: bold;
-      color: #333;
-    }
-    .total-label {
-      font-size: 0.875rem;
-      color: #666;
-    }
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 1rem;
-      justify-content: center;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-    }
-    .legend-color {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-    }
-    .legend-color.critical { background: #c62828; }
-    .legend-color.high { background: #ef6c00; }
-    .legend-color.medium { background: #f57f17; }
-    .legend-color.low { background: #2e7d32; }
-    .legend-label {
-      color: #555;
-    }
-    .legend-value {
-      font-weight: 600;
-      color: #333;
-    }
-    .bar-chart {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    .bar-row {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .bar-label {
-      width: 150px;
-      font-size: 0.875rem;
-      color: #555;
-      text-align: right;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .bar-track {
-      flex: 1;
-      height: 24px;
-      background: #f5f5f5;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    .bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #1976d2, #42a5f5);
-      border-radius: 4px;
-      transition: width 0.3s ease;
-    }
-    .bar-value {
-      width: 40px;
-      font-weight: 600;
-      color: #333;
-      text-align: right;
-    }
-  `]
 })
-export class FraudChartsComponent {
-  severityCounts = input.required<SeverityCounts>();
-  categoryStats = input<CategoryStat[]>([]);
+export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy {
+  @Input() severityCounts: SeverityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
+  @Input() categoryStats: CategoryCount[] = [];
 
-  totalCount(): number {
-    const counts = this.severityCounts();
-    return counts.critical + counts.high + counts.medium + counts.low;
+  @ViewChild('severityCanvas') severityCanvasRef?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('categoryCanvas') categoryCanvasRef?: ElementRef<HTMLCanvasElement>;
+
+  protected readonly Math = Math;
+
+  private severityChart?: Chart;
+  private categoryChart?: Chart;
+  private isInitialized = false;
+
+  ngAfterViewInit(): void {
+    // S'assure qu'on est strictement dans le navigateur
+    if (typeof window !== 'undefined') {
+      // Initial render with delay to ensure DOM is ready
+      setTimeout(() => {
+        this.isInitialized = true;
+        this.renderCharts();
+      }, 150);
+    }
   }
 
-  severitySegments() {
-    const counts = this.severityCounts();
-    const total = this.totalCount();
-    if (total === 0) return [];
+  ngOnChanges(_changes: SimpleChanges): void {
+    if (this.isInitialized && typeof window !== 'undefined') {
+      // Use requestAnimationFrame to ensure the DOM has updated before rendering
+      requestAnimationFrame(() => {
+        this.renderCharts();
+      });
+    }
+  }
 
-    const circumference = 2 * Math.PI * 80;
-    let offset = 0;
+  ngOnDestroy(): void {
+    this.severityChart?.destroy();
+    this.categoryChart?.destroy();
+  }
 
-    const segments = [
-      { count: counts.critical, color: '#c62828', label: 'Critique' },
-      { count: counts.high, color: '#ef6c00', label: 'Élevé' },
-      { count: counts.medium, color: '#f57f17', label: 'Moyen' },
-      { count: counts.low, color: '#2e7d32', label: 'Faible' }
+  totalAlerts(): number {
+    const c = this.severityCounts;
+    return (c?.critical || 0) + (c?.high || 0) + (c?.medium || 0) + (c?.low || 0);
+  }
+
+  private renderCharts(): void {
+    this.renderSeverityChart();
+    this.renderCategoryChart();
+  }
+
+  private renderSeverityChart(): void {
+    const canvas = this.severityCanvasRef?.nativeElement;
+    if (!canvas) return;
+
+    const data = [
+      this.severityCounts.critical,
+      this.severityCounts.high,
+      this.severityCounts.medium,
+      this.severityCounts.low,
     ];
 
-    return segments
-      .filter(s => s.count > 0)
-      .map(s => {
-        const percentage = s.count / total;
-        const dashArray = `${percentage * circumference} ${circumference}`;
-        const segment = {
-          dashArray,
-          offset: -offset,
-          color: s.color
-        };
-        offset += percentage * circumference;
-        return segment;
-      });
+    const config: ChartConfiguration<'doughnut'> = {
+      type: 'doughnut',
+      data: {
+        labels: ['Critique', 'Élevée', 'Moyenne', 'Faible'],
+        datasets: [
+          {
+            data,
+            backgroundColor: ['#dc2626', '#ea580c', '#d97706', '#16a34a'],
+            borderWidth: 0,
+            hoverOffset: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+        },
+      },
+    };
+
+    if (this.severityChart) {
+      this.severityChart.data = config.data;
+      this.severityChart.update();
+    } else {
+      this.severityChart = new Chart(canvas, config);
+    }
   }
 
-  legendItems() {
-    const counts = this.severityCounts();
-    return [
-      { class: 'critical', label: 'Critique', value: counts.critical },
-      { class: 'high', label: 'Élevé', value: counts.high },
-      { class: 'medium', label: 'Moyen', value: counts.medium },
-      { class: 'low', label: 'Faible', value: counts.low }
-    ].filter(item => item.value > 0);
-  }
+  private renderCategoryChart(): void {
+    const canvas = this.categoryCanvasRef?.nativeElement;
+    if (!canvas) return;
 
-  maxCount(): number {
-    const stats = this.categoryStats();
-    return Math.max(...stats.map(s => s.count), 1);
-  }
+    const top = [...this.categoryStats].sort((a, b) => b.count - a.count).slice(0, 6);
 
-  getBarWidth(count: number, max: number): number {
-    return (count / max) * 100;
+    const config: ChartConfiguration<'bar'> = {
+      type: 'bar',
+      data: {
+        labels: top.map((t) => t.category),
+        datasets: [
+          {
+            data: top.map((t) => t.count),
+            backgroundColor: '#4f46e5',
+            borderRadius: 4,
+            maxBarThickness: 24,
+          },
+        ],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 } },
+          y: { ticks: { font: { size: 11 } } },
+        },
+      },
+    };
+
+    if (this.categoryChart) {
+      this.categoryChart.data = config.data;
+      this.categoryChart.update();
+    } else {
+      this.categoryChart = new Chart(canvas, config);
+    }
   }
 }

@@ -11,7 +11,7 @@ import { ConfigService, ThresholdsConfig } from '../services/config.service';
 // --- IMPORTS DES COMPOSANTS RÉUTILISABLES ---
 import { ThresholdSimulatorComponent, SimulationThresholds } from '../components/threshold-simulator/threshold-simulator.component';
 import { SeverityBadgeComponent } from '../components/severity-badge/severity-badge.component';
-import { CategoryBadgeComponent } from '../components/severity-badge/category-badge.component';
+import { CategoryBadgeComponent } from '../components/category-badge/category-badge.component';
 import { FraudChartsComponent } from '../components/fraud-charts/fraud-charts.component';
 
 export interface SeverityCounts {

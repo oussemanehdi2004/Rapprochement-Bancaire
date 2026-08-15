@@ -1,4 +1,5 @@
-import { Component, input, output, signal, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 export interface SimulationThresholds {
@@ -9,94 +10,65 @@ export interface SimulationThresholds {
 @Component({
   selector: 'app-threshold-simulator',
   standalone: true,
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule],
   template: `
-    <div class="threshold-simulator">
-      <h3>Simulateur de Seuils</h3>
-      <div class="simulator-controls">
-        <div class="control-group">
-          <label for="ml-threshold">Seuil ML (%)</label>
+    <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-sm font-semibold text-gray-700">Simulateur de seuil (TRACFIN)</h3>
+          <p class="text-xs text-gray-400">Ajustez les seuils pour filtrer les alertes</p>
+        </div>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-medium text-gray-600">Seuil ML (%)</label>
+            <span class="font-mono text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">
+              {{ localThresholds.mlProbability }}%
+            </span>
+          </div>
           <input 
-            id="ml-threshold"
-            type="number" 
-            [(ngModel)]="localThresholds().mlProbability"
-            (ngModelChange)="onThresholdChange()"
+            type="range" 
             min="0" 
             max="100" 
             step="0.1"
-          />
-        </div>
-        <div class="control-group">
-          <label for="amount-threshold">Montant Anormal (€)</label>
-          <input 
-            id="amount-threshold"
-            type="number" 
-            [(ngModel)]="localThresholds().abnormalAmount"
+            [(ngModel)]="localThresholds.mlProbability"
             (ngModelChange)="onThresholdChange()"
-            min="0" 
-            step="100"
-          />
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
         </div>
-      </div>
-      <div class="simulator-info">
-        <p>Seuil ML actuel: <strong>{{ localThresholds().mlProbability }}%</strong></p>
-        <p>Montant seuil: <strong>{{ localThresholds().abnormalAmount }}€</strong></p>
+        
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-medium text-gray-600">Montant Anormal (€)</label>
+            <span class="font-mono text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">
+              {{ localThresholds.abnormalAmount }} €
+            </span>
+          </div>
+          <input 
+            type="range" 
+            min="1000" 
+            max="50000" 
+            step="1000"
+            [(ngModel)]="localThresholds.abnormalAmount"
+            (ngModelChange)="onThresholdChange()"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+        </div>
       </div>
     </div>
-  `,
-  styles: [`
-    .threshold-simulator {
-      padding: 1rem;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      background: #f9f9f9;
-    }
-    .threshold-simulator h3 {
-      margin-top: 0;
-      color: #333;
-    }
-    .simulator-controls {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-    .control-group {
-      flex: 1;
-    }
-    .control-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: #555;
-    }
-    .control-group input {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-    .simulator-info p {
-      margin: 0.25rem 0;
-      color: #666;
-    }
-    .simulator-info strong {
-      color: #1976d2;
-    }
-  `]
+  `
 })
 export class ThresholdSimulatorComponent implements OnInit {
-  thresholds = input.required<SimulationThresholds>();
-  thresholdChange = output<SimulationThresholds>();
+  @Input() thresholds: SimulationThresholds = { mlProbability: 50.0, abnormalAmount: 10000 };
+  @Output() thresholdChange = new EventEmitter<SimulationThresholds>();
 
-  localThresholds = signal<SimulationThresholds>({ mlProbability: 50.0, abnormalAmount: 10000 });
+  localThresholds: SimulationThresholds = { mlProbability: 50.0, abnormalAmount: 10000 };
 
-  ngOnInit(): void {
-    // Initialize local thresholds from input
-    this.localThresholds.set(this.thresholds());
+  ngOnInit() {
+    this.localThresholds = { ...this.thresholds };
   }
 
-  onThresholdChange(): void {
-    this.thresholdChange.emit(this.localThresholds());
+  onThresholdChange() {
+    this.thresholdChange.emit(this.localThresholds);
   }
 }
