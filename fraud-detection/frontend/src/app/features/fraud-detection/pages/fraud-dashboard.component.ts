@@ -260,22 +260,35 @@ export class FraudDashboardComponent {
   }
 
   public ruleCategoryStats = computed(() => {
-    const groups = new Map<string, { count: number; amount: number; sampleFactor: string }>();
+    const groups = new Map<string, { count: number; amount: number; sampleFactor: string; scoreSum: number }>();
     for (const alert of this.filteredAlerts()) {
       const cat = alert.category || 'NON_CATEGORISE';
       if (cat === 'NON_CATEGORISE' && alert.status === 'dismissed') continue;
-      const entry = groups.get(cat) ?? { count: 0, amount: 0, sampleFactor: '' };
+      const entry = groups.get(cat) ?? { count: 0, amount: 0, sampleFactor: '', scoreSum: 0 };
       entry.count += 1;
       entry.amount += alert.amount || 0;
+      entry.scoreSum += (alert.fraudScore ?? 0);
       if (!entry.sampleFactor && alert.explainability.factors.length > 0) {
         entry.sampleFactor = alert.explainability.factors[0];
       }
       groups.set(cat, entry);
     }
     return Array.from(groups.entries())
-      .map(([category, stats]) => ({ category, ...stats }))
-      .sort((a, b) => b.count - a.count);
+      .map(([category, stats]) => ({
+        category,
+        ...stats,
+        avgScore: stats.count > 0 ? Math.round(stats.scoreSum / stats.count) : 0
+      }))
+      .sort((a, b) => b.avgScore - a.avgScore);
   });
+
+  // Couleur de jauge selon le niveau de risque (aligné sur les seuils HIGH≥85 / MEDIUM≥70)
+  public gaugeColor(score: number): string {
+    if (score >= 85) return '#dc2626'; // critique
+    if (score >= 70) return '#ea580c'; // élevé
+    if (score >= 40) return '#d97706'; // moyen
+    return '#16a34a'; // faible
+  }
 
   // Adaptation pour le composant graphique FraudChartsComponent
   public categoryChartStats = computed(() =>
@@ -923,7 +936,50 @@ export class FraudDashboardComponent {
   public getCurrentDate(): string {
     return new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
+  // ===== EXPORT CSV DES ALERTES =====
+  public exportToCsv(): void {
+    const supa = this.supabaseResults();
+    const source: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
 
+    if (!source || source.length === 0) {
+      return;
+    }
+
+    const headers = [
+      'ID', 'Date', 'Description', 'Montant (€)', 'Score', 'Sévérité',
+      'Catégorie', 'Statut', 'Bénéficiaire', 'Est une fraude'
+    ];
+
+    const rows = source.map((item: any) => [
+      item.id ?? item.transactionId ?? '',
+      item.date ?? '',
+      (item.description ?? '').replace(/"/g, '""'),
+      item.amount ?? 0,
+      item.fraudScore ?? item.score ?? 0,
+      item.severity ?? '',
+      item.category ?? item.ruleCategory ?? 'NON_CATEGORISE',
+      item.status ?? item.reconciliationStatus ?? '',
+      item.beneficiary ?? '',
+      item.isFraud ? 'OUI' : 'NON'
+    ]);
+
+    const csvLines = [
+      headers.join(';'),
+      ...rows.map(r => r.map(v => `"${v}"`).join(';'))
+    ];
+
+    const csvContent = '\uFEFF' + csvLines.join('\r\n'); // BOM UTF-8 pour Excel FR
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    link.href = url;
+    link.setAttribute('download', `alertes-fraude-${timestamp}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
   public getCurrentTime(): string {
     return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   }

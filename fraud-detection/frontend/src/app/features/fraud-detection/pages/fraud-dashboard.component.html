@@ -86,6 +86,12 @@
       <button (click)="analyzeSupabaseCases()" [disabled]="loading()" style="padding: 0.6rem 1.25rem; background: #0f172a; color: white; border: 1px solid #334155; border-radius: 0.5rem; cursor: pointer; font-weight: 600;" class="analyze-btn-supa">
         Lancer Cas Supabase
       </button>
+      <button
+        (click)="exportToCsv()"
+        [disabled]="filteredAlerts().length === 0 && !supabaseResults()?.length"
+        style="padding: 0.6rem 1.25rem; background: white; color: #166534; border: 1px solid #bbf7d0; border-radius: 0.5rem; cursor: pointer; font-weight: 600; margin-left: auto;">
+        📥 Exporter en CSV
+      </button>
     </div>
 
     <!-- Graphiques globaux -->
@@ -150,7 +156,7 @@
     }
 
     <!-- Empty State -->
-    @if (!loading() && filteredAlerts().length === 0 && !supabaseResults()) {
+    @if (!loading() && filteredAlerts().length === 0 && !supabaseResults()?.length) {
       <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 2.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); text-align: center;">
         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
           <span style="font-size: 2.5rem;">🛡️</span>
@@ -216,7 +222,7 @@
     }
 
     <!-- Résultats Supabase -->
-    @if (!loading() && supabaseResults()) {
+    @if (!loading() && supabaseResults() && supabaseResults()!.length > 0) {
       <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); overflow: hidden;">
         <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; background-color: #f8fafc;">
           <h3 style="font-weight: 600; color: #0f172a;">Résultats — Cas Supabase (Stateful)</h3>
@@ -232,7 +238,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (r of supabaseResults(); track r.id) {
+            @for (r of (supabaseResults() ?? []); track r.id) {
               <tr style="border-top: 1px solid #e2e8f0;">
                 <td style="padding: 0.75rem 1rem; font-weight: 500; color: #1e293b;">{{ r.id }}</td>
                 <td style="padding: 0.75rem 1rem; color: #334155;">{{ $any(r).ruleCategory || $any(r).rule_category || 'Analyse IA' }}</td>
@@ -484,38 +490,80 @@
 
   <!-- ===== ONGLET : RÈGLES MÉTIER ===== -->
   @if (activeTab() === 'rules') {
-    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); overflow: hidden;">
-      <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb;">
-        <h3 style="font-weight: 600; color: #1f2937;">Règles déclenchées sur le lot analysé</h3>
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+      <!-- Jauge globale de risque -->
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 1.5rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <h3 style="font-weight: 600; color: #1f2937;">Score de risque composite global</h3>
+          <span style="font-weight: 700; font-size: 1.25rem;" [style.color]="gaugeColor(globalRiskScore())">
+            {{ globalRiskScore() }} / 100
+          </span>
+        </div>
+        <div style="height: 0.9rem; width: 100%; background: #f3f4f6; border-radius: 9999px; overflow: hidden;">
+          <div
+            style="height: 100%; border-radius: 9999px; transition: width 0.4s ease;"
+            [style.width.%]="globalRiskScore()"
+            [style.background-color]="gaugeColor(globalRiskScore())"
+          ></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #9ca3af; margin-top: 0.35rem;">
+          <span>Faible</span>
+          <span>Moyen (40)</span>
+          <span>Élevé (70)</span>
+          <span>Critique (85)</span>
+        </div>
       </div>
-      @if (ruleCategoryStats().length === 0) {
-        <div style="padding: 2.5rem; text-align: center; color: #9ca3af;">Aucune règle déclenchée sur ce lot (ou aucune analyse lancée).</div>
-      } @else {
-        <table style="width: 100%; font-size: 0.875rem;">
-          <thead style="background-color: #f9fafb; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
-            <tr>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Règle</th>
-              <th style="text-align: center; padding: 0.75rem 1rem;">Occurrences</th>
-              <th style="text-align: right; padding: 0.75rem 1rem;">Montant cumulé</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Exemple de facteur</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (stat of ruleCategoryStats(); track stat.category) {
-              <tr style="border-top: 1px solid #f3f4f6;">
-                <td style="padding: 0.75rem 1rem; font-weight: 500; color: #1f2937;">{{ ruleCategoryLabel(stat.category) }}</td>
-                <td style="padding: 0.75rem 1rem; text-align: center;">
-                  <span style="background: #fef2f2; color: #dc2626; font-weight: 600; padding: 0.15rem 0.6rem; border-radius: 9999px;">{{ stat.count }}</span>
-                </td>
-                <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #1f2937;">{{ stat.amount | number: '1.2-2' }} €</td>
-                <td style="padding: 0.75rem 1rem; color: #6b7280; font-size: 0.8rem;">{{ stat.sampleFactor || '—' }}</td>
+
+      <!-- Tableau des règles avec jauge par catégorie -->
+      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); overflow: hidden;">
+        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb;">
+          <h3 style="font-weight: 600; color: #1f2937;">Règles déclenchées sur le lot analysé</h3>
+          <p style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem;">Triées par score de risque moyen décroissant</p>
+        </div>
+        @if (ruleCategoryStats().length === 0) {
+          <div style="padding: 2.5rem; text-align: center; color: #9ca3af;">Aucune règle déclenchée sur ce lot (ou aucune analyse lancée).</div>
+        } @else {
+          <table style="width: 100%; font-size: 0.875rem;">
+            <thead style="background-color: #f9fafb; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+              <tr>
+                <th style="text-align: left; padding: 0.75rem 1rem;">Règle</th>
+                <th style="text-align: left; padding: 0.75rem 1rem; min-width: 160px;">Score moyen</th>
+                <th style="text-align: center; padding: 0.75rem 1rem;">Occurrences</th>
+                <th style="text-align: right; padding: 0.75rem 1rem;">Montant cumulé</th>
+                <th style="text-align: left; padding: 0.75rem 1rem;">Exemple de facteur</th>
               </tr>
-            }
-          </tbody>
-        </table>
-      }
+            </thead>
+            <tbody>
+              @for (stat of ruleCategoryStats(); track stat.category) {
+                <tr style="border-top: 1px solid #f3f4f6;">
+                  <td style="padding: 0.75rem 1rem; font-weight: 500; color: #1f2937;">{{ ruleCategoryLabel(stat.category) }}</td>
+                  <td style="padding: 0.75rem 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <div style="height: 0.5rem; width: 6rem; background-color: #f3f4f6; border-radius: 9999px; overflow: hidden; flex-shrink: 0;">
+                        <div
+                          style="height: 100%; border-radius: 9999px;"
+                          [style.width.%]="stat.avgScore"
+                          [style.background-color]="gaugeColor(stat.avgScore)"
+                        ></div>
+                      </div>
+                      <span style="font-weight: 600; font-size: 0.8rem;" [style.color]="gaugeColor(stat.avgScore)">{{ stat.avgScore }}</span>
+                    </div>
+                  </td>
+                  <td style="padding: 0.75rem 1rem; text-align: center;">
+                    <span style="background: #fef2f2; color: #dc2626; font-weight: 600; padding: 0.15rem 0.6rem; border-radius: 9999px;">{{ stat.count }}</span>
+                  </td>
+                  <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #1f2937;">{{ stat.amount | number: '1.2-2' }} €</td>
+                  <td style="padding: 0.75rem 1rem; color: #6b7280; font-size: 0.8rem;">{{ stat.sampleFactor || '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
     </div>
   }
+  
 
   <!-- ===== ONGLET : CONFIG SEUILS ===== -->
   @if (activeTab() === 'config') {
