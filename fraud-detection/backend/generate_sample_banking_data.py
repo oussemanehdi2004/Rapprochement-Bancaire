@@ -204,9 +204,9 @@ def main() -> None:
     write_csv(out_dir / "bank_statement_lines.csv", bank_lines)
     write_csv(out_dir / "accounting_entries.csv", accounting_lines)
 
-    print(f"✅ {len(bank_lines)} lignes de relevé bancaire -> {out_dir / 'bank_statement_lines.csv'}")
-    print(f"✅ {len(accounting_lines)} écritures comptables -> {out_dir / 'accounting_entries.csv'}")
-    print("3 anomalies injectées dans les 3 derniers jours (nouvel IBAN, montant outlier, compte dormant).")
+    print(f"[OK] {len(bank_lines)} lignes de releve bancaire -> {out_dir / 'bank_statement_lines.csv'}")
+    print(f"[OK] {len(accounting_lines)} ecritures comptables -> {out_dir / 'accounting_entries.csv'}")
+    print("3 anomalies injectees dans les 3 derniers jours (nouvel IBAN, montant outlier, compte dormant).")
 
 
 if __name__ == "__main__":

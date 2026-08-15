@@ -176,16 +176,16 @@ export class FraudDashboardComponent {
   public search = signal<string>('');
 
   // ===== SEUILS CONFIGURABLES & SIMULATION WHAT-IF =====
-  public mlThreshold: number = 47.58;
-  public criticalAmountThreshold: number = 5000;
+  public mlThreshold: number = 50.0;
+  public criticalAmountThreshold: number = 3000;
   public autoBlockEnabled: boolean = false;
 
   // Signal réactif pour diffuser le seuil appliqué aux calculs
-  public appliedMlThreshold = signal<number>(47.58);
+  public appliedMlThreshold = signal<number>(50.0);
 
   // Signal pour le simulateur What-If (interactif en temps réel)
   public currentSimulation = signal<SimulationThresholds>({
-    mlProbability: 47.58,
+    mlProbability: 50.0,
     abnormalAmount: 10000
   });
 

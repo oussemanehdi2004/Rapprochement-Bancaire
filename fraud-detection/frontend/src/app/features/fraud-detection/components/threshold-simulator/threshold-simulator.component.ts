@@ -89,7 +89,7 @@ export class ThresholdSimulatorComponent implements OnInit {
   thresholds = input.required<SimulationThresholds>();
   thresholdChange = output<SimulationThresholds>();
 
-  localThresholds = signal<SimulationThresholds>({ mlProbability: 47.58, abnormalAmount: 10000 });
+  localThresholds = signal<SimulationThresholds>({ mlProbability: 50.0, abnormalAmount: 10000 });
 
   ngOnInit(): void {
     // Initialize local thresholds from input

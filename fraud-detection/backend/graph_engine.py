@@ -28,8 +28,8 @@ except ImportError:  # pragma: no cover
 
 class GraphEngine:
     def __init__(self, uri: str, user: str, password: str):
-        max_retries = 15
-        retry_delay = 5
+        max_retries = 3  # Réduit pour le développement
+        retry_delay = 2
         
         for attempt in range(max_retries):
             try:
@@ -42,7 +42,7 @@ class GraphEngine:
                     logger.warning(f"Tentative {attempt + 1}/{max_retries} : Échec de connexion à Neo4j. Nouvelle tentative dans {retry_delay}s...")
                     time.sleep(retry_delay)
                 else:
-                    logger.error(f"Échec définitif de connexion à Neo4j après {max_retries} tentatives.")
+                    logger.error(f"Échec définitif de connexion à Neo4j après {max_retries} tentatives. Le système fonctionnera sans analyse de graphe.")
                     raise
 
     def close(self) -> None:
@@ -240,6 +240,6 @@ def create_graph_engine() -> Optional["GraphEngine"]:
         engine = GraphEngine(uri, user, password)
         logger.info("Connexion à Neo4j établie avec succès (moteur de graphe Phase 3 actif).")
         return engine
-    except Exception:
-        logger.exception("Échec de connexion à Neo4j. Moteur de graphe désactivé.")
+    except Exception as e:
+        logger.warning(f"Échec de connexion à Neo4j: {e}. Moteur de graphe désactivé.")
         return None

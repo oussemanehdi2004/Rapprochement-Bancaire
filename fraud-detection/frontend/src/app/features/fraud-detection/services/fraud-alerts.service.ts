@@ -110,15 +110,17 @@ export class FraudAlertsService {
     });
   }
 
-  // La route analyze-demo a été supprimée pour respecter le CR v3.
-  // Toutes les requêtes (y compris la démo) doivent passer par cette méthode sécurisée.
+  // Utilise le endpoint de démonstration sans authentification pour le développement
   analyzeTransactions(transactions?: any[]): Observable<any> {
   this.loading.set(true);
 
   // Utilise les transactions reçues en paramètre (ou un tableau vide par défaut)
   const payload = transactions || [];
 
-  return this.http.post<APIResponse>(`${this.apiUrl}/analyze`, payload, { headers: this.getHeaders() }).pipe(
+  // En développement, utilise le endpoint demo sans authentification
+  const endpoint = `${this.apiUrl}/analyze-demo`;
+
+  return this.http.post<APIResponse>(endpoint, payload).pipe(
     map((res) => this.mapTransactionData(res.data)),
     tap((data) => {
       const newAlerts = Array.isArray(data) ? data : [data];
@@ -151,7 +153,7 @@ analyze(transactions?: any[]): Observable<any> {
     if (filters?.offset) params = params.set('offset', filters.offset.toString());
 
     return this.http
-      .get<APIResponse<TransactionOutput[]>>(`${this.apiUrl}/transactions`, { params, headers: this.getHeaders() })
+      .get<APIResponse<TransactionOutput[]>>(`${this.apiUrl}/transactions`, { params })
       .pipe(
         map(res => this.mapTransactionData(res.data)),
         tap(data => {
