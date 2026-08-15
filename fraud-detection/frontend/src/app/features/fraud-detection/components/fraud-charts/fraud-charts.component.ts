@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
+import 'chartjs-adapter-date-fns';
 
 Chart.register(...registerables);
 
@@ -25,30 +26,70 @@ export interface CategoryCount {
   count: number;
 }
 
+export interface TimeSeriesData {
+  date: string;
+  fraudCount: number;
+  totalCount: number;
+}
+
+export interface HourlyData {
+  hour: number;
+  count: number;
+}
+
 @Component({
   selector: 'app-fraud-charts',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div style="display: grid; grid-template-columns: 1fr; gap: 1rem; width: 100%;">
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
-        <h3 style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem;">Répartition par sévérité</h3>
-        <p style="font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.75rem;">{{ totalAlerts() }} alerte(s) au total</p>
-        <div style="position: relative; height: 14rem; width: 100%; overflow: hidden;">
-          @if (totalAlerts() === 0) {
-            <div style="height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #9ca3af;">Aucune donnée</div>
+    <div class="grid grid-cols-1 gap-4 w-full">
+      <!-- Evolution temporelle -->
+      <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        <h3 class="text-sm font-semibold text-gray-700 mb-1">Évolution du taux de fraude</h3>
+        <p class="text-xs text-gray-400 mb-3">Tendance sur les 7 derniers jours</p>
+        <div class="relative h-56 w-full overflow-hidden">
+          @if (timeSeriesData().length === 0) {
+            <div class="h-full flex items-center justify-center text-xs text-gray-400">Aucune donnée temporelle</div>
           }
-          <canvas #severityCanvas style="display: block; width: 100%; height: 100%;"></canvas>
+          <canvas #timeSeriesCanvas class="block w-full h-full"></canvas>
         </div>
       </div>
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
-        <h3 style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem;">Règles les plus déclenchées</h3>
-        <p style="font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.75rem;">Top {{ Math.min(categoryStats.length, 6) }} catégorie(s)</p>
-        <div style="position: relative; height: 14rem; width: 100%; overflow: hidden;">
-          @if (categoryStats.length === 0) {
-            <div style="height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #9ca3af;">Aucune règle déclenchée</div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Répartition par sévérité -->
+        <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <h3 class="text-sm font-semibold text-gray-700 mb-1">Répartition par sévérité</h3>
+          <p class="text-xs text-gray-400 mb-3">{{ totalAlerts() }} alerte(s) au total</p>
+          <div class="relative h-56 w-full overflow-hidden">
+            @if (totalAlerts() === 0) {
+              <div class="h-full flex items-center justify-center text-xs text-gray-400">Aucune donnée</div>
+            }
+            <canvas #severityCanvas class="block w-full h-full"></canvas>
+          </div>
+        </div>
+
+        <!-- Règles les plus déclenchées -->
+        <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <h3 class="text-sm font-semibold text-gray-700 mb-1">Règles les plus déclenchées</h3>
+          <p class="text-xs text-gray-400 mb-3">Top {{ Math.min(categoryStats.length, 6) }} catégorie(s)</p>
+          <div class="relative h-56 w-full overflow-hidden">
+            @if (categoryStats.length === 0) {
+              <div class="h-full flex items-center justify-center text-xs text-gray-400">Aucune règle déclenchée</div>
+            }
+            <canvas #categoryCanvas class="block w-full h-full"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Heatmap horaire -->
+      <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        <h3 class="text-sm font-semibold text-gray-700 mb-1">Heatmap horaire des alertes</h3>
+        <p class="text-xs text-gray-400 mb-3">Distribution par heure de la journée</p>
+        <div class="relative h-40 w-full overflow-hidden">
+          @if (hourlyData().length === 0) {
+            <div class="h-full flex items-center justify-center text-xs text-gray-400">Aucune donnée horaire</div>
           }
-          <canvas #categoryCanvas style="display: block; width: 100%; height: 100%;"></canvas>
+          <canvas #hourlyCanvas class="block w-full h-full"></canvas>
         </div>
       </div>
     </div>
@@ -57,20 +98,28 @@ export interface CategoryCount {
 export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() severityCounts: SeverityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
   @Input() categoryStats: CategoryCount[] = [];
+  @Input() timeSeriesData: TimeSeriesData[] = [];
+  @Input() hourlyData: HourlyData[] = [];
+
+  // Computed properties for safer access
+  protected getTimeSeriesData = () => Array.isArray(this.timeSeriesData) ? this.timeSeriesData : [];
+  protected getHourlyData = () => Array.isArray(this.hourlyData) ? this.hourlyData : [];
 
   @ViewChild('severityCanvas') severityCanvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('categoryCanvas') categoryCanvasRef?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('timeSeriesCanvas') timeSeriesCanvasRef?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('hourlyCanvas') hourlyCanvasRef?: ElementRef<HTMLCanvasElement>;
 
   protected readonly Math = Math;
 
   private severityChart?: Chart;
   private categoryChart?: Chart;
+  private timeSeriesChart?: Chart;
+  private hourlyChart?: Chart;
   private isInitialized = false;
 
   ngAfterViewInit(): void {
-    // S'assure qu'on est strictement dans le navigateur
     if (typeof window !== 'undefined') {
-      // Initial render with delay to ensure DOM is ready
       setTimeout(() => {
         this.isInitialized = true;
         this.renderCharts();
@@ -80,7 +129,6 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
 
   ngOnChanges(_changes: SimpleChanges): void {
     if (this.isInitialized && typeof window !== 'undefined') {
-      // Use requestAnimationFrame to ensure the DOM has updated before rendering
       requestAnimationFrame(() => {
         this.renderCharts();
       });
@@ -90,6 +138,8 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
   ngOnDestroy(): void {
     this.severityChart?.destroy();
     this.categoryChart?.destroy();
+    this.timeSeriesChart?.destroy();
+    this.hourlyChart?.destroy();
   }
 
   totalAlerts(): number {
@@ -100,6 +150,8 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
   private renderCharts(): void {
     this.renderSeverityChart();
     this.renderCategoryChart();
+    this.renderTimeSeriesChart();
+    this.renderHourlyChart();
   }
 
   private renderSeverityChart(): void {
@@ -180,6 +232,117 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
       this.categoryChart.update();
     } else {
       this.categoryChart = new Chart(canvas, config);
+    }
+  }
+
+  private renderTimeSeriesChart(): void {
+    const canvas = this.timeSeriesCanvasRef?.nativeElement;
+    if (!canvas) return;
+
+    const data = this.getTimeSeriesData();
+    const labels = data.map(d => d.date);
+    const fraudRates = data.map(d => (d.totalCount > 0 ? (d.fraudCount / d.totalCount) * 100 : 0));
+
+    const config: ChartConfiguration<'line'> = {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Taux de fraude (%)',
+            data: fraudRates,
+            borderColor: '#dc2626',
+            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              callback: (value) => value + '%'
+            }
+          },
+          x: {
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45
+            }
+          }
+        }
+      }
+    };
+
+    if (this.timeSeriesChart) {
+      this.timeSeriesChart.data = config.data;
+      this.timeSeriesChart.update();
+    } else {
+      this.timeSeriesChart = new Chart(canvas, config);
+    }
+  }
+
+  private renderHourlyChart(): void {
+    const canvas = this.hourlyCanvasRef?.nativeElement;
+    if (!canvas) return;
+
+    const data = this.getHourlyData();
+    const hours = data.map(d => d.hour);
+    const counts = data.map(d => d.count);
+    
+    // Color gradient based on intensity
+    const maxCount = Math.max(...counts, 1);
+    const colors = counts.map(count => {
+      const intensity = count / maxCount;
+      return `rgba(220, 38, 38, ${0.3 + intensity * 0.7})`;
+    });
+
+    const config: ChartConfiguration<'bar'> = {
+      type: 'bar',
+      data: {
+        labels: hours.map(h => `${h}h`),
+        datasets: [
+          {
+            label: 'Alertes par heure',
+            data: counts,
+            backgroundColor: colors,
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { precision: 0 }
+          },
+          x: {
+            ticks: { font: { size: 10 } }
+          }
+        }
+      }
+    };
+
+    if (this.hourlyChart) {
+      this.hourlyChart.data = config.data;
+      this.hourlyChart.update();
+    } else {
+      this.hourlyChart = new Chart(canvas, config);
     }
   }
 }

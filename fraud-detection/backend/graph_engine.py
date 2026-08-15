@@ -5,6 +5,7 @@ Couvre :
   12. Détection de réseaux de fraude
   18. Détection de paiements en cascade / circulaires
   22. Détection de collusion (flux réciproques suspects)
+  23. Détection de comptes mules (in/out ratio + délai court)
 
 Comme pour Supabase, la connexion est optionnelle : si Neo4j n'est pas
 configuré ou injoignable, ce module se dégrade silencieusement (aucune
@@ -221,6 +222,69 @@ class GraphEngine:
             "nodes": list(nodes),
             "edges": edges,
         }
+
+    # ---- Use case 23 : détection de comptes mules (in/out ratio + délai court) -------
+    def detect_mule_accounts(self, tenant_id: str, min_transactions: int = 5, 
+                            min_in_out_ratio: float = 0.7, max_delay_hours: float = 24) -> list[dict]:
+        """
+        Détecte les comptes mules : comptes avec beaucoup d'entrées suivies rapidement de sorties.
+        
+        Args:
+            tenant_id: ID du tenant
+            min_transactions: Nombre minimum de transactions entrantes pour être considéré
+            min_in_out_ratio: Ratio minimum (sorties/entrées) pour suspecter un compte mule
+            max_delay_hours: Délai maximum en heures entre une entrée et sa sortie correspondante
+        
+        Returns:
+            Liste des comptes suspects avec leurs métriques
+        """
+        with self._driver.session() as session:
+            return session.execute_read(
+                self._q_mule_accounts, 
+                tenant_id=tenant_id, 
+                min_transactions=min_transactions,
+                min_in_out_ratio=min_in_out_ratio,
+                max_delay_hours=max_delay_hours
+            )
+
+    @staticmethod
+    def _q_mule_accounts(tx, tenant_id: str, min_transactions: int, 
+                         min_in_out_ratio: float, max_delay_hours: float):
+        result = tx.run(
+            """
+            // Trouver les comptes avec beaucoup d'entrées
+            MATCH (acc:Account)-[:SENT]->(t_in:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(acc)
+            WITH acc, count(DISTINCT t_in) AS in_count
+            WHERE in_count >= $min_transactions
+            
+            // Compter les sorties
+            MATCH (acc)-[:SENT]->(t_out:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(:Account)
+            WITH acc, in_count, count(DISTINCT t_out) AS out_count
+            
+            // Calculer le ratio in/out
+            WITH acc, in_count, out_count, 
+                 toFloat(out_count) / toFloat(in_count) AS in_out_ratio
+            
+            // Filtrer par ratio minimum
+            WHERE in_out_ratio >= $min_in_out_ratio
+            
+            // Calculer le délai moyen entre entrées et sorties (pour les paires correspondantes)
+            MATCH (acc)-[:SENT]->(t_in:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(acc)
+            MATCH (acc)-[:SENT]->(t_out:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(:Account)
+            WHERE t_out.date >= t_in.date 
+              AND duration.between(datetime(t_in.date), datetime(t_out.date)).hours <= $max_delay_hours
+            WITH acc, in_count, out_count, in_out_ratio, 
+                 avg(duration.between(datetime(t_in.date), datetime(t_out.date)).hours) AS avg_delay_hours
+            
+            RETURN acc.iban AS iban, in_count, out_count, in_out_ratio, avg_delay_hours
+            ORDER BY in_out_ratio DESC, in_count DESC
+            """,
+            tenant_id=tenant_id,
+            min_transactions=min_transactions,
+            min_in_out_ratio=min_in_out_ratio,
+            max_delay_hours=max_delay_hours
+        )
+        return [dict(record) for record in result]
 
 
 def create_graph_engine() -> Optional["GraphEngine"]:

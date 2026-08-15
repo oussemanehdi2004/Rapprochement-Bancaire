@@ -20,9 +20,10 @@ import shap
 from supabase import create_client
 
 from auth import create_internal_token, get_jwt_secret
+from two_factor_auth import get_2fa_service
 # IMPORT MODIFIE: on importe les nouvelles variables de configuration
 from config_store import get_thresholds, update_thresholds, DISABLE_INTERNAL_AUTH, FRAUD_INTERNAL_SECRET
-from features import FEATURE_NAMES, receiver_balance_error, sender_balance_error
+from features import FEATURE_NAMES, receiver_balance_error, sender_balance_error, calculate_amount_ratio
 
 # Retrait de l'import obsolète (internal_auth.py ne sera plus nécessaire pour les routes S2S principales)
 # from internal_auth import verify_internal_token
@@ -117,9 +118,20 @@ if SUPABASE_URL and SUPABASE_KEY:
         logger.exception("Erreur Supabase.")
 
 MODEL_PATH = "model_fraud_calibrated.pkl" if os.path.exists("model_fraud_calibrated.pkl") else "model_fraud.pkl"
+METADATA_PATH = "model_metadata.pkl"
 model = None
 explainer = None
 feature_names = FEATURE_NAMES
+optimal_threshold = 0.4758  # Seuil par défaut (sera écrasé si métadonnées existent)
+
+# Chargement des métadonnées du modèle si disponibles
+if os.path.exists(METADATA_PATH):
+    try:
+        metadata = joblib.load(METADATA_PATH)
+        optimal_threshold = metadata.get('optimal_threshold', 0.4758)
+        logger.info(f"Seuil optimal chargé depuis métadonnées: {optimal_threshold:.4f}")
+    except Exception:
+        logger.warning("Impossible de charger les métadonnées du modèle, utilisation du seuil par défaut")
 
 if os.path.exists(MODEL_PATH):
     try:
@@ -129,9 +141,11 @@ if os.path.exists(MODEL_PATH):
             first_cal = model.calibrated_classifiers_[0]
             tree_model = getattr(first_cal, "estimator", getattr(first_cal, "base_estimator", model))
         explainer = shap.TreeExplainer(tree_model)
+        logger.info(f"Modèle chargé: {MODEL_PATH}")
     except Exception:
         model = None
         explainer = None
+        logger.warning("Impossible de charger le modèle ML")
 
 RULE_SEVERITY_WEIGHTS = {
     "SEUIL_REGLEMENTAIRE": 0.95, "MOTCLE_SENSIBLE": 0.90, "FRACTIONNEMENT_SUSPECT": 0.85,
@@ -270,7 +284,7 @@ async def get_current_user_context(credentials: HTTPAuthorizationCredentials = D
 # METIER
 # =====================================================================
 
-def preprocess_transaction(tx: TransactionInput) -> list:
+def preprocess_transaction(tx: TransactionInput, account_aggregate: Optional[dict] = None, beneficiary_history: Optional[List[dict]] = None) -> list:
     tx_type = tx.transaction_type.upper()
     is_transfer = 1 if tx_type == "TRANSFER" else 0
     is_cash_out = 1 if tx_type == "CASH_OUT" else 0
@@ -282,10 +296,22 @@ def preprocess_transaction(tx: TransactionInput) -> list:
     except (ValueError, IndexError):
         hour_of_day = 12
 
-    # Valeurs par défaut pour les autres métriques (pourront être connectées à Supabase plus tard)
-    amount_to_avg_ratio = 1.0
-    days_since_last_tx = 5.0
+    # Calcul du ratio montant / moyenne historique avec données réelles si disponibles
+    if account_aggregate:
+        avg_amount = float(account_aggregate.get("avg_transaction_amount") or 0.0)
+        amount_to_avg_ratio = calculate_amount_ratio(tx.amount, avg_amount) if avg_amount > 0 else 1.0
+        days_since_last_tx = float(account_aggregate.get("days_since_last_transaction") or 5.0)
+    else:
+        amount_to_avg_ratio = 1.0
+        days_since_last_tx = 5.0
+
+    # Calcul du nombre de transactions vers ce bénéficiaire
     beneficiary_tx_count = 0
+    if beneficiary_history and tx.beneficiary_iban:
+        beneficiary_tx_count = sum(
+            1 for b in beneficiary_history 
+            if b.get("beneficiary_iban") == tx.beneficiary_iban
+        )
 
     return [
         tx.amount, 
@@ -348,10 +374,10 @@ def build_transaction_output(tx: TransactionInput, batch_finding: Optional[dict]
     shap_contributions_list = []
 
     if model is not None and explainer is not None:
-        features_vector = preprocess_transaction(tx)
+        features_vector = preprocess_transaction(tx, account_aggregate, beneficiary_history)
         probabilities = model.predict_proba([features_vector])[0]
         raw_ml_probability = float(probabilities[1])
-        model_flag = raw_ml_probability >= 0.4758
+        model_flag = raw_ml_probability >= optimal_threshold
 
         features_array = np.array([features_vector])
         shap_values = explainer(features_array)
@@ -409,6 +435,20 @@ def _apply_graph_findings(result: TransactionOutput, iban: str, tenant_id: str) 
     if reciprocal:
         result.explainability.factors.append(f"Flux réciproque suspect avec {reciprocal['counterparty']} ({reciprocal['out_count']} envois / {reciprocal['in_count']} retours)")
         if result.ruleCategory in OVERWRITABLE_CATEGORIES: result.ruleCategory = "COLLUSION_SUSPECTE"
+
+    # Détection de comptes mules (in/out ratio + délai court)
+    mule_accounts = graph_engine.detect_mule_accounts(tenant_id, min_transactions=3, min_in_out_ratio=0.6, max_delay_hours=48)
+    if mule_accounts:
+        mule_ibans = {m['iban'] for m in mule_accounts}
+        if iban in mule_ibans:
+            mule_info = next(m for m in mule_accounts if m['iban'] == iban)
+            result.isFraud, result.reconciliationStatus = True, "SUSPICIOUS"
+            result.explainability.factors.append(
+                f"Compte mule suspecté : ratio in/out de {mule_info['in_out_ratio']:.2f} "
+                f"({mule_info['in_count']} entrées, {mule_info['out_count']} sorties, "
+                f"délai moyen {mule_info['avg_delay_hours']:.1f}h)"
+            )
+            if result.ruleCategory in OVERWRITABLE_CATEGORIES: result.ruleCategory = "COMPTE_MULE"
 
 def analyze_batch(transactions: List[TransactionInput]) -> List[TransactionOutput]:
     tx_dicts = [tx.model_dump() for tx in transactions]
@@ -556,6 +596,39 @@ async def get_account_network(iban: str, tenant_id: Optional[str] = None, token_
     except HTTPException: raise
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/graph/mule-accounts")
+async def get_mule_accounts(
+    tenant_id: Optional[str] = None, 
+    min_transactions: int = 5,
+    min_in_out_ratio: float = 0.7,
+    max_delay_hours: float = 24,
+    token_payload: dict = Depends(get_optional_context)
+):
+    """
+    Endpoint pour détecter les comptes mules (in/out ratio + délai court).
+    """
+    effective_tenant_id = tenant_id or token_payload.get("tenant_id", "default")
+    
+    # Pour test : retourner mock data si Neo4j n'est pas connecté OU en mode test
+    if graph_engine is None:
+        mock_data = [
+            {"iban": "FR7612345678901234567890123", "in_count": 10, "out_count": 9, "in_out_ratio": 0.9, "avg_delay_hours": 2.5},
+            {"iban": "FR7698765432109876543210987", "in_count": 7, "out_count": 6, "in_out_ratio": 0.86, "avg_delay_hours": 4.1}
+        ]
+        return APIResponse(success=True, data=mock_data)
+    
+    try:
+        data = graph_engine.detect_mule_accounts(
+            tenant_id=effective_tenant_id,
+            min_transactions=min_transactions,
+            min_in_out_ratio=min_in_out_ratio,
+            max_delay_hours=max_delay_hours
+        )
+        return APIResponse(success=True, data=data)
+    except Exception as e:
+        logger.error(f"Erreur lors de la détection de comptes mules: {e}")
+        return APIResponse(success=False, data=[], message=f"Erreur: {str(e)}")
+
 ENABLE_TEST_TOKEN_ENDPOINT = os.environ.get("ENABLE_TEST_TOKEN_ENDPOINT", "false").lower() == "true"
 
 def generate_test_token() -> dict:
@@ -616,6 +689,111 @@ async def list_transactions(tenant_id: Optional[str] = None, status: Optional[st
         ) for r in rows
     ]
     return APIResponse(success=True, data=items)
+
+# ===== ENDPOINTS 2FA =====
+
+class Enable2FARequest(BaseModel):
+    user_id: str
+
+class Verify2FARequest(BaseModel):
+    user_id: str
+    code: str
+
+class Disable2FARequest(BaseModel):
+    user_id: str
+
+class GenerateBackupCodesRequest(BaseModel):
+    user_id: str
+
+class VerifyBackupCodeRequest(BaseModel):
+    user_id: str
+    code: str
+
+@app.post("/api/2fa/enable")
+async def enable_2fa(request: Enable2FARequest):
+    """Active la 2FA pour un utilisateur et retourne le secret"""
+    try:
+        service = get_2fa_service()
+        secret = service.generate_secret(request.user_id)
+        provisioning_uri = service.get_provisioning_uri(request.user_id, "FraudDetection")
+        
+        return APIResponse(success=True, data={
+            "secret": secret,
+            "provisioning_uri": provisioning_uri,
+            "message": "Scannez le QR code avec votre application d'authentification"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'activation 2FA: {str(e)}")
+
+@app.post("/api/2fa/verify")
+async def verify_2fa(request: Verify2FARequest):
+    """Vérifie un code TOTP"""
+    try:
+        service = get_2fa_service()
+        is_valid = service.verify_code(request.user_id, request.code)
+        
+        if is_valid:
+            return APIResponse(success=True, data={"message": "Code TOTP valide"})
+        else:
+            return APIResponse(success=False, data={"message": "Code TOTP invalide"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la vérification 2FA: {str(e)}")
+
+@app.post("/api/2fa/disable")
+async def disable_2fa(request: Disable2FARequest):
+    """Désactive la 2FA pour un utilisateur"""
+    try:
+        service = get_2fa_service()
+        success = service.disable_2fa(request.user_id)
+        
+        if success:
+            return APIResponse(success=True, data={"message": "2FA désactivée avec succès"})
+        else:
+            return APIResponse(success=False, data={"message": "Utilisateur non trouvé ou 2FA déjà désactivée"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la désactivation 2FA: {str(e)}")
+
+@app.post("/api/2fa/backup-codes/generate")
+async def generate_backup_codes(request: GenerateBackupCodesRequest):
+    """Génère des codes de secours pour l'utilisateur"""
+    try:
+        service = get_2fa_service()
+        codes = service.generate_backup_codes(request.user_id)
+        
+        return APIResponse(success=True, data={
+            "backup_codes": codes,
+            "message": "Sauvegardez ces codes de secours dans un endroit sécurisé"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la génération des codes de secours: {str(e)}")
+
+@app.post("/api/2fa/backup-codes/verify")
+async def verify_backup_code(request: VerifyBackupCodeRequest):
+    """Vérifie un code de secours"""
+    try:
+        service = get_2fa_service()
+        is_valid = service.verify_backup_code(request.user_id, request.code)
+        
+        if is_valid:
+            return APIResponse(success=True, data={"message": "Code de secours valide"})
+        else:
+            return APIResponse(success=False, data={"message": "Code de secours invalide ou déjà utilisé"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la vérification du code de secours: {str(e)}")
+
+@app.get("/api/2fa/status/{user_id}")
+async def get_2fa_status(user_id: str):
+    """Vérifie si la 2FA est activée pour un utilisateur"""
+    try:
+        service = get_2fa_service()
+        is_enabled = service.is_2fa_enabled(user_id)
+        
+        return APIResponse(success=True, data={
+            "user_id": user_id,
+            "2fa_enabled": is_enabled
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la vérification du statut 2FA: {str(e)}")
 
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request, exc: HTTPException):

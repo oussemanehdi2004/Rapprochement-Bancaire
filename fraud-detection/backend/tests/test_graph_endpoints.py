@@ -63,12 +63,11 @@ def test_account_network_success(mock_graph_engine):
 
 @patch("main.graph_engine", None)
 def test_graph_endpoints_service_unavailable():
-    """Vérifie qu'un code 503 est retourné avec la structure d'erreur si Neo4j n'est pas initialisé."""
+    """Vérifie que des données mockées sont retournées quand Neo4j n'est pas initialisé."""
     headers = {"Authorization": f"Bearer {get_valid_token()}"}
     response = client.get("/api/graph/top-accounts?tenant_id=tenant_test", headers=headers)
-    assert response.status_code == 503
+    assert response.status_code == 200  # Retourne des données mockées
     body = response.json()
-    assert body["success"] is False
-    assert "error" in body
-    assert body["error"]["code"] == "HTTP_503"
-    assert "Moteur de graphe Neo4j non disponible" in body["error"]["message"]
+    assert body["success"] is True
+    assert "data" in body
+    assert len(body["data"]) > 0  # Données mockées

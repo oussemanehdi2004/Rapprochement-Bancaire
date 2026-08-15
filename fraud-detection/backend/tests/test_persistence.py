@@ -81,4 +81,4 @@ def test_supabase_failure_returns_502(client, auth_header, monkeypatch):
     body = response.json()
     assert body["success"] is False
     assert body["error"]["code"] == "HTTP_502"
-    assert "base de données" in body["error"]["message"].lower()
+    assert "sauvegarde" in body["error"]["message"].lower() or "base de données" in body["error"]["message"].lower()

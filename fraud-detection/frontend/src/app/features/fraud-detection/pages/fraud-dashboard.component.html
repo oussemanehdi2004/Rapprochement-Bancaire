@@ -1,28 +1,44 @@
-<div style="padding: 1.5rem; max-width: 90rem; margin: 0 auto;">
+<div [class.dark]="darkMode()" class="p-6 max-w-[90rem] mx-auto transition-colors duration-300">
 
   <!-- ===== EN-TÊTE ===== -->
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+  <div class="flex items-center justify-between mb-4">
     <div>
-      <h1 style="font-size: 1.5rem; font-weight: bold; color: #1f2937;">🛡️ AI Fraud Detection</h1>
-      <p style="color: #6b7280; font-size: 0.875rem;">Plateforme de détection de fraude bancaire hybride (Règles + ML + Graphe)</p>
+      <h1 class="text-2xl font-bold dark:text-white text-gray-800">🛡️ AI Fraud Detection</h1>
+      <p class="text-gray-500 dark:text-gray-400 text-sm">Plateforme de détection de fraude bancaire hybride (Règles + ML + Graphe)</p>
     </div>
+    <button 
+      (click)="darkMode.set(!darkMode())"
+      class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+      title="Basculer mode sombre/clair"
+    >
+      @if (darkMode()) {
+        ☀️
+      } @else {
+        🌙
+      }
+    </button>
   </div>
 
   <!-- ===== BARRE D'ONGLETS ===== -->
-  <div style="display: flex; gap: 0.5rem; border-bottom: 1px solid #e5e7eb; margin-bottom: 1.5rem; overflow-x: auto;">
+  <div class="flex gap-2 border-b border-gray-200 mb-6 overflow-x-auto">
     @for (tab of tabs; track tab.id) {
       <button
         (click)="tab.ready && setTab(tab.id)"
         [disabled]="!tab.ready"
-        style="padding: 0.75rem 1rem; border: none; background: none; font-size: 0.875rem; font-weight: 500; cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 0.4rem;"
-        [style.color]="activeTab() === tab.id ? '#1d4ed8' : (tab.ready ? '#4b5563' : '#c1c7d0')"
-        [style.border-bottom-color]="activeTab() === tab.id ? '#1d4ed8' : 'transparent'"
-        [style.cursor]="tab.ready ? 'pointer' : 'not-allowed'"
+        class="px-4 py-3 border-none bg-none text-sm font-medium cursor-pointer whitespace-nowrap border-b-2 border-transparent flex items-center gap-1.5 transition-colors"
+        [class.text-blue-600]="activeTab() === tab.id"
+        [class.text-gray-600]="activeTab() !== tab.id && tab.ready"
+        [class.text-gray-400]="!tab.ready"
+        [class.border-blue-600]="activeTab() === tab.id"
+        [class.cursor-pointer]="tab.ready"
+        [class.cursor-not-allowed]="!tab.ready"
+        [class.hover:text-blue-700]="activeTab() === tab.id"
+        [class.hover:text-gray-800]="activeTab() !== tab.id && tab.ready"
       >
         <span>{{ tab.icon }}</span>
         <span>{{ tab.label }}</span>
         @if (!tab.ready) {
-          <span style="font-size: 0.65rem; background: #f3f4f6; color: #9ca3af; padding: 0.1rem 0.4rem; border-radius: 9999px;">bientôt</span>
+          <span class="text-xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full">bientôt</span>
         }
       </button>
     }
@@ -32,26 +48,26 @@
   @if (activeTab() === 'overview') {
 
     <!-- Import / Démo -->
-    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm mb-6 flex items-center justify-between flex-wrap gap-4">
       <div>
-        <h3 style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Importer des transactions</h3>
-        <p style="font-size: 0.8rem; color: #6b7280;">Fichier CSV — colonnes : tenant_id, mongo_transaction_id, id, date, description, amount, sender_balance_before, sender_balance_after, receiver_balance_before, receiver_balance_after, transaction_type</p>
+        <h3 class="font-semibold text-gray-800 dark:text-white mb-1">Importer des transactions</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Fichier CSV — colonnes : tenant_id, mongo_transaction_id, id, date, description, amount, sender_balance_before, sender_balance_after, receiver_balance_before, receiver_balance_after, transaction_type</p>
         @if (importedFileName()) {
-          <p style="font-size: 0.8rem; color: #16a34a; margin-top: 0.25rem;">✅ Fichier chargé : {{ importedFileName() }}</p>
+          <p class="text-xs text-green-600 dark:text-green-400 mt-1">✅ Fichier chargé : {{ importedFileName() }}</p>
         }
         @if (importError()) {
-          <p style="font-size: 0.8rem; color: #dc2626; margin-top: 0.25rem;">⚠️ {{ importError() }}</p>
+          <p class="text-xs text-red-600 dark:text-red-400 mt-1">⚠️ {{ importError() }}</p>
         }
       </div>
-      <div style="display: flex; gap: 0.75rem; align-items: center;">
-        <label style="padding: 0.6rem 1rem; border: 1px solid #bfdbfe; color: #2563eb; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; font-weight: 500;">
+      <div class="flex gap-3 items-center">
+        <label class="px-4 py-2.5 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 rounded-lg cursor-pointer text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
           📁 Choisir un CSV
-          <input type="file" accept=".csv" style="display: none;" (change)="onFileSelected($event)" />
+          <input type="file" accept=".csv" class="hidden" (change)="onFileSelected($event)" />
         </label>
         <button
           (click)="useDemoData()"
           [disabled]="loading()"
-          style="padding: 0.6rem 1.25rem; background-color: #1d4ed8; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; font-weight: 600;"
+          class="px-5 py-2.5 bg-blue-600 text-white border-none rounded-lg cursor-pointer text-sm font-semibold hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
         >
           {{ loading() ? 'Analyse en cours…' : '🚀 Utiliser données de démo' }}
         </button>
@@ -59,38 +75,50 @@
     </div>
 
     <!-- KPI Cards -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
-        <p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; font-weight: 600;">Transactions analysées</p>
-        <p style="font-size: 1.75rem; font-weight: bold; color: #1f2937; margin-top: 0.5rem;">{{ totalAnalyzed() }}</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+        <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Transactions analysées</p>
+        <p class="text-3xl font-bold text-gray-800 dark:text-white mt-2">{{ totalAnalyzed() }}</p>
       </div>
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
-        <p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; font-weight: 600;">Taux de fraude détecté</p>
-        <p style="font-size: 1.75rem; font-weight: bold; color: #dc2626; margin-top: 0.5rem;">{{ fraudRate() }}%</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+        <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Taux de fraude détecté</p>
+        <p class="text-3xl font-bold text-red-600 dark:text-red-400 mt-2">{{ fraudRate() }}%</p>
       </div>
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
-        <p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; font-weight: 600;">Montant total à risque</p>
-        <p style="font-size: 1.75rem; font-weight: bold; color: #1f2937; margin-top: 0.5rem;">{{ totalAtRisk() | number: '1.0-0' }} €</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+        <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Montant total à risque</p>
+        <p class="text-3xl font-bold text-gray-800 dark:text-white mt-2">{{ totalAtRisk() | number: '1.0-0' }} €</p>
       </div>
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
-        <p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; font-weight: 600;">Score de risque global</p>
-        <p style="font-size: 1.75rem; font-weight: bold; color: #7c3aed; margin-top: 0.5rem;">{{ globalRiskScore() }}</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+        <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Score de risque global</p>
+        <p class="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">{{ globalRiskScore() }}</p>
       </div>
     </div>
 
     <!-- Boutons d'analyse -->
-    <div style="margin-bottom: 1rem; display: flex; gap: 1rem;">
-      <button (click)="analyze()" [disabled]="loading()" style="padding: 0.6rem 1.25rem; background: white; color: #1e3a8a; border: 1px solid #bfdbfe; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">
+    <div class="mb-4 flex gap-4">
+      <button (click)="analyze()" [disabled]="loading()" class="px-5 py-2.5 bg-white dark:bg-gray-800 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg cursor-pointer font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors">
         Relancer l'analyse locale
       </button>
-      <button (click)="analyzeSupabaseCases()" [disabled]="loading()" style="padding: 0.6rem 1.25rem; background: #0f172a; color: white; border: 1px solid #334155; border-radius: 0.5rem; cursor: pointer; font-weight: 600;" class="analyze-btn-supa">
+      <button (click)="analyzeSupabaseCases()" [disabled]="loading()" class="px-5 py-2.5 bg-slate-900 text-white border border-slate-700 rounded-lg cursor-pointer font-semibold hover:bg-slate-800 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors analyze-btn-supa">
         Lancer Cas Supabase
       </button>
       <button
         (click)="exportToCsv()"
         [disabled]="filteredAlerts().length === 0 && !supabaseResults()?.length"
-        style="padding: 0.6rem 1.25rem; background: white; color: #166534; border: 1px solid #bbf7d0; border-radius: 0.5rem; cursor: pointer; font-weight: 600; margin-left: auto;">
+        class="px-5 py-2.5 bg-white dark:bg-gray-800 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg cursor-pointer font-semibold hover:bg-green-50 dark:hover:bg-green-900/20 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors">
         📥 Exporter en CSV
+      </button>
+      <button
+        (click)="exportToPdf()"
+        [disabled]="filteredAlerts().length === 0 && !supabaseResults()?.length"
+        class="px-5 py-2.5 bg-white dark:bg-gray-800 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg cursor-pointer font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors">
+        � Exporter en PDF
+      </button>
+      <button
+        (click)="exportSummaryToPdf()"
+        [disabled]="alertsService.stats().totalAlerts === 0"
+        class="px-5 py-2.5 bg-white dark:bg-gray-800 text-purple-800 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg cursor-pointer font-semibold hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors">
+        📊 Synthèse PDF
       </button>
     </div>
 
@@ -98,50 +126,52 @@
     <app-fraud-charts
       [severityCounts]="severityCounts()"
       [categoryStats]="categoryChartStats()"
+      [timeSeriesData]="timeSeriesData()"
+      [hourlyData]="hourlyData()"
     ></app-fraud-charts>
 
     <!-- Fraud Detection Stats -->
-    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); margin-bottom: 1.5rem;">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-        <h2 style="font-size: 1.125rem; font-weight: 600; color: #1f2937;">Statistiques de Détection de Fraude</h2>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span style="font-size: 0.875rem; color: #6b7280;">Mise à jour:</span>
-          <span style="font-size: 0.875rem; font-weight: 500; color: #374151;">{{ getCurrentTime() }}</span>
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Statistiques de Détection de Fraude</h2>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-500 dark:text-gray-400">Mise à jour:</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getCurrentTime() }}</span>
         </div>
       </div>
       
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;" class="stats-grid">
-        <div style="background: linear-gradient(to bottom right, #eff6ff, #dbeafe); border-radius: 0.75rem; padding: 1rem; border: 1px solid #bfdbfe;">
-          <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb; font-weight: 600;">Total alertes</p>
-          <p style="font-size: 1.875rem; font-weight: bold; color: #1e40af; margin-top: 0.5rem;">{{ alertsService.stats().totalAlerts }}</p>
+      <div class="grid grid-cols-2 gap-4 stats-grid">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+          <p class="text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400 font-semibold">Total alertes</p>
+          <p class="text-3xl font-bold text-blue-800 dark:text-blue-300 mt-2">{{ alertsService.stats().totalAlerts }}</p>
         </div>
-        <div style="background: linear-gradient(to bottom right, #fef2f2, #fee2e2); border-radius: 0.75rem; padding: 1rem; border: 1px solid #fecaca;">
-          <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #dc2626; font-weight: 600;">Critiques</p>
-          <p style="font-size: 1.875rem; font-weight: bold; color: #991b1b; margin-top: 0.5rem;">{{ alertsService.stats().critical }}</p>
+        <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-xl p-4 border border-red-200 dark:border-red-800">
+          <p class="text-xs uppercase tracking-wider text-red-600 dark:text-red-400 font-semibold">Critiques</p>
+          <p class="text-3xl font-bold text-red-800 dark:text-red-300 mt-2">{{ alertsService.stats().critical }}</p>
         </div>
-        <div style="background: linear-gradient(to bottom right, #fff7ed, #ffedd5); border-radius: 0.75rem; padding: 1rem; border: 1px solid #fed7aa;">
-          <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ea580c; font-weight: 600;">Élevées</p>
-          <p style="font-size: 1.875rem; font-weight: bold; color: #9a3412; margin-top: 0.5rem;">{{ alertsService.stats().high }}</p>
+        <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
+          <p class="text-xs uppercase tracking-wider text-orange-600 dark:text-orange-400 font-semibold">Élevées</p>
+          <p class="text-3xl font-bold text-orange-800 dark:text-orange-300 mt-2">{{ alertsService.stats().high }}</p>
         </div>
-        <div style="background: linear-gradient(to bottom right, #fffbeb, #fef3c7); border-radius: 0.75rem; padding: 1rem; border: 1px solid #fde68a;">
-          <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #d97706; font-weight: 600;">En investigation</p>
-          <p style="font-size: 1.875rem; font-weight: bold; color: #92400e; margin-top: 0.5rem;">{{ alertsService.stats().underInvestigation }}</p>
+        <div class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
+          <p class="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 font-semibold">En investigation</p>
+          <p class="text-3xl font-bold text-amber-800 dark:text-amber-300 mt-2">{{ alertsService.stats().underInvestigation }}</p>
         </div>
-        <div style="background: linear-gradient(to bottom right, #f0fdf4, #dcfce7); border-radius: 0.75rem; padding: 1rem; border: 1px solid #bbf7d0;">
-          <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #16a34a; font-weight: 600;">Résolues</p>
-          <p style="font-size: 1.875rem; font-weight: bold; color: #166534; margin-top: 0.5rem;">{{ alertsService.stats().totalAlerts - alertsService.stats().underInvestigation }}</p>
+        <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+          <p class="text-xs uppercase tracking-wider text-green-600 dark:text-green-400 font-semibold">Résolues</p>
+          <p class="text-3xl font-bold text-green-800 dark:text-green-300 mt-2">{{ alertsService.stats().totalAlerts - alertsService.stats().underInvestigation }}</p>
         </div>
       </div>
     </div>
 
     <!-- Error State -->
     @if (errorMessage()) {
-      <div style="background-color: #fef2f2; border-radius: 0.75rem; border: 1px solid #fecaca; padding: 1.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); margin-bottom: 1.5rem;">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <span style="font-size: 1.5rem;">❌</span>
+      <div class="bg-red-50 rounded-xl border border-red-200 p-6 shadow-sm mb-6">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">❌</span>
           <div>
-            <p style="font-weight: 600; color: #991b1b; margin: 0;">Erreur lors de l'analyse</p>
-            <p style="color: #b91c1c; margin: 0.25rem 0 0 0;">{{ errorMessage() }}</p>
+            <p class="font-semibold text-red-800 m-0">Erreur lors de l'analyse</p>
+            <p class="text-red-700 mt-1 mb-0">{{ errorMessage() }}</p>
           </div>
         </div>
       </div>
@@ -149,68 +179,88 @@
 
     <!-- Loading State -->
     @if (loading()) {
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 3rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); text-align: center; margin-bottom: 1.5rem;">
-        <div style="display: inline-block; height: 2rem; width: 2rem; border-radius: 9999px; border: 4px solid #3b82f6; border-right-color: transparent; animation: spin 1s linear infinite;"></div>
-        <p style="margin-top: 1rem; color: #4b5563;">Analyse des transactions en cours...</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm mb-6">
+        <div class="space-y-4">
+          <!-- Skeleton KPI Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-xl">
+                <app-skeleton-loader height="0.75rem" width="50%" [darkMode]="darkMode()"></app-skeleton-loader>
+                <app-skeleton-loader height="2.25rem" width="30%" [darkMode]="darkMode()"></app-skeleton-loader>
+              </div>
+            }
+          </div>
+          
+          <!-- Skeleton Stats -->
+          <div class="grid grid-cols-2 gap-4">
+            @for (i of [1, 2, 3, 4, 5]; track i) {
+              <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-xl">
+                <app-skeleton-loader height="0.75rem" width="40%" [darkMode]="darkMode()"></app-skeleton-loader>
+                <app-skeleton-loader height="2.25rem" width="25%" [darkMode]="darkMode()"></app-skeleton-loader>
+              </div>
+            }
+          </div>
+        </div>
+        <p class="text-center text-gray-500 dark:text-gray-400 mt-4">Analyse des transactions en cours...</p>
       </div>
     }
 
     <!-- Empty State -->
     @if (!loading() && filteredAlerts().length === 0 && !supabaseResults()?.length) {
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 2.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); text-align: center;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-          <span style="font-size: 2.5rem;">🛡️</span>
-          <p style="color: #9ca3af;">Aucune alerte détectée. Cliquez sur un bouton d'analyse pour commencer.</p>
+      <div class="bg-white rounded-xl border border-gray-200 p-10 shadow-sm text-center">
+        <div class="flex flex-col items-center gap-2">
+          <span class="text-4xl">🛡️</span>
+          <p class="text-gray-400">Aucune alerte détectée. Cliquez sur un bouton d'analyse pour commencer.</p>
         </div>
       </div>
     }
 
     <!-- Alerts Table (Analyse Locale) -->
     @if (!loading() && filteredAlerts().length > 0) {
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); overflow: hidden; margin-bottom: 1.5rem;">
-        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between;">
-          <h3 style="font-weight: 600; color: #1f2937;">Alertes de Fraude (Règles Locales)</h3>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h3 class="font-semibold text-gray-800 dark:text-white">Alertes de Fraude (Règles Locales)</h3>
         </div>
         
-        <table style="width: 100%; font-size: 0.875rem;">
-          <thead style="background-color: #f9fafb; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
             <tr>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Score</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Criticité</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Description</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Règle</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Bénéficiaire</th>
-              <th style="text-align: right; padding: 0.75rem 1rem;">Montant</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Statut</th>
+              <th class="text-left px-4 py-3">Score</th>
+              <th class="text-left px-4 py-3">Criticité</th>
+              <th class="text-left px-4 py-3">Description</th>
+              <th class="text-left px-4 py-3">Règle</th>
+              <th class="text-left px-4 py-3">Bénéficiaire</th>
+              <th class="text-right px-4 py-3">Montant</th>
+              <th class="text-left px-4 py-3">Statut</th>
             </tr>
           </thead>
           <tbody>
             @for (alert of filteredAlerts(); track alert.id) {
-              <tr style="border-top: 1px solid #f3f4f6;">
-                <td style="padding: 0.75rem 1rem;">
-                  <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="height: 0.5rem; width: 4rem; background-color: #f3f4f6; border-radius: 9999px; overflow: hidden;">
+              <tr class="border-t border-gray-100 dark:border-gray-700">
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-2">
+                    <div class="h-2 w-16 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
-                        style="height: 100%; background-color: #ef4444;"
+                        class="h-full bg-red-500"
                         [style.width.%]="alert.fraudScore"
                       ></div>
                     </div>
-                    <span style="font-weight: 600; color: #374151;">{{ alert.fraudScore }}%</span>
+                    <span class="font-semibold text-gray-700 dark:text-gray-300">{{ alert.fraudScore }}%</span>
                   </div>
                 </td>
-                <td style="padding: 0.75rem 1rem;">
+                <td class="px-4 py-3">
                   <app-severity-badge [severity]="alert.severity || 'LOW'"></app-severity-badge>
                 </td>
-                <td style="padding: 0.75rem 1rem; color: #374151;">{{ alert.description }}</td>
-                <td style="padding: 0.75rem 1rem;">
+                <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ alert.description }}</td>
+                <td class="px-4 py-3">
                   <app-category-badge [category]="alert.category || 'NON_CATEGORISE'"></app-category-badge>
                 </td>
-                <td style="padding: 0.75rem 1rem; color: #6b7280;">{{ alert.beneficiary || '—' }}</td>
-                <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #1f2937;">
+                <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ alert.beneficiary || '—' }}</td>
+                <td class="px-4 py-3 text-right font-semibold text-gray-800 dark:text-white">
                   {{ alert.amount | number: '1.2-2' }} €
                 </td>
-                <td style="padding: 0.75rem 1rem;">
-                  <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 9999px; background-color: #f3f4f6; color: #4b5563;">
+                <td class="px-4 py-3">
+                  <span class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                     {{ alert.status || 'analyse' }}
                   </span>
                 </td>
@@ -223,36 +273,39 @@
 
     <!-- Résultats Supabase -->
     @if (!loading() && supabaseResults() && supabaseResults()!.length > 0) {
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); overflow: hidden;">
-        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; background-color: #f8fafc;">
-          <h3 style="font-weight: 600; color: #0f172a;">Résultats — Cas Supabase (Stateful)</h3>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-slate-50">
+          <h3 class="font-semibold text-slate-800">Résultats — Cas Supabase (Stateful)</h3>
         </div>
         
-        <table style="width: 100%; font-size: 0.875rem;">
-          <thead style="background-color: #f1f5f9; color: #475569; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold">
             <tr>
-              <th style="text-align: left; padding: 0.75rem 1rem;">ID Transaction</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Catégorie</th>
-              <th style="text-align: center; padding: 0.75rem 1rem;">Détection</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Explication de l'IA</th>
+              <th class="text-left px-4 py-3">ID Transaction</th>
+              <th class="text-left px-4 py-3">Catégorie</th>
+              <th class="text-center px-4 py-3">Détection</th>
+              <th class="text-left px-4 py-3">Explication de l'IA</th>
             </tr>
           </thead>
           <tbody>
             @for (r of (supabaseResults() ?? []); track r.id) {
-              <tr style="border-top: 1px solid #e2e8f0;">
-                <td style="padding: 0.75rem 1rem; font-weight: 500; color: #1e293b;">{{ r.id }}</td>
-                <td style="padding: 0.75rem 1rem; color: #334155;">{{ $any(r).ruleCategory || $any(r).rule_category || 'Analyse IA' }}</td>
-                <td style="padding: 0.75rem 1rem; text-align: center;">
+              <tr class="border-t border-slate-200">
+                <td class="px-4 py-3 font-medium text-slate-800">{{ r.id }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ $any(r).ruleCategory || $any(r).rule_category || 'Analyse IA' }}</td>
+                <td class="px-4 py-3 text-center">
                   <span
-                    style="font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.75rem; border-radius: 9999px; border: 1px solid;"
-                    [style.color]="r.isFraud ? '#dc2626' : '#16a34a'"
-                    [style.backgroundColor]="r.isFraud ? '#fef2f2' : '#f0fdf4'"
-                    [style.borderColor]="r.isFraud ? '#fecaca' : '#bbf7d0'"
+                    class="text-xs font-semibold px-3 py-1 rounded-full border"
+                    [class.text-red-600]="r.isFraud"
+                    [class.text-green-600]="!r.isFraud"
+                    [class.bg-red-50]="r.isFraud"
+                    [class.bg-green-50]="!r.isFraud"
+                    [class.border-red-200]="r.isFraud"
+                    [class.border-green-200]="!r.isFraud"
                   >
                     {{ r.isFraud ? 'FRAUDE' : 'CLEAN' }}
                   </span>
                 </td>
-                <td style="padding: 0.75rem 1rem; color: #475569;">{{ r.explainability?.summary || 'Aucune explication fournie' }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ r.explainability?.summary || 'Aucune explication fournie' }}</td>
               </tr>
             }
           </tbody>
@@ -263,24 +316,24 @@
 
   <!-- ===== ONGLET : RÉSEAUX & GRAPHE ===== -->
   @if (activeTab() === 'graph') {
-    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 1.5rem;">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       
       <!-- Contrôles du Graphe -->
-      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <div class="flex items-center gap-4 mb-6 flex-wrap">
         <div>
-          <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Tenant ID (Identifiant client)</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tenant ID (Identifiant client)</label>
           <input 
             type="text" 
             [ngModel]="graphTenantId()"
             (ngModelChange)="graphTenantId.set($event)"
             placeholder="Ex: tenant-123" 
-            style="padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; width: 250px; font-size: 0.875rem;"
+            class="px-3 py-2 border border-gray-300 rounded-lg w-64 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         <button 
           (click)="loadTopAccounts()" 
           [disabled]="graphLoading()"
-          style="margin-top: 1.25rem; padding: 0.5rem 1.25rem; background-color: #0f172a; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;"
+          class="mt-5 px-5 py-2 bg-slate-900 text-white border-none rounded-lg cursor-pointer text-sm font-medium flex items-center gap-2 hover:bg-slate-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
         >
           {{ graphLoading() ? 'Chargement...' : '🔍 Rechercher les réseaux' }}
         </button>
@@ -288,102 +341,64 @@
 
       <!-- Erreurs Graphe -->
       @if (graphError()) {
-        <div style="background-color: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; font-size: 0.875rem;">
+        <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-6 text-sm">
           {{ graphError() }}
         </div>
       }
 
-      <div style="display: flex; gap: 1.5rem; min-height: 500px; border-top: 1px solid #e5e7eb; padding-top: 1.5rem;">
+      <div class="flex gap-6 min-h-[500px] border-t border-gray-200 pt-6">
         
         <!-- Colonne de gauche : Liste des comptes -->
-        <div style="width: 300px; border-right: 1px solid #e5e7eb; padding-right: 1.5rem;">
-          <h3 style="font-size: 1rem; font-weight: 600; color: #1f2937; margin-bottom: 1rem;">Comptes suspects</h3>
+        <div class="w-[300px] border-r border-gray-200 pr-6">
+          <h3 class="text-base font-semibold text-gray-800 mb-4">Comptes suspects</h3>
           
           @if (!graphLoading() && topAccounts().length === 0) {
-            <p style="font-size: 0.875rem; color: #6b7280; font-style: italic;">Aucun compte chargé. Lancez une recherche.</p>
+            <p class="text-sm text-gray-500 italic">Aucun compte chargé. Lancez une recherche.</p>
           }
 
-          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <div class="flex flex-col gap-2">
             @for (acc of topAccounts(); track acc.iban) {
               <div 
                 (click)="selectAccount(acc.iban)"
-                style="padding: 0.75rem; border-radius: 0.5rem; cursor: pointer; border: 1px solid;"
-                [style.backgroundColor]="selectedIban() === acc.iban ? '#eff6ff' : '#f9fafb'"
-                [style.borderColor]="selectedIban() === acc.iban ? '#bfdbfe' : '#e5e7eb'"
+                class="p-3 rounded-lg cursor-pointer border transition-colors"
+                [class.bg-blue-50]="selectedIban() === acc.iban"
+                [class.bg-gray-50]="selectedIban() !== acc.iban"
+                [class.border-blue-300]="selectedIban() === acc.iban"
+                [class.border-gray-200]="selectedIban() !== acc.iban"
+                [class.hover:bg-blue-100]="selectedIban() === acc.iban"
+                [class.hover:bg-gray-100]="selectedIban() !== acc.iban"
               >
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                  <span style="font-weight: 600; font-size: 0.875rem; color: #1f2937;">{{ shortIban(acc.iban) }}</span>
-                  <span style="font-size: 0.75rem; font-weight: bold; color: #dc2626; background: #fef2f2; padding: 0.1rem 0.4rem; border-radius: 9999px;">
+                <div class="flex justify-between items-center mb-1">
+                  <span class="font-semibold text-sm text-gray-800">{{ shortIban(acc.iban) }}</span>
+                  <span class="text-xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">
                     Score: {{ ($any(acc).fraud_score || $any(acc).fraudScore) | number:'1.1-1' }}
                   </span>
                 </div>
-                <p style="font-size: 0.75rem; color: #6b7280; margin: 0;">{{ $any(acc).transaction_count || $any(acc).transactionCount }} transaction(s)</p>
+                <p class="text-xs text-gray-500 m-0">{{ $any(acc).transaction_count || $any(acc).transactionCount }} transaction(s)</p>
               </div>
             }
           </div>
         </div>
 
-        <!-- Colonne de droite : Visualisation SVG -->
-        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f8fafc; border-radius: 0.75rem; border: 1px solid #e2e8f0; position: relative; overflow: hidden;">
+        <!-- Colonne de droite : Visualisation interactive -->
+        <div class="flex-1 flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 relative overflow-hidden min-h-[500px]">
           
-          @if (graphLoading()) {
-            <div style="display: inline-block; height: 2rem; width: 2rem; border-radius: 9999px; border: 3px solid #cbd5e1; border-right-color: #475569; animation: spin 1s linear infinite;"></div>
-          } @else if (networkData()) {
+          @if (networkData()) {
             <!-- Titre du réseau -->
-            <div style="position: absolute; top: 1rem; left: 1rem; background: white; padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 0.875rem; font-weight: 500; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-              Réseau de : <span style="font-weight: 700; color: #0f172a;">{{ networkData()?.center_iban }}</span>
+            <div class="absolute top-4 left-4 bg-white px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 shadow-sm z-10">
+              Réseau de : <span class="font-bold text-slate-900">{{ networkData()?.center_iban }}</span>
             </div>
 
-            <!-- SVG Graph -->
-            <svg width="600" height="400" viewBox="0 0 600 400" style="max-width: 100%; height: auto;">
-              
-              <!-- Arêtes (Lignes) -->
-              @for (node of graphNodePositions(); track node.iban) {
-                @if (!node.isCenter) {
-                  <line 
-                    [attr.x1]="300" 
-                    [attr.y1]="200" 
-                    [attr.x2]="node.x" 
-                    [attr.y2]="node.y" 
-                    stroke="#94a3b8" 
-                    stroke-width="1.5" 
-                    stroke-dasharray="4"
-                  />
-                }
-              }
-
-              <!-- Nœuds (Cercles et Textes) -->
-              @for (node of graphNodePositions(); track node.iban) {
-                @if (node.isCenter) {
-                  <circle [attr.cx]="node.x" [attr.cy]="node.y" [attr.r]="35" fill="#fecaca" opacity="0.5" />
-                }
-                
-                <circle 
-                  [attr.cx]="node.x" 
-                  [attr.cy]="node.y" 
-                  [attr.r]="node.isCenter ? 25 : 15" 
-                  [attr.fill]="node.isCenter ? '#dc2626' : '#3b82f6'" 
-                  stroke="#ffffff"
-                  stroke-width="2"
-                  style="cursor: pointer;"
-                  (click)="!node.isCenter && selectAccount(node.iban)"
-                />
-                
-                <text 
-                  [attr.x]="node.x" 
-                  [attr.y]="node.y + (node.isCenter ? 40 : 25)" 
-                  text-anchor="middle" 
-                  font-size="11" 
-                  font-weight="600" 
-                  fill="#475569"
-                  style="pointer-events: none;"
-                >
-                  {{ shortIban(node.iban) }}
-                </text>
-              }
-            </svg>
+            <!-- Graphe interactif -->
+            <app-interactive-graph
+              [nodes]="graphNodes()"
+              [edges]="graphEdges()"
+              [loading]="graphLoading()"
+              [centerNode]="selectedIban()"
+              class="w-full h-full"
+            ></app-interactive-graph>
           } @else {
-            <p style="color: #94a3b8; font-size: 0.875rem;">Sélectionnez un compte pour afficher son réseau d'interactions.</p>
+            <p class="text-slate-400 text-sm">Sélectionnez un compte pour afficher son réseau d'interactions.</p>
           }
         </div>
 
@@ -393,38 +408,38 @@
 
   <!-- ===== ONGLET : DÉTECTION HYBRIDE ===== -->
   @if (activeTab() === 'hybrid') {
-    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); overflow: hidden;">
-      <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb;">
-        <h3 style="font-weight: 600; color: #1f2937;">Détail Règles + ML par transaction</h3>
-        <p style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">Score consolidé = max(règle métier, probabilité IA)</p>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="font-semibold text-gray-800">Détail Règles + ML par transaction</h3>
+        <p class="text-xs text-gray-500 mt-1">Score consolidé = max(règle métier, probabilité IA)</p>
       </div>
       @if (filteredAlerts().length === 0) {
-        <div style="padding: 2.5rem; text-align: center; color: #9ca3af;">Lancez une analyse pour voir le détail.</div>
+        <div class="p-10 text-center text-gray-400">Lancez une analyse pour voir le détail.</div>
       } @else {
-        <table style="width: 100%; font-size: 0.875rem;">
-          <thead style="background-color: #f9fafb; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
             <tr>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Transaction</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Règle</th>
-              <th style="text-align: center; padding: 0.75rem 1rem;">Score IA</th>
-              <th style="text-align: center; padding: 0.75rem 1rem;">Décision finale</th>
-              <th style="text-align: left; padding: 0.75rem 1rem;">Facteurs</th>
+              <th class="text-left px-4 py-3">Transaction</th>
+              <th class="text-left px-4 py-3">Règle</th>
+              <th class="text-center px-4 py-3">Score IA</th>
+              <th class="text-center px-4 py-3">Décision finale</th>
+              <th class="text-left px-4 py-3">Facteurs</th>
             </tr>
           </thead>
           <tbody>
             @for (alert of filteredAlerts(); track alert.id) {
-              <tr style="border-top: 1px solid #f3f4f6;">
-                <td style="padding: 0.75rem 1rem; font-weight: 500; color: #1f2937;">{{ alert.transactionId || alert.id }}</td>
-                <td style="padding: 0.75rem 1rem; color: #374151;">
+              <tr class="border-t border-gray-100">
+                <td class="px-4 py-3 font-medium text-gray-800">{{ alert.transactionId || alert.id }}</td>
+                <td class="px-4 py-3 text-gray-700">
                   <app-category-badge [category]="alert.category || 'NON_CATEGORISE'"></app-category-badge>
                 </td>
-                <td style="padding: 0.75rem 1rem; text-align: center; font-weight: 600;" [style.color]="(alert.fraudScore ?? 0) >= 50 ? '#dc2626' : '#16a34a'">
+                <td class="px-4 py-3 text-center font-semibold" [class.text-red-600]="(alert.fraudScore ?? 0) >= 50" [class.text-green-600]="(alert.fraudScore ?? 0) < 50">
                   {{ alert.fraudScore ?? 0 }}%
                 </td>
-                <td style="padding: 0.75rem 1rem; text-align: center;">
+                <td class="px-4 py-3 text-center">
                   <app-severity-badge [severity]="alert.severity || (((alert.fraudScore ?? 0) >= 70) ? 'HIGH' : 'LOW')"></app-severity-badge>
                 </td>
-                <td style="padding: 0.75rem 1rem; color: #6b7280; font-size: 0.8rem; max-width: 320px;">
+                <td class="px-4 py-3 text-gray-500 text-xs max-w-[320px]">
                   {{ alert.explainability.factors.join(' · ') || '—' }}
                 </td>
               </tr>
@@ -437,46 +452,46 @@
 
   <!-- ===== ONGLET : EXPLICABILITÉ SHAP ===== -->
   @if (activeTab() === 'shap') {
-    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 1.5rem;">
-        <h3 style="font-weight: 600; color: #1f2937; margin-bottom: 1rem;">Features les plus contributives (agrégat SHAP)</h3>
+    <div class="flex flex-col gap-6">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h3 class="font-semibold text-gray-800 mb-4">Features les plus contributives (agrégat SHAP)</h3>
         @if (shapFactorStats().length === 0) {
-          <p style="color: #9ca3af; font-size: 0.875rem;">Aucune contribution SHAP disponible (modèle ML désactivé ou pas encore lancé).</p>
+          <p class="text-gray-400 text-sm">Aucune contribution SHAP disponible (modèle ML désactivé ou pas encore lancé).</p>
         } @else {
-          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div class="flex flex-col gap-3">
             @for (f of shapFactorStats(); track f.feature) {
               <div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
-                  <span style="font-weight: 500; color: #374151;">{{ f.feature }}</span>
-                  <span style="color: #6b7280;">{{ f.total }} occurrence(s)</span>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-medium text-gray-700">{{ f.feature }}</span>
+                  <span class="text-gray-500">{{ f.total }} occurrence(s)</span>
                 </div>
-                <div style="display: flex; height: 0.6rem; border-radius: 9999px; overflow: hidden; background: #f3f4f6;">
-                  <div style="background-color: #dc2626;" [style.width.%]="(f.positive / f.total) * 100"></div>
-                  <div style="background-color: #16a34a;" [style.width.%]="(f.negative / f.total) * 100"></div>
+                <div class="flex h-2.5 rounded-full overflow-hidden bg-gray-100">
+                  <div class="bg-red-500" [style.width.%]="(f.positive / f.total) * 100"></div>
+                  <div class="bg-green-500" [style.width.%]="(f.negative / f.total) * 100"></div>
                 </div>
               </div>
             }
           </div>
-          <p style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem;">
-            <span style="color:#dc2626;">■</span> contribue à la fraude &nbsp;
-            <span style="color:#16a34a;">■</span> réduit le risque
+          <p class="text-xs text-gray-400 mt-4">
+            <span class="text-red-500">■</span> contribue à la fraude &nbsp;
+            <span class="text-green-500">■</span> réduit le risque
           </p>
         }
       </div>
 
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 1.5rem;">
-        <h3 style="font-weight: 600; color: #1f2937; margin-bottom: 1rem;">Explication par transaction</h3>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h3 class="font-semibold text-gray-800 mb-4">Explication par transaction</h3>
         @if (alertsWithMlFactors().length === 0) {
-          <p style="color: #9ca3af; font-size: 0.875rem;">Aucune transaction analysée par le modèle ML pour l'instant.</p>
+          <p class="text-gray-400 text-sm">Aucune transaction analysée par le modèle ML pour l'instant.</p>
         }
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="flex flex-col gap-4">
           @for (alert of alertsWithMlFactors(); track alert.id) {
-            <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span style="font-weight: 600; color: #1f2937;">{{ alert.transactionId }}</span>
-                <span style="font-size: 0.8rem; color: #6b7280;">Score IA : {{ alert.fraudScore }}%</span>
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex justify-between mb-2">
+                <span class="font-semibold text-gray-800">{{ alert.transactionId }}</span>
+                <span class="text-xs text-gray-500">Score IA : {{ alert.fraudScore }}%</span>
               </div>
-              <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8rem; color: #4b5563;">
+              <ul class="m-0 pl-5 text-xs text-gray-600">
                 @for (factor of mlFactorsOf($any(alert)); track factor) {
                   <li>{{ factor }}</li>
                 }
@@ -490,24 +505,24 @@
 
   <!-- ===== ONGLET : RÈGLES MÉTIER ===== -->
   @if (activeTab() === 'rules') {
-    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+    <div class="flex flex-col gap-6">
 
       <!-- Jauge globale de risque -->
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 1.5rem;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-          <h3 style="font-weight: 600; color: #1f2937;">Score de risque composite global</h3>
-          <span style="font-weight: 700; font-size: 1.25rem;" [style.color]="gaugeColor(globalRiskScore())">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-gray-800">Score de risque composite global</h3>
+          <span class="font-bold text-xl" [style.color]="gaugeColor(globalRiskScore())">
             {{ globalRiskScore() }} / 100
           </span>
         </div>
-        <div style="height: 0.9rem; width: 100%; background: #f3f4f6; border-radius: 9999px; overflow: hidden;">
+        <div class="h-3.5 w-full bg-gray-100 rounded-full overflow-hidden">
           <div
-            style="height: 100%; border-radius: 9999px; transition: width 0.4s ease;"
+            class="h-full rounded-full transition-all duration-400 ease-in-out"
             [style.width.%]="globalRiskScore()"
             [style.background-color]="gaugeColor(globalRiskScore())"
           ></div>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #9ca3af; margin-top: 0.35rem;">
+        <div class="flex justify-between text-xs text-gray-400 mt-1.5">
           <span>Faible</span>
           <span>Moyen (40)</span>
           <span>Élevé (70)</span>
@@ -516,45 +531,45 @@
       </div>
 
       <!-- Tableau des règles avec jauge par catégorie -->
-      <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); overflow: hidden;">
-        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb;">
-          <h3 style="font-weight: 600; color: #1f2937;">Règles déclenchées sur le lot analysé</h3>
-          <p style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem;">Triées par score de risque moyen décroissant</p>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="font-semibold text-gray-800">Règles déclenchées sur le lot analysé</h3>
+          <p class="text-xs text-gray-400 mt-1">Triées par score de risque moyen décroissant</p>
         </div>
         @if (ruleCategoryStats().length === 0) {
-          <div style="padding: 2.5rem; text-align: center; color: #9ca3af;">Aucune règle déclenchée sur ce lot (ou aucune analyse lancée).</div>
+          <div class="p-10 text-center text-gray-400">Aucune règle déclenchée sur ce lot (ou aucune analyse lancée).</div>
         } @else {
-          <table style="width: 100%; font-size: 0.875rem;">
-            <thead style="background-color: #f9fafb; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
               <tr>
-                <th style="text-align: left; padding: 0.75rem 1rem;">Règle</th>
-                <th style="text-align: left; padding: 0.75rem 1rem; min-width: 160px;">Score moyen</th>
-                <th style="text-align: center; padding: 0.75rem 1rem;">Occurrences</th>
-                <th style="text-align: right; padding: 0.75rem 1rem;">Montant cumulé</th>
-                <th style="text-align: left; padding: 0.75rem 1rem;">Exemple de facteur</th>
+                <th class="text-left px-4 py-3">Règle</th>
+                <th class="text-left px-4 py-3 min-w-[160px]">Score moyen</th>
+                <th class="text-center px-4 py-3">Occurrences</th>
+                <th class="text-right px-4 py-3">Montant cumulé</th>
+                <th class="text-left px-4 py-3">Exemple de facteur</th>
               </tr>
             </thead>
             <tbody>
               @for (stat of ruleCategoryStats(); track stat.category) {
-                <tr style="border-top: 1px solid #f3f4f6;">
-                  <td style="padding: 0.75rem 1rem; font-weight: 500; color: #1f2937;">{{ ruleCategoryLabel(stat.category) }}</td>
-                  <td style="padding: 0.75rem 1rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                      <div style="height: 0.5rem; width: 6rem; background-color: #f3f4f6; border-radius: 9999px; overflow: hidden; flex-shrink: 0;">
+                <tr class="border-t border-gray-100">
+                  <td class="px-4 py-3 font-medium text-gray-800">{{ ruleCategoryLabel(stat.category) }}</td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <div class="h-2 w-24 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
                         <div
-                          style="height: 100%; border-radius: 9999px;"
+                          class="h-full rounded-full"
                           [style.width.%]="stat.avgScore"
                           [style.background-color]="gaugeColor(stat.avgScore)"
                         ></div>
                       </div>
-                      <span style="font-weight: 600; font-size: 0.8rem;" [style.color]="gaugeColor(stat.avgScore)">{{ stat.avgScore }}</span>
+                      <span class="font-semibold text-xs" [style.color]="gaugeColor(stat.avgScore)">{{ stat.avgScore }}</span>
                     </div>
                   </td>
-                  <td style="padding: 0.75rem 1rem; text-align: center;">
-                    <span style="background: #fef2f2; color: #dc2626; font-weight: 600; padding: 0.15rem 0.6rem; border-radius: 9999px;">{{ stat.count }}</span>
+                  <td class="px-4 py-3 text-center">
+                    <span class="bg-red-50 text-red-600 font-semibold px-1.5 py-0.5 rounded-full text-xs">{{ stat.count }}</span>
                   </td>
-                  <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #1f2937;">{{ stat.amount | number: '1.2-2' }} €</td>
-                  <td style="padding: 0.75rem 1rem; color: #6b7280; font-size: 0.8rem;">{{ stat.sampleFactor || '—' }}</td>
+                  <td class="px-4 py-3 text-right font-semibold text-gray-800">{{ stat.amount | number: '1.2-2' }} €</td>
+                  <td class="px-4 py-3 text-gray-500 text-xs">{{ stat.sampleFactor || '—' }}</td>
                 </tr>
               }
             </tbody>
@@ -567,23 +582,23 @@
 
   <!-- ===== ONGLET : CONFIG SEUILS ===== -->
   @if (activeTab() === 'config') {
-    <div style="background-color: white; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 1.5rem;">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <div class="flex items-center justify-between mb-6">
         <div>
-          <h3 style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Configuration des Seuils de Détection</h3>
-          <p style="font-size: 0.8rem; color: #6b7280;">Ajustez la sensibilité du moteur de règles et des modèles de Machine Learning.</p>
+          <h3 class="font-semibold text-gray-800 mb-1">Configuration des Seuils de Détection</h3>
+          <p class="text-xs text-gray-500">Ajustez la sensibilité du moteur de règles et des modèles de Machine Learning.</p>
         </div>
         <button 
           (click)="saveConfig()" 
-          style="padding: 0.6rem 1.25rem; background-color: #1d4ed8; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; font-weight: 600;"
+          class="px-5 py-2.5 bg-blue-600 text-white border-none rounded-lg cursor-pointer text-sm font-semibold hover:bg-blue-700 transition-colors"
         >
           💾 Enregistrer les modifications
         </button>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Simulateur de Seuils -->
-        <div style="grid-column: 1 / -1;">
+        <div class="col-span-full">
           <app-threshold-simulator 
             [thresholds]="currentSimulation()" 
             (thresholdChange)="onSimulationChange($event)"
@@ -591,8 +606,8 @@
         </div>
 
         <!-- Seuil Score ML -->
-        <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">
-          <label style="font-weight: 600; font-size: 0.875rem; color: #374151; display: block; margin-bottom: 0.5rem;">
+        <div class="border border-gray-200 rounded-lg p-4">
+          <label class="font-semibold text-sm text-gray-700 block mb-2">
             Seuil d'alerte Machine Learning (%)
           </label>
           <input 
@@ -600,34 +615,34 @@
             min="0" 
             max="100" 
             [(ngModel)]="mlThreshold" 
-            style="width: 100%; cursor: pointer;"
+            class="w-full cursor-pointer"
           />
-          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">
+          <div class="flex justify-between text-xs text-gray-500 mt-1">
             <span>Permissif (0%)</span>
-            <span style="font-weight: 700; color: #1d4ed8;">{{ mlThreshold }}%</span>
+            <span class="font-bold text-blue-600">{{ mlThreshold }}%</span>
             <span>Strict (100%)</span>
           </div>
         </div>
 
         <!-- Seuil Montant Critique -->
-        <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">
-          <label style="font-weight: 600; font-size: 0.875rem; color: #374151; display: block; margin-bottom: 0.5rem;">
+        <div class="border border-gray-200 rounded-lg p-4">
+          <label class="font-semibold text-sm text-gray-700 block mb-2">
             Seuil de Montant Critique (€)
           </label>
           <input 
             type="number" 
             [(ngModel)]="criticalAmountThreshold" 
             placeholder="Ex: 10000"
-            style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
         <!-- Blocage Automatique -->
-        <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">
-          <label style="font-weight: 600; font-size: 0.875rem; color: #374151; display: block; margin-bottom: 0.5rem;">
+        <div class="border border-gray-200 rounded-lg p-4">
+          <label class="font-semibold text-sm text-gray-700 block mb-2">
             Actions Automatiques
           </label>
-          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: #4b5563; cursor: pointer;">
+          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
             <input type="checkbox" [(ngModel)]="autoBlockEnabled" />
             Bloquer immédiatement si Score > 85%
           </label>

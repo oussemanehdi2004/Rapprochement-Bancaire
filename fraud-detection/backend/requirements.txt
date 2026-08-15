@@ -12,3 +12,5 @@ joblib
 neo4j
 prometheus-fastapi-instrumentator
 xgboost
+matplotlib
+pyotp

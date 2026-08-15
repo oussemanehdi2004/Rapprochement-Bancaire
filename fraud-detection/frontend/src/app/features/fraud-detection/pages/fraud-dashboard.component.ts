@@ -7,12 +7,15 @@ import { DefaultService, TransactionInput, TransactionOutput } from '../../../ap
 import { GraphService, GraphAccountNode, GraphNetworkResponse } from '../services/graph.service';
 import { FraudAlert } from '../models/fraud-alert.model';
 import { ConfigService, ThresholdsConfig } from '../services/config.service';
+import { PdfExportService } from '../services/pdf-export.service';
 
 // --- IMPORTS DES COMPOSANTS RÉUTILISABLES ---
 import { ThresholdSimulatorComponent, SimulationThresholds } from '../components/threshold-simulator/threshold-simulator.component';
 import { SeverityBadgeComponent } from '../components/severity-badge/severity-badge.component';
 import { CategoryBadgeComponent } from '../components/category-badge/category-badge.component';
 import { FraudChartsComponent } from '../components/fraud-charts/fraud-charts.component';
+import { InteractiveGraphComponent } from '../components/interactive-graph/interactive-graph.component';
+import { SkeletonLoaderComponent } from '../components/skeleton-loader/skeleton-loader.component';
 
 export interface SeverityCounts {
   critical: number;
@@ -57,9 +60,24 @@ export interface GraphNodePosition {
     SeverityBadgeComponent,
     CategoryBadgeComponent,
     FraudChartsComponent,
+    InteractiveGraphComponent,
+    SkeletonLoaderComponent,
   ],
   templateUrl: './fraud-dashboard.component.html'
 })
+export class FraudDashboardComponent {
+  // Services injectés
+  private http = inject(HttpClient);
+  public alertsService = inject(FraudAlertsService);
+  private graphService = inject(GraphService);
+  private apiService = inject(DefaultService);
+  private pdfExportService = inject(PdfExportService);
+
+  // Dark mode
+  public darkMode = signal(false);
+
+  // Exposition de Math pour le template HTML
+  protected readonly Math = Math;
 export class FraudDashboardComponent {
   // Services injectés
   private http = inject(HttpClient);
@@ -298,6 +316,104 @@ export class FraudDashboardComponent {
     }))
   );
 
+  // ===== DONNÉES TEMPORELLES POUR L'ÉVOLUTION =====
+  public timeSeriesData = computed(() => {
+    const alerts = this.filteredAlerts();
+    if (alerts.length === 0) return [];
+
+    // Grouper par date
+    const grouped = new Map<string, { fraudCount: number; totalCount: number }>();
+    
+    for (const alert of alerts) {
+      const date = alert.date?.split('T')[0] || new Date().toISOString().split('T')[0];
+      const entry = grouped.get(date) || { fraudCount: 0, totalCount: 0 };
+      
+      if (alert.isFraud) {
+        entry.fraudCount++;
+      }
+      entry.totalCount++;
+      
+      grouped.set(date, entry);
+    }
+
+    // Convertir en tableau et trier par date
+    return Array.from(grouped.entries())
+      .map(([date, stats]) => ({ date, ...stats }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(-7); // Derniers 7 jours
+  });
+
+  // ===== DONNÉES HORAIRES POUR LA HEATMAP =====
+  public hourlyData = computed(() => {
+    const alerts = this.filteredAlerts();
+    if (alerts.length === 0) return [];
+
+    // Initialiser les 24 heures
+    const hourly = Array.from({ length: 24 }, (_, hour) => ({ hour, count: 0 }));
+
+    // Compter les alertes par heure
+    for (const alert of alerts) {
+      try {
+        const hour = new Date(alert.date).getHours();
+        if (hour >= 0 && hour < 24) {
+          hourly[hour].count++;
+        }
+      } catch (e) {
+        // Ignorer les dates invalides
+      }
+    }
+
+    return hourly;
+  });
+
+  // ===== CONVERSION DES DONNÉES DE GRAPHE POUR VIS-NETWORK =====
+  public graphNodes = computed(() => {
+    const net = this.networkData();
+    if (!net) return [];
+
+    const nodes: any[] = [];
+    
+    // Node central
+    nodes.push({
+      id: net.center_iban,
+      label: this.shortIban(net.center_iban),
+      title: `Compte central: ${net.center_iban}`,
+      color: '#dc2626',
+      size: 30,
+      font: { size: 16, color: '#ffffff' }
+    });
+
+    // Nodes voisins
+    for (const nodeId of net.nodes) {
+      if (nodeId !== net.center_iban) {
+        nodes.push({
+          id: nodeId,
+          label: this.shortIban(nodeId),
+          title: `Compte: ${nodeId}`,
+          color: '#3b82f6',
+          size: 20,
+          font: { size: 12, color: '#374151' }
+        });
+      }
+    }
+
+    return nodes;
+  });
+
+  public graphEdges = computed(() => {
+    const net = this.networkData();
+    if (!net) return [];
+
+    return net.edges.map(edge => ({
+      from: edge.source,
+      to: edge.target,
+      title: `Transaction: ${edge.amount}€ - ${edge.is_fraud ? '⚠️ FRAUDE' : '✓ OK'}`,
+      label: `${edge.amount}€`,
+      color: edge.is_fraud ? '#dc2626' : '#94a3b8',
+      width: edge.is_fraud ? 3 : 2
+    }));
+  });
+
   // ===== STATISTIQUES DE SÉVÉRITÉ POUR LE GRAPHE DONUT =====
   public severityCounts = computed<SeverityCounts>(() => {
     const supa = this.supabaseResults();
@@ -440,6 +556,7 @@ export class FraudDashboardComponent {
     });
   }
 
+  // Kept for potential future use, but not needed with vis-network
   public graphNodePositions = computed(() => {
     const net = this.networkData();
     if (!net) return [];
@@ -979,6 +1096,46 @@ export class FraudDashboardComponent {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+
+  // ===== EXPORT PDF DES ALERTES =====
+  public exportToPdf(): void {
+    const supa = this.supabaseResults();
+    const source: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
+
+    if (!source || source.length === 0) {
+      return;
+    }
+
+    // Convertir en format FraudAlert attendu par le service
+    const alerts: FraudAlert[] = source.map((item: any) => ({
+      transactionId: item.id ?? item.transactionId ?? '',
+      date: item.date ?? '',
+      description: item.description ?? '',
+      amount: item.amount ?? 0,
+      fraudScore: item.fraudScore ?? item.score ?? 0,
+      category: item.category ?? item.ruleCategory ?? 'NON_CATEGORISE',
+      isFraud: item.isFraud ?? false,
+      beneficiary: item.beneficiary ?? ''
+    }));
+
+    this.pdfExportService.exportAlertsToPdf(alerts, 'Rapport de Détection de Fraude');
+  }
+
+  // ===== EXPORT SYNTHÈSE PDF =====
+  public exportSummaryToPdf(): void {
+    const stats = this.alertsService.stats();
+    const summary = {
+      totalAlerts: stats.totalAlerts,
+      critical: stats.critical,
+      high: stats.high,
+      medium: stats.totalAlerts - stats.critical - stats.high - stats.underInvestigation,
+      low: stats.underInvestigation,
+      totalAmount: stats.totalAmountAtRisk,
+      fraudRate: this.fraudRate()
+    };
+
+    this.pdfExportService.exportSummaryToPdf(summary, 'Synthèse des Alertes de Fraude');
   }
   public getCurrentTime(): string {
     return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });

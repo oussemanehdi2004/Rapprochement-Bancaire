@@ -13,10 +13,14 @@ FEATURE_ORDER = [
     "receiver_balance_error",
     "is_transfer",
     "is_cash_out",
+    "amount_to_avg_ratio",
+    "hour_of_day",
+    "days_since_last_tx",
+    "beneficiary_tx_count"
 ]
 
 
-def test_returns_vector_of_nine_features():
+def test_returns_vector_of_thirteen_features():
     vector = main.preprocess_transaction(make_transaction())
     assert len(vector) == len(FEATURE_ORDER)
 
@@ -73,3 +77,48 @@ def test_amount_and_balances_are_passed_through():
     assert vector[2] == 2.0
     assert vector[3] == 3.0
     assert vector[4] == 4.0
+
+
+def test_hour_of_day_extraction():
+    tx = make_transaction(date="2026-08-14T14:30:00Z")
+    vector = main.preprocess_transaction(tx)
+    assert vector[10] == 14  # hour_of_day
+    
+    tx_night = make_transaction(date="2026-08-14T03:15:00Z")
+    vector_night = main.preprocess_transaction(tx_night)
+    assert vector_night[10] == 3  # hour_of_day
+
+
+def test_default_values_for_new_features():
+    vector = main.preprocess_transaction(make_transaction())
+    # Valeurs par défaut quand pas de données historiques
+    assert vector[9] == 1.0  # amount_to_avg_ratio
+    assert vector[11] == 5.0  # days_since_last_tx
+    assert vector[12] == 0  # beneficiary_tx_count
+
+
+def test_account_aggregate_features():
+    account_aggregate = {
+        "avg_transaction_amount": 100.0,
+        "days_since_last_transaction": 15.0
+    }
+    tx = make_transaction(amount=200.0)
+    vector = main.preprocess_transaction(tx, account_aggregate=account_aggregate)
+    
+    # amount_to_avg_ratio = 200 / 100 = 2.0
+    assert vector[9] == 2.0
+    # days_since_last_tx from aggregate
+    assert vector[11] == 15.0
+
+
+def test_beneficiary_history_count():
+    beneficiary_history = [
+        {"beneficiary_iban": "FR76-ABC"},
+        {"beneficiary_iban": "FR76-XYZ"},
+        {"beneficiary_iban": "FR76-ABC"}  # Same beneficiary
+    ]
+    tx = make_transaction(beneficiary_iban="FR76-ABC")
+    vector = main.preprocess_transaction(tx, beneficiary_history=beneficiary_history)
+    
+    # Should count 2 transactions to FR76-ABC
+    assert vector[12] == 2
