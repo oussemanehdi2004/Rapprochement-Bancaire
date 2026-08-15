@@ -14,3 +14,4 @@ prometheus-fastapi-instrumentator
 xgboost
 matplotlib
 pyotp
+slowapi

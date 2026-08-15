@@ -26,6 +26,11 @@ class TransactionInput(BaseModel):
     beneficiary_iban: Optional[str] = None
     sender_account: Optional[str] = None
     receiver_account: Optional[str] = None
+    device_id: Optional[str] = None
+    device_fingerprint: Optional[str] = None
+    ip_address: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
 
 # =====================================================================
 # CONSTANTES & POIDS DU SCORE COMPOSITE
@@ -56,11 +61,17 @@ RULE_WEIGHTS = {
     "NOUVEL_IBAN": 30,
     "HORAIRE_ATYPIQUE": 25,
     "PAIEMENT_REPETITIF": 60,
-    "PAIEMENT_DUPLIQUE": 30
+    "PAIEMENT_DUPLIQUE": 30,
+    "CHANGEMENT_DEVICE": 70,
+    "CHANGEMENT_GEOLOC": 85
 }
 
 # Cache en mémoire pour la vélocité (à remplacer par Redis si plusieurs workers FastAPI)
 _velocity_cache: Dict[str, List[datetime]] = {}
+
+# Cache pour device et géolocalisation (à remplacer par Redis en production)
+_device_cache: Dict[str, str] = {}  # account_iban -> device_fingerprint
+_geo_cache: Dict[str, Dict[str, str]] = {}  # account_iban -> {country, city}
 
 # =====================================================================
 # NOUVELLES RÈGLES : HORAIRE & VÉLOCITÉ
@@ -92,6 +103,40 @@ def check_abnormal_velocity(account_id: str, tx_date_str: str, time_window_minut
     _velocity_cache[account_id] = history
     
     return len(history) > max_tx
+
+def check_device_change(account_iban: str, device_fingerprint: str) -> bool:
+    """
+    Détecte un changement de device inhabituel pour un compte.
+    """
+    if not account_iban or not device_fingerprint:
+        return False
+    
+    if account_iban not in _device_cache:
+        _device_cache[account_iban] = device_fingerprint
+        return False  # Premier device, pas de changement
+    
+    if _device_cache[account_iban] != device_fingerprint:
+        _device_cache[account_iban] = device_fingerprint
+        return True  # Changement de device détecté
+    
+    return False
+
+def check_geolocation_change(account_iban: str, country: str, city: str) -> bool:
+    """
+    Détecte un changement de géolocalisation inhabituel (pays différent).
+    """
+    if not account_iban or not country:
+        return False
+    
+    if account_iban not in _geo_cache:
+        _geo_cache[account_iban] = {"country": country, "city": city}
+        return False  # Première localisation, pas de changement
+    
+    if _geo_cache[account_iban]["country"] != country:
+        _geo_cache[account_iban] = {"country": country, "city": city}
+        return True  # Changement de pays détecté
+    
+    return False
 
 # =====================================================================
 # CONTROLES DE DONNÉES (Sanity Checks)
@@ -207,6 +252,22 @@ def apply_business_rules(
         score += RULE_WEIGHTS["VELOCITE_ANORMALE"]
         triggered_categories.append("VELOCITE_ANORMALE")
         factors.append("Vélocité anormale : Multiples transactions en moins de 15 minutes")
+
+    # =================================================================
+    # 🔹 RÈGLES PHASE 4 : DEVICE ET GÉOLOCALISATION
+    # =================================================================
+    device_fingerprint = transaction.get("device_fingerprint")
+    if check_device_change(account_iban, device_fingerprint):
+        score += RULE_WEIGHTS["CHANGEMENT_DEVICE"]
+        triggered_categories.append("CHANGEMENT_DEVICE")
+        factors.append("Changement de device détecté : nouveau device fingerprint utilisé")
+
+    country = transaction.get("country")
+    city = transaction.get("city")
+    if check_geolocation_change(account_iban, country, city):
+        score += RULE_WEIGHTS["CHANGEMENT_GEOLOC"]
+        triggered_categories.append("CHANGEMENT_GEOLOC")
+        factors.append(f"Changement de géolocalisation détecté : transaction depuis {country} (pays différent)")
 
     # --- ÉVALUATION FINALE ---
     final_score = min(score, 100)

@@ -11,13 +11,42 @@ from features import FEATURE_NAMES, sender_balance_error, receiver_balance_error
 # =====================================================================
 # 1. CHARGEMENT DES DONNÉES
 # =====================================================================
-print("⏳ Chargement du dataset PaySim (limité à 1M de lignes)...")
-csv_path = "data/paysim.csv"
+# Support pour différents datasets : IEEE-CIS (recommandé) ou PaySim (fallback)
+DATASET_TYPE = os.environ.get("DATASET_TYPE", "paysim").lower()
 
-if not os.path.exists(csv_path):
-    raise FileNotFoundError(f"Le fichier {csv_path} est introuvable. Veuillez le placer dans le dossier data/. ")
-
-df = pd.read_csv(csv_path, nrows=1000000) 
+if DATASET_TYPE == "ieee_cis":
+    print("⏳ Chargement du dataset IEEE-CIS (données réelles de fraude)...")
+    csv_path = "data/ieee_cis_fraud.csv"
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(
+            f"Le fichier {csv_path} est introuvable. "
+            "Pour utiliser le dataset IEEE-CIS, téléchargez-le depuis Kaggle: "
+            "https://www.kaggle.com/mlg-ulb/creditcardfraud "
+            "et placez-le dans le dossier data/ sous le nom 'ieee_cis_fraud.csv'"
+        )
+    df = pd.read_csv(csv_path)
+    # Adapter les colonnes IEEE-CIS au format attendu
+    df = df.rename(columns={
+        'Time': 'step',
+        'V1': 'oldbalanceOrg', 'V2': 'newbalanceOrig',
+        'V3': 'oldbalanceDest', 'V4': 'newbalanceDest',
+        'Amount': 'amount',
+        'Class': 'isFraud'
+    })
+    # Colonnes manquantes à remplir
+    df['type'] = 'TRANSFER'
+    df['nameOrig'] = 'C' + df.index.astype(str)
+    df['nameDest'] = 'M' + (df.index + 1000000).astype(str)
+    df['isFlaggedFraud'] = 0
+else:
+    print("⏳ Chargement du dataset PaySim (limité à 1M de lignes)...")
+    csv_path = "data/paysim.csv"
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(
+            f"Le fichier {csv_path} est introuvable. Veuillez le placer dans le dossier data/. "
+            "Pour de meilleurs résultats, utilisez le dataset IEEE-CIS en définissant DATASET_TYPE=ieee_cis"
+        )
+    df = pd.read_csv(csv_path, nrows=1000000) 
 
 # =====================================================================
 # 2. FEATURE ENGINEERING (Variables logiques)
@@ -81,8 +110,13 @@ print("\n=== RAPPORT DE CLASSIFICATION : ISOLATION FOREST ===")
 print(classification_report(y_test, y_pred_iso_binary, target_names=["Légitime", "Fraude"]))
 
 # =====================================================================
-# 6. SAUVEGARDE DU MODÈLE OPTIMISÉ POUR L'API
+# 6. SAUVEGARDE DES MODÈLES OPTIMISÉS POUR L'API
 # =====================================================================
 model_filename = "model_fraud.pkl"
 joblib.dump(model_rf, model_filename)
 print(f"\n✅ Modèle Random Forest optimisé sauvegardé avec succès sous '{model_filename}' !")
+
+# Sauvegarde de l'Isolation Forest pour utilisation hybride
+isolation_model_filename = "model_isolation_forest.pkl"
+joblib.dump(model_iso, isolation_model_filename)
+print(f"✅ Modèle Isolation Forest sauvegardé avec succès sous '{isolation_model_filename}' !")

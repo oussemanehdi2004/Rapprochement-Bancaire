@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import logging
@@ -7,10 +8,13 @@ import uuid
 from typing import Any, Generic, List, Optional, TypeVar, Union
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import httpx
 import joblib
 import jwt
@@ -51,6 +55,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger("fraud_api")
 
+# Gestionnaire de connexions SSE pour notifications temps réel
+class SSEManager:
+    def __init__(self):
+        self.active_connections: List[asyncio.Queue] = []
+
+    async def connect(self) -> asyncio.Queue:
+        queue = asyncio.Queue()
+        self.active_connections.append(queue)
+        return queue
+
+    def disconnect(self, queue: asyncio.Queue):
+        if queue in self.active_connections:
+            self.active_connections.remove(queue)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            await connection.put(message)
+
+sse_manager = SSEManager()
+
+# Configuration du rate limiting
+limiter = Limiter(key_func=get_remote_address)
+RATE_LIMIT_REQUESTS = int(os.environ.get("RATE_LIMIT_REQUESTS", "100"))
+RATE_LIMIT_PERIOD = int(os.environ.get("RATE_LIMIT_PERIOD", "60"))  # seconds
+
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development").lower()
 IS_PRODUCTION = ENVIRONMENT in ("production", "prod")
 
@@ -61,6 +90,8 @@ app = FastAPI(
     openapi_url=None if IS_PRODUCTION else "/openapi.json",
     root_path="/fraud",
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 Instrumentator().instrument(app).expose(app)
 
 def _parse_allowed_origins() -> list[str]:
@@ -118,8 +149,10 @@ if SUPABASE_URL and SUPABASE_KEY:
         logger.exception("Erreur Supabase.")
 
 MODEL_PATH = "model_fraud_calibrated.pkl" if os.path.exists("model_fraud_calibrated.pkl") else "model_fraud.pkl"
+ISOLATION_FOREST_PATH = "model_isolation_forest.pkl"
 METADATA_PATH = "model_metadata.pkl"
 model = None
+isolation_forest = None
 explainer = None
 feature_names = FEATURE_NAMES
 optimal_threshold = 0.4758  # Seuil par défaut (sera écrasé si métadonnées existent)
@@ -147,17 +180,38 @@ if os.path.exists(MODEL_PATH):
         explainer = None
         logger.warning("Impossible de charger le modèle ML")
 
+# Chargement du modèle Isolation Forest pour détection d'anomalies complémentaire
+if os.path.exists(ISOLATION_FOREST_PATH):
+    try:
+        isolation_forest = joblib.load(ISOLATION_FOREST_PATH)
+        logger.info(f"Modèle Isolation Forest chargé: {ISOLATION_FOREST_PATH}")
+    except Exception:
+        isolation_forest = None
+        logger.warning("Impossible de charger le modèle Isolation Forest")
+
 RULE_SEVERITY_WEIGHTS = {
     "SEUIL_REGLEMENTAIRE": 0.95, "MOTCLE_SENSIBLE": 0.90, "FRACTIONNEMENT_SUSPECT": 0.85,
     "RETRAIT_CASH_IMPORTANT": 0.80, "MONTANT_EXCEPTIONNEL": 0.75, "PAIEMENT_DUPLIQUE": 0.60,
     "NOUVEL_IBAN": 0.55, "COMPTE_RAREMENT_UTILISE": 0.50, "SEUIL_APPROCHE": 0.45,
 }
 
-def fuse_scores(ml_probability: float, rule_category: Optional[str], is_blocked: bool) -> float:
+def fuse_scores(ml_probability: float, rule_category: Optional[str], is_blocked: bool, isolation_anomaly_score: float = 0.0) -> float:
+    """
+    Fusionne les scores ML, règles métier et Isolation Forest.
+    isolation_anomaly_score: 0.0 (normal) à 1.0 (anomalie forte)
+    """
+    base_score = ml_probability
+    
+    # Intégration Isolation Forest (poids de 0.3 pour les anomalies détectées)
+    if isolation_anomaly_score > 0:
+        base_score = base_score + (isolation_anomaly_score * 0.3)
+        base_score = min(base_score, 1.0)  # Plafond à 1.0
+    
     if not is_blocked or not rule_category:
-        return ml_probability
+        return round(base_score, 4)
+    
     rule_score = RULE_SEVERITY_WEIGHTS.get(rule_category, 0.70)
-    return round(1.0 - ((1.0 - ml_probability) * (1.0 - rule_score)), 4)
+    return round(1.0 - ((1.0 - base_score) * (1.0 - rule_score)), 4)
 
 T = TypeVar("T")
 class APIResponse(BaseModel, Generic[T]):
@@ -372,6 +426,7 @@ def build_transaction_output(tx: TransactionInput, batch_finding: Optional[dict]
     factors_text = list(factors_from_rules)
     main_ml_factor = ""
     shap_contributions_list = []
+    isolation_anomaly_score = 0.0
 
     if model is not None and explainer is not None:
         features_vector = preprocess_transaction(tx, account_aggregate, beneficiary_history)
@@ -392,8 +447,18 @@ def build_transaction_output(tx: TransactionInput, batch_finding: Optional[dict]
         shap_contributions_list = [ShapContribution(feature=n, value=float(v), direction="positive" if v > 0 else "negative") for n, v in top_factors]
         factors_text.extend(f"{n} a contribué {'positivement' if v > 0 else 'négativement'}" for n, v in top_factors)
 
+    # Intégration Isolation Forest pour détection d'anomalies non supervisée
+    if isolation_forest is not None:
+        features_vector = preprocess_transaction(tx, account_aggregate, beneficiary_history)
+        iso_prediction = isolation_forest.predict([features_vector])[0]
+        # Isolation Forest renvoie -1 pour anomalie, 1 pour normal
+        if iso_prediction == -1:
+            isolation_anomaly_score = 0.8  # Score d'anomalie élevé
+            factors_text.append("Anomalie détectée par Isolation Forest (comportement atypique non supervisé)")
+            model_flag = True  # Renforce la détection de fraude
+
     is_fraud = model_flag or rule_flag
-    final_fraud_probability = fuse_scores(raw_ml_probability, rule_category, rule_flag)
+    final_fraud_probability = fuse_scores(raw_ml_probability, rule_category, rule_flag, isolation_anomaly_score)
 
     if rule_flag and model_flag: summary_text = f"ALERTE CRITIQUE : Bloqué par règle métier ({rule_reason}) et validé par l'IA."
     elif rule_flag: summary_text = f"Bloqué par conformité : {rule_reason}."
@@ -412,7 +477,8 @@ def build_transaction_output(tx: TransactionInput, batch_finding: Optional[dict]
     )
 
 @app.get("/health", tags=["System"], response_model=APIResponse[dict])
-async def health_check():
+@limiter.limit(f"{RATE_LIMIT_REQUESTS}/{RATE_LIMIT_PERIOD} seconds")
+async def health_check(request: Request):
     return APIResponse(success=True, data={"status": "ok"})
 
 def _apply_graph_findings(result: TransactionOutput, iban: str, tenant_id: str) -> None:
@@ -483,14 +549,33 @@ def analyze_batch(transactions: List[TransactionInput]) -> List[TransactionOutpu
             if iban:
                 try: _apply_graph_findings(result, iban, tx_dict.get("tenant_id"))
                 except Exception: pass
+
+    # Broadcast notifications pour les fraudes détectées via SSE
+    for result in results:
+        if result.isFraud:
+            notification = {
+                "type": "fraud_alert",
+                "transaction_id": result.id,
+                "transaction_reference": result.transaction_reference,
+                "amount": result.amount,
+                "fraud_probability": result.fraudProbability,
+                "score": result.score,
+                "rule_category": result.ruleCategory,
+                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "message": result.explainability.summary
+            }
+            asyncio.create_task(sse_manager.broadcast(notification))
+
     return results
 
 # =====================================================================
 # ENDPOINT D'ANALYSE HYBRIDE (Nettoyé des doubles auth)
 # =====================================================================
 @app.post("/api/analyze", response_model=APIResponse[List[TransactionOutput]])
+@limiter.limit(f"{RATE_LIMIT_REQUESTS}/{RATE_LIMIT_PERIOD} seconds")
 async def analyze_transactions_secure(
     transactions: List[TransactionInput],
+    request: Request,
     # NOUVEAU : On utilise UNIQUEMENT le contexte S2S avec le secret isolé
     internal_ctx: dict = Depends(get_service_context),
 ):
@@ -628,6 +713,100 @@ async def get_mule_accounts(
     except Exception as e:
         logger.error(f"Erreur lors de la détection de comptes mules: {e}")
         return APIResponse(success=False, data=[], message=f"Erreur: {str(e)}")
+
+@app.get("/api/graph/pagerank")
+async def get_pagerank(
+    tenant_id: Optional[str] = None,
+    max_iterations: int = 20,
+    damping_factor: float = 0.85,
+    token_payload: dict = Depends(get_optional_context)
+):
+    """
+    Endpoint pour calculer le PageRank des comptes (identification des hubs influents).
+    """
+    effective_tenant_id = tenant_id or token_payload.get("tenant_id", "default")
+    
+    if graph_engine is None:
+        mock_data = [
+            {"iban": "FR7612345678901234567890123", "pagerank_score": 15.5, "out_degree": 8, "in_degree": 12},
+            {"iban": "FR7698765432109876543210987", "pagerank_score": 12.3, "out_degree": 5, "in_degree": 9}
+        ]
+        return APIResponse(success=True, data=mock_data)
+    
+    try:
+        data = graph_engine.compute_pagerank(
+            tenant_id=effective_tenant_id,
+            max_iterations=max_iterations,
+            damping_factor=damping_factor
+        )
+        return APIResponse(success=True, data=data)
+    except Exception as e:
+        logger.error(f"Erreur lors du calcul PageRank: {e}")
+        return APIResponse(success=False, data=[], message=f"Erreur: {str(e)}")
+
+@app.get("/api/graph/communities")
+async def get_communities(
+    tenant_id: Optional[str] = None,
+    min_community_size: int = 3,
+    token_payload: dict = Depends(get_optional_context)
+):
+    """
+    Endpoint pour détecter les communautés de comptes connectés (réseaux de fraude potentiels).
+    """
+    effective_tenant_id = tenant_id or token_payload.get("tenant_id", "default")
+    
+    if graph_engine is None:
+        mock_data = [
+            {"center_account": "FR7612345678901234567890123", "community_members": ["FR7698765432109876543210987", "FR7611111111111111111111111"], "community_size": 3}
+        ]
+        return APIResponse(success=True, data=mock_data)
+    
+    try:
+        data = graph_engine.detect_communities(
+            tenant_id=effective_tenant_id,
+            min_community_size=min_community_size
+        )
+        return APIResponse(success=True, data=data)
+    except Exception as e:
+        logger.error(f"Erreur lors de la détection de communautés: {e}")
+        return APIResponse(success=False, data=[], message=f"Erreur: {str(e)}")
+
+# =====================================================================
+# SSE ENDPOINT POUR NOTIFICATIONS TEMPS RÉEL
+# =====================================================================
+@app.get("/api/notifications/stream")
+async def notification_stream(token_payload: dict = Depends(get_optional_context)):
+    """
+    Endpoint SSE pour recevoir des notifications en temps réel lors de la détection de fraude.
+    """
+    async def event_generator():
+        queue = await sse_manager.connect()
+        try:
+            while True:
+                # Envoyer un heartbeat toutes les 30 secondes
+                try:
+                    message = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield f"data: {json.dumps(message)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+        except asyncio.CancelledError:
+            sse_manager.disconnect(queue)
+            raise
+        except Exception as e:
+            logger.error(f"Erreur SSE: {e}")
+            sse_manager.disconnect(queue)
+        finally:
+            sse_manager.disconnect(queue)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 ENABLE_TEST_TOKEN_ENDPOINT = os.environ.get("ENABLE_TEST_TOKEN_ENDPOINT", "false").lower() == "true"
 

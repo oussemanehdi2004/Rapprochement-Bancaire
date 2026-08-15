@@ -17,6 +17,16 @@ export const routes: Routes = [
           .then(m => m.TransactionsListComponent)
       },
       {
+        path: 'reports',
+        loadComponent: () => import('./features/reports/pages/reports.component')
+          .then(m => m.ReportsComponent)
+      },
+      {
+        path: 'multi-banking',
+        loadComponent: () => import('./features/multi-banking/pages/multi-banking-dashboard.component')
+          .then(m => m.MultiBankingDashboardComponent)
+      },
+      {
         path: 'use-cases',
         loadComponent: () => import('./use-cases/use-cases.component')
           .then(m => m.UseCasesComponent)
