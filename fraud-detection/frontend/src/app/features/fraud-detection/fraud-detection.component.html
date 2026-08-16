@@ -1,10 +1,10 @@
 <div class="p-6 max-w-7xl mx-auto space-y-6 font-sans">
   
   <!-- 1. En-tête & Action Principale -->
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
     <div>
-      <h1 class="text-2xl font-bold text-gray-800">🔍 Détection & Analyse des Fraudes</h1>
-      <p class="text-sm text-gray-500">Supervision en temps réel, analyse hybride et explicabilité des alertes</p>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-white">🔍 Détection & Analyse des Fraudes</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Supervision en temps réel, analyse hybride et explicabilité des alertes</p>
     </div>
     <div class="flex items-center gap-3">
       <button 
@@ -23,9 +23,9 @@
 
   <!-- 2. Bannières d'Information & Erreurs -->
   @if (errorMessage) {
-    <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg text-red-700 text-sm flex justify-between items-center">
+    <div class="p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-r-lg text-red-700 dark:text-red-400 text-sm flex justify-between items-center">
       <span><strong>Erreur :</strong> {{ errorMessage }}</span>
-      <button (click)="errorMessage = null" class="text-red-500 font-bold hover:text-red-700">&times;</button>
+      <button (click)="errorMessage = null" class="text-red-500 dark:text-red-400 font-bold hover:text-red-700 dark:hover:text-red-300">&times;</button>
     </div>
   }
 
@@ -34,22 +34,22 @@
 
     <!-- Colonne Gauche : Tableau des Transactions (2/3) -->
     <div class="lg:col-span-2 space-y-6">
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+      <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
         
         <!-- Barre de Filtres -->
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 class="text-lg font-bold text-gray-700">Alertes & Transactions</h2>
+          <h2 class="text-lg font-bold text-gray-700 dark:text-gray-200">Alertes & Transactions</h2>
           <div class="flex items-center gap-2">
             <input 
               type="text" 
               [(ngModel)]="searchQuery"
               (keyup.enter)="loadTransactions()"
               placeholder="Rechercher ID / IBAN..."
-              class="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
             <select 
               [(ngModel)]="statusFilter"
               (change)="loadTransactions()"
-              class="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
               <option value="">Tous les statuts</option>
               <option value="FRAUD">Fraudes uniquement</option>
               <option value="LEGIT">Légitimes</option>
@@ -59,60 +59,60 @@
 
         <!-- Tableau -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-gray-600">
-            <thead class="bg-gray-50 text-gray-700 text-xs uppercase font-semibold border-b">
+          <table class="w-full text-left text-sm text-gray-600 dark:text-gray-300 min-w-[700px]">
+            <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 text-xs uppercase font-semibold border-b border-gray-200 dark:border-gray-600">
               <tr>
-                <th class="p-3">ID / Date</th>
-                <th class="p-3">Montant</th>
-                <th class="p-3">Score & Confiance</th>
-                <th class="p-3">Statut</th>
-                <th class="p-3 text-right">Actions</th>
+                <th class="p-3 w-[180px]">ID / Date</th>
+                <th class="p-3 w-[120px]">Montant</th>
+                <th class="p-3 w-[140px]">Score & Confiance</th>
+                <th class="p-3 w-[120px]">Statut</th>
+                <th class="p-3 text-right w-[100px]">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
               @for (tx of transactions; track tx.id) {
-                <tr class="hover:bg-gray-50 transition cursor-pointer" (click)="selectTransactionDetails(tx)">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition cursor-pointer" (click)="selectTransactionDetails(tx)">
                   <td class="p-3">
-                    <div class="font-bold text-gray-800">{{ tx.id }}</div>
-                    <div class="text-xs text-gray-400">{{ tx.date | date:'dd/MM/yyyy HH:mm' }}</div>
+                    <div class="font-bold text-gray-800 dark:text-white whitespace-nowrap">{{ tx.id }}</div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500">{{ tx.date | date:'dd/MM/yyyy HH:mm' }}</div>
                   </td>
-                  <td class="p-3 font-semibold text-gray-900">
+                  <td class="p-3 font-semibold text-gray-900 dark:text-white whitespace-nowrap">
                     {{ tx.amount | currency:'EUR':'symbol':'1.2-2' }}
                   </td>
-                  <td class="p-3">
+                  <td class="p-3 whitespace-nowrap">
                     <div class="flex items-center gap-2">
                       <span [class]="getScoreColorClass(tx.score)">
                         {{ tx.score }}/100
                       </span>
                       <span class="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase"
                         [ngClass]="{
-                          'bg-red-100 text-red-700': tx.confidence === 'HIGH',
-                          'bg-amber-100 text-amber-700': tx.confidence === 'MEDIUM',
-                          'bg-blue-100 text-blue-700': tx.confidence === 'LOW'
+                          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': tx.confidence === 'HIGH',
+                          'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': tx.confidence === 'MEDIUM',
+                          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400': tx.confidence === 'LOW'
                         }">
                         {{ tx.confidence }}
                       </span>
                     </div>
                   </td>
-                  <td class="p-3">
+                  <td class="p-3 whitespace-nowrap">
                     @if (tx.isFraud) {
                       <span class="px-2 py-1 text-xs font-semibold bg-red-500 text-white rounded">🚨 Suspecte</span>
                     } @else {
-                      <span class="px-2 py-1 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded">✅ Conforme</span>
+                      <span class="px-2 py-1 text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 rounded">✅ Conforme</span>
                     }
                   </td>
                   <td class="p-3 text-right">
                     <button 
                       (click)="$event.stopPropagation(); inspectAccountNetwork(tx.sender_account)"
                       title="Inspecter dans Neo4j"
-                      class="px-2.5 py-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded transition">
+                      class="px-2.5 py-1 text-xs bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 font-semibold rounded transition">
                       🕸️ Graphe
                     </button>
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="p-8 text-center text-gray-400">
+                  <td colspan="5" class="p-8 text-center text-gray-400 dark:text-gray-500">
                     Aucune transaction trouvée. Cliquez sur "Lancer Analyse Démo" pour exécuter un test.
                   </td>
                 </tr>
@@ -128,30 +128,30 @@
 
       <!-- Détails & Explicabilité SHAP -->
       @if (selectedTxDetails) {
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-indigo-200 relative animate-fadeIn">
-          <button (click)="selectedTxDetails = null" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 font-bold">&times;</button>
-          <h3 class="font-bold text-gray-800 mb-1">Explicabilité IA (SHAP)</h3>
-          <div class="text-xs text-gray-400 mb-3">ID Transaction: {{ selectedTxDetails.id }}</div>
+        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-indigo-200 dark:border-indigo-800 relative animate-fadeIn">
+          <button (click)="selectedTxDetails = null" class="absolute top-3 right-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 font-bold">&times;</button>
+          <h3 class="font-bold text-gray-800 dark:text-white mb-1">Explicabilité IA (SHAP)</h3>
+          <div class="text-xs text-gray-400 dark:text-gray-500 mb-3">ID Transaction: {{ selectedTxDetails.id }}</div>
 
-          <div class="p-3 bg-indigo-50/60 rounded-lg text-sm mb-4">
-            <p class="font-medium text-indigo-950">{{ selectedTxDetails.explainability.summary }}</p>
+          <div class="p-3 bg-indigo-50/60 dark:bg-indigo-900/30 rounded-lg text-sm mb-4">
+            <p class="font-medium text-indigo-950 dark:text-indigo-300">{{ selectedTxDetails.explainability.summary }}</p>
           </div>
 
-          <h4 class="text-xs font-bold uppercase text-gray-400 mb-2">Facteurs Clés :</h4>
+          <h4 class="text-xs font-bold uppercase text-gray-400 dark:text-gray-500 mb-2">Facteurs Clés :</h4>
           <ul class="text-xs space-y-1 mb-4">
             @for (factor of selectedTxDetails.explainability.factors; track factor) {
-              <li class="flex items-start gap-1 text-gray-700">
-                <span class="text-indigo-500">•</span> {{ factor }}
+              <li class="flex items-start gap-1 text-gray-700 dark:text-gray-300">
+                <span class="text-indigo-500 dark:text-indigo-400">•</span> {{ factor }}
               </li>
             }
           </ul>
 
-          <h4 class="text-xs font-bold uppercase text-gray-400 mb-2">Contributions SHAP :</h4>
-          <div class="space-y-2 border-t pt-2">
+          <h4 class="text-xs font-bold uppercase text-gray-400 dark:text-gray-500 mb-2">Contributions SHAP :</h4>
+          <div class="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-2">
             @for (item of selectedTxDetails.explainability.shap_contributions; track item.feature) {
               <div class="text-xs flex justify-between items-center">
-                <span class="text-gray-600">{{ item.feature }}</span>
-                <span class="font-mono font-bold" [class.text-red-600]="item.value > 0" [class.text-emerald-600]="item.value <= 0">
+                <span class="text-gray-600 dark:text-gray-400">{{ item.feature }}</span>
+                <span class="font-mono font-bold" [class.text-red-600]="item.value > 0" [class.text-emerald-600]="item.value <= 0" [class.dark:text-red-400]="item.value > 0" [class.dark:text-emerald-400]="item.value <= 0">
                   {{ item.value > 0 ? '+' : '' }}{{ item.value | number:'1.2-2' }}
                 </span>
               </div>
@@ -161,35 +161,35 @@
       }
 
       <!-- Top Comptes Signalés (Neo4j) -->
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-        <h3 class="font-bold text-gray-800 mb-3">Top Comptes Suspects (Graphe)</h3>
+      <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <h3 class="font-bold text-gray-800 dark:text-white mb-3">Top Comptes Suspects (Graphe)</h3>
         <div class="space-y-2">
           @for (acc of topAccounts; track acc.iban) {
             <div 
               (click)="inspectAccountNetwork(acc.iban)"
-              class="p-3 border border-gray-100 hover:border-indigo-300 rounded-lg cursor-pointer transition flex justify-between items-center bg-gray-50/50 hover:bg-indigo-50/30">
+              class="p-3 border border-gray-100 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 rounded-lg cursor-pointer transition flex justify-between items-center bg-gray-50/50 dark:bg-gray-700/30 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/20">
               <div>
-                <div class="font-mono text-xs font-bold text-gray-800">{{ acc.iban | slice:0:18 }}...</div>
-                <div class="text-[10px] text-gray-400">{{ acc.categories.join(', ') || 'Règles multiples' }}</div>
+                <div class="font-mono text-xs font-bold text-gray-800 dark:text-white">{{ acc.iban | slice:0:18 }}...</div>
+                <div class="text-[10px] text-gray-400 dark:text-gray-500">{{ acc.categories.join(', ') || 'Règles multiples' }}</div>
               </div>
-              <span class="px-2 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-full">
+              <span class="px-2 py-1 text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
                 {{ acc.alert_count }} alertes
               </span>
             </div>
           } @empty {
-            <p class="text-xs text-gray-400">Aucun compte suspect identifié.</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">Aucun compte suspect identifié.</p>
           }
         </div>
       </div>
 
       <!-- Inspecteur Réseau Graphe -->
       @if (selectedNetwork) {
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-indigo-100">
+        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-indigo-100 dark:border-indigo-800">
           <div class="flex justify-between items-center mb-2">
-            <h3 class="font-bold text-gray-800 text-sm">Sous-Graphe Réseau</h3>
-            <button (click)="clearSelections()" class="text-xs text-indigo-600 hover:underline">Fermer</button>
+            <h3 class="font-bold text-gray-800 dark:text-white text-sm">Sous-Graphe Réseau</h3>
+            <button (click)="clearSelections()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Fermer</button>
           </div>
-          <div class="text-xs text-gray-500 mb-3">Centre: <span class="font-mono font-semibold text-gray-700">{{ selectedNetwork.center_iban }}</span></div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mb-3">Centre: <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ selectedNetwork.center_iban }}</span></div>
           
           <div class="p-3 bg-gray-900 text-green-400 rounded-lg text-xs font-mono overflow-x-auto space-y-1">
             <div class="text-gray-400 border-b border-gray-700 pb-1 mb-2">

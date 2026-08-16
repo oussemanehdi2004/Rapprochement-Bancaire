@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DOCUMENT } from '@angular/common';
 
 @Component({
   selector: 'app-header',
@@ -9,6 +10,8 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./header.component.css']
 })
 export class HeaderComponent {
+  private document = inject(DOCUMENT);
+  
   currentUser = signal({
     name: 'Claire',
     role: 'ACCOUNTANT',
@@ -17,6 +20,37 @@ export class HeaderComponent {
 
   notifications = signal(3);
   showNotifications = signal(false);
+  darkMode = signal(false);
+
+  constructor() {
+    // Check for saved preference or system preference
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      const savedMode = localStorage.getItem('darkMode');
+      if (savedMode !== null) {
+        this.darkMode.set(savedMode === 'true');
+      } else {
+        // Check system preference
+        this.darkMode.set(window.matchMedia('(prefers-color-scheme: dark)').matches);
+      }
+      this.applyDarkMode();
+    }
+  }
+
+  toggleDarkMode() {
+    this.darkMode.update(mode => !mode);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('darkMode', this.darkMode().toString());
+    }
+    this.applyDarkMode();
+  }
+
+  private applyDarkMode() {
+    if (this.darkMode()) {
+      this.document.documentElement.classList.add('dark');
+    } else {
+      this.document.documentElement.classList.remove('dark');
+    }
+  }
 
   toggleNotifications() {
     this.showNotifications.update(show => !show);

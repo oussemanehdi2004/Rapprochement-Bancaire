@@ -6,6 +6,19 @@
 
   <!-- Right side - User & Notifications -->
   <div class="flex items-center gap-4">
+    <!-- Dark Mode Toggle -->
+    <button
+      (click)="toggleDarkMode()"
+      class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      title="Basculer mode sombre/clair"
+    >
+      @if (darkMode()) {
+        <span class="text-2xl">☀️</span>
+      } @else {
+        <span class="text-2xl">🌙</span>
+      }
+    </button>
+
     <!-- Date & Time -->
     <div class="text-right hidden desktop-only">
       <p class="text-sm font-medium text-gray-900 dark:text-white">{{ getCurrentTime() }}</p>

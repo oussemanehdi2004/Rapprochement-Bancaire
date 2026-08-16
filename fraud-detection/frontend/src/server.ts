@@ -54,7 +54,7 @@ app.use(express.urlencoded({ extended: true }));
 // ====================================================================
 // 🚀 3. PROXY API UNIFIÉ VERS FASTAPI (8005)
 // ====================================================================
-app.use('/api/*', async (req, res) => {
+app.use('/api', async (req, res) => {
   try {
     const targetUrl = `${FRAUD_API_URL}${req.originalUrl}`;
 
