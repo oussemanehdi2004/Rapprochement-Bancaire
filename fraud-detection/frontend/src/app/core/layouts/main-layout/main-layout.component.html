@@ -1,10 +1,10 @@
-<div style="min-height: 100vh; background-color: #f8fafc;">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
   <app-sidebar></app-sidebar>
   
-  <div style="margin-left: 16rem; padding-top: 4rem;">
+  <div [class.ml-20]="isSidebarCollapsed()" [class.ml-64]="!isSidebarCollapsed()" class="pt-16 transition-all duration-300">
     <app-header></app-header>
     
-    <main style="padding: 1.5rem;">
+    <main class="p-6">
       <router-outlet></router-outlet>
     </main>
   </div>

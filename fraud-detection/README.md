@@ -1,5 +1,11 @@
 # Rapprochement Bancaire
 
+![CI/CD Pipeline](https://github.com/oussemanehdi2004/Rapprochement-Bancaire/workflows/CI%2FCD%20Pipeline/badge.svg)
+![Backend Tests](https://github.com/oussemanehdi2004/Rapprochement-Bancaire/workflows/Backend%20Tests/badge.svg)
+![Frontend Tests](https://github.com/oussemanehdi2004/Rapprochement-Bancaire/workflows/Frontend%20Tests/badge.svg)
+![Code Coverage](https://github.com/oussemanehdi2004/Rapprochement-Bancaire/badges/coverage.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
 Système de rapprochement bancaire avec détection de fraude par IA.
 
 ## 📁 Structure du projet

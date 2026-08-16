@@ -1,36 +1,36 @@
 <aside 
-  [style.width]="isCollapsed() ? '5rem' : '16rem'"
-  style="background-color: white; border-right: 1px solid #e5e7eb; height: 100vh; display: flex; flex-direction: column; transition: all 0.3s ease-in-out; position: fixed; left: 0; top: 0; z-index: 40;"
+  [class.w-20]="isCollapsed()"
+  [class.w-64]="!isCollapsed()"
+  class="bg-white border-r border-gray-200 h-screen flex flex-col transition-all duration-300 ease-in-out fixed left-0 top-0 z-40 dark:bg-gray-800 dark:border-gray-700"
 >
   <!-- Logo -->
-  <div style="padding: 1rem; border-bottom: 1px solid #e5e7eb;">
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <div style="height: 2.5rem; width: 2.5rem; background: linear-gradient(to bottom right, #2563eb, #1e3a8a); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.125rem;">
+  <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center text-white font-bold text-lg">
         BM
       </div>
       @if (!isCollapsed()) {
         <div>
-          <h1 style="font-weight: bold; color: #1f2937; font-size: 1.125rem;">BankMatch</h1>
-          <p style="font-size: 0.75rem; color: #6b7280;">Fraud Detection</p>
+          <h1 class="font-bold text-gray-900 dark:text-white text-lg">BankMatch</h1>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Fraud Detection</p>
         </div>
       }
     </div>
   </div>
 
   <!-- Navigation -->
-  <nav style="flex: 1; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto;">
+  <nav class="flex-1 p-4 flex flex-col gap-2 overflow-y-auto">
     @for (item of menuItems; track $index) {
       <a
         [routerLink]="item.path"
         routerLinkActive="active-link"
-        style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.5rem; color: #4b5563; text-decoration: none; transition: background-color 0.2s;"
-        class="sidebar-link"
+        class="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-700 sidebar-link"
       >
-        <span style="font-size: 1.25rem;">{{ item.icon }}</span>
+        <span class="text-xl">{{ item.icon }}</span>
         @if (!isCollapsed()) {
-          <div style="flex: 1;">
-            <p style="font-weight: 500; font-size: 0.875rem;">{{ item.label }}</p>
-            <p style="font-size: 0.75rem; color: #9ca3af;">{{ item.description }}</p>
+          <div class="flex-1">
+            <p class="font-medium text-sm">{{ item.label }}</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">{{ item.description }}</p>
           </div>
         }
       </a>
@@ -38,17 +38,16 @@
   </nav>
 
   <!-- Toggle Button -->
-  <div style="padding: 1rem; border-top: 1px solid #e5e7eb;">
+  <div class="p-4 border-t border-gray-200 dark:border-gray-700">
     <button
       (click)="toggleCollapse()"
-      style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 0.5rem; color: #4b5563; background: none; border: none; cursor: pointer; transition: background-color 0.2s;"
-      class="sidebar-toggle"
+      class="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-700 sidebar-toggle"
     >
       @if (isCollapsed()) {
-        <span style="font-size: 1.25rem;">→</span>
+        <span class="text-xl">→</span>
       } @else {
-        <span style="font-size: 1.25rem;">←</span>
-        <span style="font-size: 0.875rem;">Réduire</span>
+        <span class="text-xl">←</span>
+        <span class="text-sm">Réduire</span>
       }
     </button>
   </div>
