@@ -1,0 +1,213 @@
+Bonsoir à tous,
+
+Merci pour les comptes rendus et pour le travail effectué. J’ai pris le temps de parcourir les différents éléments partagés, notamment le compte rendu Multi-Banking et la version révisée de la spécification.
+
+Globalement, le travail réalisé sur l’ingestion et la normalisation est cohérent avec le cadrage révisé : les parseurs CSV / CAMT.053 / MT940 sont en place, le problème MT940 a été identifié et corrigé avec une suite de tests complète, et le schéma pivot permet de bien isoler la partie « compréhension des formats bancaires » de la logique de rapprochement.
+
+Le point que je trouve particulièrement positif est que les limites actuelles sont clairement identifiées dans le compte rendu. Cela va nous éviter de considérer comme « terminé » quelque chose qui reste encore à intégrer ou à valider.
+
+Concernant les points ouverts :
+• Soldes hardcodés à 0 : je suis d’accord pour ne pas avancer sur une implémentation avant d’avoir clarifié leur source. Je préfère qu’on vérifie d’abord si ces informations doivent réellement provenir du fichier bancaire ou si elles doivent être fournies par BankMatch, afin de ne pas recréer une donnée métier déjà disponible ailleurs.
+• Moteur de matching : suite à nos échanges précédents, le moteur de rapprochement reste bien celui de BankMatch. Le module Multi-Banking doit se concentrer sur le parsing, la normalisation et l’envoi des données vers les APIs BankMatch. Il ne faut donc pas réimplémenter un second moteur de matching dans ce microservice.
+• Test d’intégration mocké, logging structuré et HEALTHCHECK Docker : je suis favorable à les finaliser avant l’intégration centralisée. Ce sont des éléments relativement ciblés qui permettront d’avoir un microservice plus autonome et plus facile à valider en CI et en déploiement.
+
+Pour le point soulevé concernant le pipeline vers Fraud Detection, je pense également qu’il faut être prudent avec les identifiants : un hash SHA-256 ne doit pas être présenté comme un mongo_transaction_id s’il ne correspond pas réellement à un ObjectId ou à un identifiant généré par MongoDB. Il faudra plutôt utiliser un nom qui reflète sa vraie nature, ou utiliser l’identifiant réellement retourné par BankMatch lorsqu'une donnée est effectivement créée dans BankMatch.
+
+Enfin, concernant l’intégration centralisée, je propose qu’on garde la même règle d’architecture que précédemment : les microservices ne communiquent pas directement avec MongoDB de production et BankMatch reste la source de vérité pour les données métier qui lui appartiennent. Le flux cible reste donc :
+Frontend → Backend BankMatch → Microservices IA
+et, lorsque cela est nécessaire pour l’ingestion :
+Multi-Banking → APIs Backend BankMatch → Matching BankMatch.
+Pour l’authentification du flux Multi-Banking → BankMatch, je vais également clarifier le pattern à utiliser afin qu’on ne parte pas sur un /api/auth/login avec un compte utilisateur classique alors qu’il s’agit d’une communication service-to-service.
+
+Merci encore pour le travail et surtout pour la transparence sur ce qui est réellement terminé versus ce qui reste à finaliser. À mon avis, il vaut mieux verrouiller ces quelques contrats maintenant avant de commencer le branchement centralisé, plutôt que de devoir les corriger après intégration.
+Envoyer un message tous-rapprochement-bancaire
+Bonjour,
+
+Oui, pour les deux points je préfère qu’on verrouille le contrat maintenant avant l’intégration.
+
+1. Accès MongoDB
+Non, le module Multi-Banking n’a pas vocation à se connecter directement à MongoDB de production.
+Le principe reste le même que pour les autres microservices : chaque service reste indépendant et communique avec BankMatch via les APIs exposées. BankMatch reste la source de vérité pour les données métier et l’isolation tenant.
+Donc pas besoin de MongoDB credentials / identifiants Mongo dans Multi-Banking pour le fonctionnement normal du module.
+
+2. mongo_transaction_id
+Tu as raison de relever le problème : si la valeur envoyée est un SHA-256, elle ne doit pas être appelée mongo_transaction_id, puisqu’elle ne correspond pas à un véritable identifiant MongoDB/ObjectId.
+Je déconseille également que Multi-Banking commence à écrire directement dans transactions uniquement pour pouvoir fabriquer cet identifiant : cela irait justement à l’encontre de l’architecture API-first que nous avons retenue.
+Le flux que je privilégierais est :
+Multi-Banking → API /api/import de BankMatch → création/import côté BankMatch → récupération des identifiants réellement attribués par BankMatch → utilisation de ces identifiants pour la suite du workflow.
+
+Donc, si Fraud Detection a réellement besoin de l’identifiant BankMatch, il faudra idéalement lui transmettre l’identifiant réellement retourné par BankMatch. Si le service Fraud n’a besoin que d’un identifiant de corrélation externe, alors le champ doit plutôt être renommé pour refléter cette sémantique (transaction_reference, source_transaction_id, etc., à confirmer selon le contrat exact de Fraud Detection).
+
+En résumé : pas d’accès Mongo direct pour Multi-Banking, pas d’écriture directe dans transactions, et pas de SHA-256 présenté comme un Mongo ObjectId.
+Si tu peux me partager le contrat exact du payload attendu actuellement par Fraud Detection pour ce champ, je peux te confirmer le nom et la valeur à utiliser avant que vous modifiiez le code.
+[10 h 56] Oui, pour ce flux je recommande de ne pas utiliser /api/auth/login avec un compte utilisateur classique.
+Ici on est dans un cas service-to-service :
+Multi-Banking → Backend BankMatch
+Le pattern à utiliser doit donc être celui d’un JWT interne de service, avec une identité de service explicite, plutôt qu’un JWT obtenu via le login utilisateur.
+Concrètement, Multi-Banking devra générer/transmettre un token interne signé avec le mécanisme prévu pour les communications inter-services, et BankMatch devra valider notamment sa signature, son issuer/audience et son identité avant d'autoriser les endpoints concernés.
+Je préfère également qu’on n’utilise pas automatiquement le même secret partagé entre tous les microservices si on peut éviter : idéalement, chaque service devrait avoir son propre credential/secret interne afin de limiter le périmètre de confiance en cas de compromission d’un service.
+Donc pour le moment, je suis d’accord avec le fait de garder :
+BANKMATCH_INTEGRATION_ENABLED=false
+jusqu’à ce que le contrat d’authentification soit confirmé et testé.
+Une fois validé, le flux cible serait :
+Multi-Banking
+→ JWT interne service-to-service
+→ /api/import
+→ récupération des identifiants/session retournés par BankMatch
+→ /api/reconciliation/sessions/:id/matching/start
+et non un /api/auth/login avec un compte de service classique.
+Je vais vérifier le contrat exact côté BankMatch avant de vous donner les claims/format définitifs à utiliser, afin qu’on évite de faire une implémentation qui devra être changée au moment du branchement centralisé.
+
+Bonjour à tous,
+
+La base MongoDB Atlas de développement est maintenant prête. Elle contient des données synthétiques (pas de données réelles) pour vous permettre de comprendre la structure, les relations entre collections, et de tester vos modules.
+
+Chaîne de connexion :
+mongodb+srv://<votre_utilisateur>:123@cluster0.doc5h.mongodb.net/bankmatch_dev?retryWrites=true&w=majority&appName=Cluster0
+
+Utilisateurs par module :
+
+AI Accounting Intelligence → user: "ai_accounting" / mot de passe: 123
+AI Fraud Detection → user: "ai_fraud" / mot de passe: 123
+AI Financial Copilot → user: "ai_copilot" / mot de passe: 123
+AI Treasury Prediction → user:"ai_treasury" / mot de passe: 123
+
+
+Collections disponibles :
+
+tenants : 4 entreprises de démo (demo_retail, demo_hospital, demo_ngo, demo_manufacturing)
+users : Utilisateurs (admin, comptable, user) pour chaque tenant
+transactions : Transactions bancaires (avec tenantId)
+ledgerentries : Écritures comptables (avec tenantId)
+matches : Rapprochements (score, confiance, status)
+matchhistories : Historique des décisions
+reconciliationsessions : Sessions de rapprochement
+imports : Historiques d'import
+rules : Règles métier
+notifications : Notifications
+
+
+Exemples de requêtes pour explorer les données :
+
+Voir les transactions d'un tenant :
+db.transactions.find({ tenantId: "demo_retail" }).limit(5)
+
+Voir les rapprochements avec score élevé :
+db.matches.find({ tenantId: "demo_retail", score: { $gte: 85 } })
+
+Voir la structure d'une collection :
+db.transactions.findOne()
+
+Voir tous les tenants disponibles :
+db.tenants.find({}, { tenantId: 1, companyName: 1 })
+
+Règles d'utilisation :
+
+Toute requête DOIT inclure tenantId — ne jamais faire .find({}) sans filtre tenant
+Ne pas modifier les schémas sans coordination
+Utiliser exclusivement pour le développement
+Les données sont synthétiques - pas de données réelles
+
+
+Outils recommandés :
+
+MongoDB Compass (interface graphique)
+MongoDB Shell (mongosh)
+Votre driver préféré (Python, Node.js, etc.)
+
+
+N'hésitez pas si vous avez des questions.
+Bonjour à tous,
+
+Je souhaite clarifier un point d'architecture qui n'est pas encore dans le Guide d'Intégration mais qui sera important lors de l'intégration centralisée.
+
+Le contexte : actuellement vous développez vos modules en standalone et vous appelez /api/users/me depuis vos propres services pour valider le contexte utilisateur. C'est le bon pattern pour votre phase de développement actuelle.
+
+L'évolution prévue : lors de l'intégration centralisée, ce sera le backend BankMatch qui appellera directement vos microservices. Dans ce cas, vos modules n'auront plus besoin de valider le JWT utilisateur ni d'appeler /api/users/me. Le backend BankMatch validera le JWT et transmettra le contexte utilisateur via un token interne.
+
+Le déroulement complet sera le suivant.
+
+1. L'utilisateur s'authentifie et obtient un JWT.
+2. L'utilisateur appelle une API BankMatch avec son JWT.
+3. BankMatch valide le JWT et extrait le contexte utilisateur.
+4. BankMatch génère un token interne valable 30 secondes contenant tenantId, userId et roles.
+5. BankMatch appelle votre microservice avec ce token interne.
+6. Votre microservice valide le token interne, pas le JWT utilisateur.
+7. Votre microservice traite la requête avec le contexte fourni.
+
+Pourquoi ce choix.
+
+Le microservice n'a jamais besoin du secret JWT utilisateur, les secrets restent séparés. Si un microservice est compromis, l'impact reste limité à ce seul service. Le token interne est très court, ce qui limite fortement les risques de rejeu. Les tokens internes peuvent aussi être tracés séparément pour l'audit.
+
+Ce que vous pouvez préparer dès maintenant.
+
+Ajoutez une variable d'environnement dans votre module, par exemple INTERNAL_SERVICE_SECRET, avec une valeur temporaire comme internal_dev_secret pour l'instant.
+
+Créez une fonction de validation de token interne dans votre FastAPI, par exemple :
+
+import jwt
+import os
+from fastapi import Header, HTTPException
+
+INTERNAL_SERVICE_SECRET = os.getenv("INTERNAL_SERVICE_SECRET", "internal_dev_secret")
+
+def verify_internal_token(authorization: str = Header(...)):
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    token = authorization.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, INTERNAL_SERVICE_SECRET, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Internal token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid internal token")
+    if payload.get("type") != "internal":
+        raise HTTPException(status_code=401, detail="Wrong token type")
+    if not payload.get("tenantId"):
+        raise HTTPException(status_code=401, detail="Missing tenantId")
+    return payloadUtilisez cette fonction comme dépendance sur vos endpoints, par exemple :
+
+@router.post("/analyze")
+def analyze(payload: dict, ctx: dict = Depends(verify_internal_token)):
+    tenant_id = ctx["tenantId"]
+
+Pendant votre développement, vous pouvez continuer à fonctionner sans le backend BankMatch, soit en gardant un endpoint de démo séparé qui n'utilise pas cette validation, soit en ajoutant un flag qui désactive la validation en développement, soit en générant un token interne localement avec un petit script.
+
+Point important : votre module doit continuer à fonctionner en développement sans le backend BankMatch. La validation du token interne sera réellement activée lors de l'intégration centralisée.
+
+Quand ce pattern sera réellement utilisé.
+
+Pour mon propre module IA, dès que je connecterai mon AI Service au backend BankMatch, ce qui arrivera bientôt. Pour vos modules, au moment de l'intégration centralisée. Fraud Detection sera probablement le premier module concerné vu son avancement.
+
+Quelques questions probables.
+
+Est ce que je dois arrêter d'utiliser /api/users/me. Non, continuez à l'utiliser pour votre développement standalone, l'intégration centralisée remplacera ce pattern le moment venu.
+
+Comment je génère un token interne pour tester de mon côté. Un petit script Python suffit :
+
+import jwt
+token = jwt.encode(
+    {"tenantId": "demo_retail", "userId": "test", "type": "internal"},
+    "internal_dev_secret",
+    algorithm="HS256"
+)
+print(token)
+
+Est ce que je dois partager mon secret interne avec les autres modules. Non, chaque module aura son propre secret partagé uniquement avec le backend BankMatch. Pour l'instant utilisez une valeur temporaire.
+
+Je mettrai à jour le Guide d'Intégration avec une section dédiée détaillant ce pattern. En attendant, cette clarification vous permet de préparer vos modules dès maintenant si vous le souhaitez.
+
+N'hésitez pas si vous avez des questions.
+Une petite remarque d'architecture également : j'ai remarqué que le document prévoit un backend NestJS dédié entre le frontend et le microservice IA. C'est tout à fait compréhensible pendant la phase de développement en standalone si cela vous permet d'avancer plus facilement.
+
+En revanche, lors de l'intégration centralisée avec BankMatch (NodeJS/ExpressJS), ce rôle d'orchestration sera assuré par le backend principal. Il ne sera donc probablement plus nécessaire de conserver une couche intermédiaire permanente entre le frontend et le microservice. Le service FastAPI pourra simplement exposer ses endpoints, et le backend BankMatch les consommera directement via le mécanisme d'intégration interne décrit dans le guide.
+
+Cela permet d'éviter une couche applicative supplémentaire à maintenir, tout en gardant un point d'entrée unique pour l'authentification, les règles métier et l'orchestration des appels.
+Dhirar  [15 h 39]
+Pour le moment, l'intégration centralisée n'a pas encore commencé. L'objectif de cette phase est justement que chaque équipe termine son module en respectant les mêmes conventions d'architecture, de communication et de déploiement, afin d'éviter des adaptations importantes au moment du branchement.
+
+De mon côté, je continue à stabiliser le backend BankMatch ainsi qu'à définir les contrats d'intégration communs. Dans les prochains jours, je partagerai également des recommandations concernant le nettoyage des projets et la documentation attendue, afin que chaque microservice soit prêt à être intégré dans de bonnes conditions.
+
+Une fois ces prérequis validés, l'intégration dans un projet central se fera progressivement. Si tous les modules respectent les conventions communes définies, le branchement devrait rester relativement fluide, puisque chaque service aura déjà été préparé pour cette architecture.
+
+L'objectif final est d'obtenir une plateforme unique, avec un parcours complet frontend → backend BankMatch → microservices IA, tout en conservant le backend principal comme point d'entrée unique.
