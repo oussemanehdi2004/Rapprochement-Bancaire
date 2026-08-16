@@ -48,7 +48,6 @@ df['is_cash_out'] = (df['type'] == 'CASH_OUT').astype(int)
 df['hour_of_day'] = pd.to_datetime(df['step'], unit='h').dt.hour
 
 # 2. Ratio montant / moyenne historique (simulé)
-# En production, cela viendrait de Supabase, ici on simule
 df['amount_to_avg_ratio'] = df['amount'] / (df.groupby('nameOrig')['amount'].transform('mean') + 1)
 
 # 3. Jours depuis dernière transaction (simulé)
@@ -57,11 +56,16 @@ df['days_since_last_tx'] = df.groupby('nameOrig')['step'].transform(lambda x: x.
 # 4. Nombre de transactions du bénéficiaire (détection de mules)
 df['beneficiary_tx_count'] = df.groupby('nameDest')['step'].transform('count')
 
-# Mise à jour des features avec les nouvelles variables
-EXTENDED_FEATURE_NAMES = FEATURE_NAMES + ['hour_of_day', 'amount_to_avg_ratio', 'days_since_last_tx', 'beneficiary_tx_count']
+# Nettoyage systématique des doublons de colonnes dans le DataFrame
+df = df.loc[:, ~df.columns.duplicated()]
 
-# Sélection des variables finales
+# Déduplication de la liste des noms de features tout en conservant l'ordre
+new_features = ['hour_of_day', 'amount_to_avg_ratio', 'days_since_last_tx', 'beneficiary_tx_count']
+EXTENDED_FEATURE_NAMES = list(dict.fromkeys(FEATURE_NAMES + new_features))
+
+# Sélection des variables finales avec garanties contre les doublons
 X = df[EXTENDED_FEATURE_NAMES]
+X = X.loc[:, ~X.columns.duplicated()]
 y = df['isFraud']
 
 # =====================================================================

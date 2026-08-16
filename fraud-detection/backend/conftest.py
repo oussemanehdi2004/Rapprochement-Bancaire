@@ -7,6 +7,7 @@ sure both prerequisites are satisfied before any test module imports ``main``.
 
 import os
 os.environ["ENABLE_TEST_TOKEN_ENDPOINT"] = "true"
+os.environ["TESTING"] = "true"
 # The module directory (where this conftest lives) contains ``model_fraud.pkl``
 # and the source modules (``main.py``, ``rules_engine.py``).
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -17,3 +18,7 @@ os.environ.setdefault("JWT_SECRET", "test-secret-key-used-only-in-tests-32b")
 
 # Ensure model/relative paths resolve regardless of where pytest is invoked.
 os.chdir(MODULE_DIR)
+
+# Désactiver le rate limiting pour les tests
+os.environ["RATE_LIMIT_REQUESTS"] = "1000"
+os.environ["RATE_LIMIT_PERIOD"] = "60"

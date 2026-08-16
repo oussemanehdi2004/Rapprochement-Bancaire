@@ -19,7 +19,7 @@ describe('ConfigService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [ConfigService, provideHttpClient(), provideHttpClientTesting()],
     });
     service = TestBed.inject(ConfigService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -39,7 +39,7 @@ describe('ConfigService', () => {
 
     const req = httpMock.expectOne('/api/config/thresholds');
     expect(req.request.method).toBe('GET');
-    req.flush(FULL_CONFIG);
+    req.flush({ success: true, data: FULL_CONFIG });
 
     expect(result).toEqual(FULL_CONFIG);
   });
@@ -55,7 +55,7 @@ describe('ConfigService', () => {
     expect(req.request.body).toEqual(patch);
 
     const updated: ThresholdsConfig = { ...FULL_CONFIG, SEUIL_CASH_OUT: 7500 };
-    req.flush(updated);
+    req.flush({ success: true, data: updated });
 
     expect(result?.SEUIL_CASH_OUT).toBe(7500);
   });

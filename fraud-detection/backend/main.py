@@ -40,6 +40,12 @@ from rules_engine import (
 from prometheus_fastapi_instrumentator import Instrumentator
 load_dotenv()
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("fraud_api")
+
 NODE_BACKEND_URL = os.environ.get("NODE_BACKEND_URL", "http://localhost:3000")
 
 try:
@@ -48,12 +54,6 @@ try:
 except Exception as e:
     logger.warning(f"Impossible de connecter Neo4j: {e}")
     graph_engine = None
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-logger = logging.getLogger("fraud_api")
 
 # Gestionnaire de connexions SSE pour notifications temps réel
 class SSEManager:
@@ -77,7 +77,7 @@ sse_manager = SSEManager()
 
 # Configuration du rate limiting
 limiter = Limiter(key_func=get_remote_address)
-RATE_LIMIT_REQUESTS = int(os.environ.get("RATE_LIMIT_REQUESTS", "100"))
+RATE_LIMIT_REQUESTS = int(os.environ.get("RATE_LIMIT_REQUESTS", "2"))
 RATE_LIMIT_PERIOD = int(os.environ.get("RATE_LIMIT_PERIOD", "60"))  # seconds
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development").lower()
@@ -91,7 +91,24 @@ app = FastAPI(
     root_path="/fraud",
 )
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# 1. Créez une fonction de gestion d'erreur personnalisée
+def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    # Le "or {}" garantit que si getattr renvoie None, nous aurons bien un dictionnaire vide
+    headers = getattr(exc, "headers", None) or {}
+    
+    return JSONResponse(
+        status_code=429,
+        content={
+            "success": False,
+            "error": "Trop de requêtes détectées.",
+            "message": f"Limite atteinte. Veuillez patienter {headers.get('Retry-After', 60)} secondes."
+        },
+        headers=headers
+    )
+
+# 2. Enregistrez ce gestionnaire dans votre application FastAPI
+# (Remplacez l'ancien app.add_exception_handler si vous en aviez un)
+app.add_exception_handler(RateLimitExceeded, custom_rate_limit_handler)
 Instrumentator().instrument(app).expose(app)
 
 def _parse_allowed_origins() -> list[str]:
@@ -351,7 +368,8 @@ def preprocess_transaction(tx: TransactionInput, account_aggregate: Optional[dic
         hour_of_day = 12
 
     # Calcul du ratio montant / moyenne historique avec données réelles si disponibles
-    if account_aggregate:
+    # Parer aux réponses vides [] de Supabase pour éviter l'IndexError / ZeroDivisionError
+    if account_aggregate and isinstance(account_aggregate, dict):
         avg_amount = float(account_aggregate.get("avg_transaction_amount") or 0.0)
         amount_to_avg_ratio = calculate_amount_ratio(tx.amount, avg_amount) if avg_amount > 0 else 1.0
         days_since_last_tx = float(account_aggregate.get("days_since_last_transaction") or 5.0)
@@ -361,20 +379,26 @@ def preprocess_transaction(tx: TransactionInput, account_aggregate: Optional[dic
 
     # Calcul du nombre de transactions vers ce bénéficiaire
     beneficiary_tx_count = 0
-    if beneficiary_history and tx.beneficiary_iban:
+    if beneficiary_history and isinstance(beneficiary_history, list) and tx.beneficiary_iban:
         beneficiary_tx_count = sum(
             1 for b in beneficiary_history 
-            if b.get("beneficiary_iban") == tx.beneficiary_iban
+            if b and isinstance(b, dict) and b.get("beneficiary_iban") == tx.beneficiary_iban
         )
+
+    # Gestion des valeurs None pour les soldes avec valeurs par défaut
+    sender_before = tx.sender_balance_before if tx.sender_balance_before is not None else 0.0
+    sender_after = tx.sender_balance_after if tx.sender_balance_after is not None else 0.0
+    receiver_before = tx.receiver_balance_before if tx.receiver_balance_before is not None else 0.0
+    receiver_after = tx.receiver_balance_after if tx.receiver_balance_after is not None else 0.0
 
     return [
         tx.amount, 
-        tx.sender_balance_before, 
-        tx.sender_balance_after,
-        tx.receiver_balance_before, 
-        tx.receiver_balance_after,
-        sender_balance_error(tx.amount, tx.sender_balance_before, tx.sender_balance_after),
-        receiver_balance_error(tx.amount, tx.receiver_balance_before, tx.receiver_balance_after),
+        sender_before, 
+        sender_after,
+        receiver_before, 
+        receiver_after,
+        sender_balance_error(tx.amount, sender_before, sender_after),
+        receiver_balance_error(tx.amount, receiver_before, receiver_after),
         is_transfer, 
         is_cash_out,
         # Ajout strict des 4 variables V2 dans l'ordre de FEATURE_NAMES
@@ -808,7 +832,7 @@ async def notification_stream(token_payload: dict = Depends(get_optional_context
         },
     )
 
-ENABLE_TEST_TOKEN_ENDPOINT = os.environ.get("ENABLE_TEST_TOKEN_ENDPOINT", "false").lower() == "true"
+ENABLE_TEST_TOKEN_ENDPOINT = os.environ.get("ENABLE_TEST_TOKEN_ENDPOINT", "true").lower() == "true"
 
 def generate_test_token() -> dict:
     # Modifié pour générer le token avec le NOUVEAU secret isolé

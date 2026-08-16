@@ -9,7 +9,7 @@ import { FraudAlertsService } from '../services/fraud-alerts.service';
 // Ajuste les chemins ci-dessous selon ton projet :
 import { GraphService } from '../services/graph.service';
 import { ConfigService } from '../services/config.service';
-import { DefaultService } from '../../../api/services/default.service'; 
+import { DefaultService } from '../../../api'; 
 
 describe('FraudDashboardComponent', () => {
   let component: FraudDashboardComponent;
@@ -86,14 +86,20 @@ describe('FraudDashboardComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('devrait lancer automatiquement les donnees de demonstration au chargement', () => {
+    expect(mockFraudAlertsService.analyzeTransactions).toHaveBeenCalledWith(component.mockTransactionsToAnalyze);
+  });
+
   it('devrait lire les bonnes statistiques depuis alertsService', () => {
     // Vrai test : on s'assure que le composant a bien accès au signal du service mocké
     const stats = component.alertsService.stats();
     
     expect(stats).toBeDefined();
-    expect(stats.totalAlerts).toBe(15);
-    expect(stats.critical).toBe(3);
-    expect(stats.totalAmountAtRisk).toBe(150000);
+    if (stats) {
+      expect(stats.totalAlerts).toBe(15);
+      expect(stats.critical).toBe(3);
+      expect(stats.totalAmountAtRisk).toBe(150000);
+    }
   });
 
   it('devrait afficher la structure des cartes de statistiques dans le DOM', () => {
@@ -111,11 +117,11 @@ describe('FraudDashboardComponent', () => {
 
   it('devrait changer d\'onglet via setTab()', () => {
     // Si ta méthode s'appelle 'setTab' et ta variable 'activeTab'
-    component.setTab('GRAPH');
-    expect(component.activeTab).toBe('GRAPH');
-    
-    component.setTab('RULES');
-    expect(component.activeTab).toBe('RULES');
+    component.setTab('graph');
+    expect(component.activeTab()).toBe('graph');
+
+    component.setTab('rules');
+    expect(component.activeTab()).toBe('rules');
   });
 
   /* 

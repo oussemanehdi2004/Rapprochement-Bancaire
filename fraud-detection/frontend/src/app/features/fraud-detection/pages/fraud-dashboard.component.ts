@@ -1,5 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { FraudAlertsService } from '../services/fraud-alerts.service';
@@ -65,8 +65,9 @@ export interface GraphNodePosition {
   ],
   templateUrl: './fraud-dashboard.component.html'
 })
-export class FraudDashboardComponent {
+export class FraudDashboardComponent implements OnInit {
   // Services injectés
+  private readonly platformId = inject(PLATFORM_ID);
   private http = inject(HttpClient);
   public alertsService = inject(FraudAlertsService);
   private graphService = inject(GraphService);
@@ -76,17 +77,30 @@ export class FraudDashboardComponent {
   // Dark mode
   public darkMode = signal(false);
 
-  // Exposition de Math pour le template HTML
-  protected readonly Math = Math;
-export class FraudDashboardComponent {
-  // Services injectés
-  private http = inject(HttpClient);
-  public alertsService = inject(FraudAlertsService);
-  private graphService = inject(GraphService);
-  private apiService = inject(DefaultService);
+  // Safe stats access with default values
+  public safeStats = computed(() => {
+    const stats = this.alertsService.stats();
+    return stats || {
+      totalAlerts: 0,
+      critical: 0,
+      high: 0,
+      underInvestigation: 0,
+      totalAmountAtRisk: 0
+    };
+  });
 
   // Exposition de Math pour le template HTML
   protected readonly Math = Math;
+
+  public ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    if (this.filteredAlerts().length === 0 && !this.supabaseResults()?.length) {
+      this.useDemoData();
+    }
+  }
 
   // Colonnes requises & colonnes numériques pour CSV
   private readonly REQUIRED_COLUMNS = ['id', 'amount'];
@@ -761,15 +775,32 @@ export class FraudDashboardComponent {
       error: (erreur: any) => {
         console.error('Erreur lors de l\'analyse démo', erreur);
         
-        // Si erreur 401 (non authentifié), utiliser les données mockées localement
-        if (erreur.status === 401 || erreur.message?.includes('401')) {
-          console.log('Utilisation des données mockées en mode démo (non authentifié)');
+        // Fallback local pour garder la demo exploitable sans API active.
+        if (this.shouldUseLocalDemoFallback(erreur)) {
+          console.log('Utilisation des donnees mockees en mode demo local');
           this.useMockDataForDemo();
         } else {
           this.errorMessage.set(`Erreur: ${erreur.message || 'Impossible de se connecter au backend'}`);
         }
       }
     });
+  }
+
+  private shouldUseLocalDemoFallback(error: any): boolean {
+    const status = Number(error?.status ?? 0);
+    const message = String(error?.message ?? '');
+
+    return (
+      status === 0 ||
+      status === 401 ||
+      status === 404 ||
+      status === 502 ||
+      status === 503 ||
+      status === 504 ||
+      message.includes('401') ||
+      message.includes('Failed to fetch') ||
+      message.includes('Http failure response')
+    );
   }
 
   private useMockDataForDemo(): void {
@@ -894,6 +925,7 @@ export class FraudDashboardComponent {
     // Injecter les données mockées via le service
     this.alertsService.alerts.set(mockAlerts);
     this.alertsService.updateStats(mockAlerts);
+    this.loading.set(false);
   }
 
   public analyzeSupabaseCases(): void {
@@ -960,9 +992,9 @@ export class FraudDashboardComponent {
       error: (erreur: any) => {
         this.loading.set(false);
         
-        // Si erreur 401 (non authentifié), utiliser les données mockées localement
-        if (erreur.status === 401 || erreur.message?.includes('401')) {
-          console.log('Utilisation des données mockées Supabase en mode démo (non authentifié)');
+        // Fallback local pour garder la demo exploitable sans API active.
+        if (this.shouldUseLocalDemoFallback(erreur)) {
+          console.log('Utilisation des donnees mockees en mode demo local');
           this.useMockSupabaseData();
         } else {
           this.errorMessage.set(`Erreur Supabase: ${erreur.message || 'Échec de connexion'}`);
@@ -1109,14 +1141,18 @@ export class FraudDashboardComponent {
 
     // Convertir en format FraudAlert attendu par le service
     const alerts: FraudAlert[] = source.map((item: any) => ({
+      id: item.id ?? item.transactionId ?? '',
+      tenantId: item.tenantId ?? item.tenant_id ?? 'unknown',
       transactionId: item.id ?? item.transactionId ?? '',
       date: item.date ?? '',
       description: item.description ?? '',
       amount: item.amount ?? 0,
-      fraudScore: item.fraudScore ?? item.score ?? 0,
+      beneficiary: item.beneficiary ?? '',
       category: item.category ?? item.ruleCategory ?? 'NON_CATEGORISE',
-      isFraud: item.isFraud ?? false,
-      beneficiary: item.beneficiary ?? ''
+      severity: item.severity ?? 'low',
+      fraudScore: item.fraudScore ?? item.score ?? 0,
+      status: item.status ?? 'new',
+      explainability: item.explainability ?? { summary: '', factors: [] }
     }));
 
     this.pdfExportService.exportAlertsToPdf(alerts, 'Rapport de Détection de Fraude');
@@ -1125,6 +1161,8 @@ export class FraudDashboardComponent {
   // ===== EXPORT SYNTHÈSE PDF =====
   public exportSummaryToPdf(): void {
     const stats = this.alertsService.stats();
+    if (!stats) return;
+    
     const summary = {
       totalAlerts: stats.totalAlerts,
       critical: stats.critical,

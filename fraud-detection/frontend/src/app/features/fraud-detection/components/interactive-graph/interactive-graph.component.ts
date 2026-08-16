@@ -103,7 +103,9 @@ export class InteractiveGraphComponent implements AfterViewInit, OnChanges, OnDe
           hover: '#3b82f6'
         },
         smooth: {
-          type: 'continuous'
+          enabled: true,
+          type: 'continuous',
+          roundness: 0.5
         }
       },
       physics: {
@@ -131,7 +133,7 @@ export class InteractiveGraphComponent implements AfterViewInit, OnChanges, OnDe
     // Center on specified node if provided
     if (this.centerNode) {
       this.network.once('stabilizationIterationsDone', () => {
-        this.network?.focus(this.centerNode, {
+        this.network?.focus(this.centerNode || '', {
           scale: 1.2,
           animation: true
         });
@@ -149,7 +151,7 @@ export class InteractiveGraphComponent implements AfterViewInit, OnChanges, OnDe
     this.edgesDataSet.add(this.convertEdges());
 
     if (this.centerNode) {
-      this.network?.focus(this.centerNode, {
+      this.network?.focus(this.centerNode || '', {
         scale: 1.2,
         animation: true
       });

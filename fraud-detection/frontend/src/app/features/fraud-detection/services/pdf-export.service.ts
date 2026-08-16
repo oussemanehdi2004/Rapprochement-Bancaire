@@ -41,10 +41,10 @@ export class PdfExportService {
     const tableData = alerts.map(alert => [
       alert.transactionId || alert.id || 'N/A',
       alert.description || 'N/A',
-      alert.category || alert.ruleCategory || 'NON_CATEGORISE',
+      alert.category || 'NON_CATEGORISE',
       `${alert.fraudScore ?? 0}%`,
       `${(alert.amount || 0).toLocaleString('fr-FR')} €`,
-      alert.isFraud ? '⚠️ FRAUDE' : '✓ OK',
+      (alert.fraudScore ?? 0) >= 70 ? '⚠️ FRAUDE' : '✓ OK',
       alert.date || 'N/A'
     ]);
     
@@ -75,7 +75,7 @@ export class PdfExportService {
         doc.setFontSize(8);
         doc.setTextColor(150);
         doc.text(
-          `Page ${doc.internal.getNumberOfPages()}`,
+          `Page ${data.pageNumber}`,
           data.settings.margin.left,
           doc.internal.pageSize.height - 10
         );

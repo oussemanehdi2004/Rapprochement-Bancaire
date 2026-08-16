@@ -48,7 +48,7 @@ export interface HourlyData {
         <h3 class="text-sm font-semibold text-gray-700 mb-1">Évolution du taux de fraude</h3>
         <p class="text-xs text-gray-400 mb-3">Tendance sur les 7 derniers jours</p>
         <div class="relative h-56 w-full overflow-hidden">
-          @if (timeSeriesData().length === 0) {
+          @if (getTimeSeriesData().length === 0) {
             <div class="h-full flex items-center justify-center text-xs text-gray-400">Aucune donnée temporelle</div>
           }
           <canvas #timeSeriesCanvas class="block w-full h-full"></canvas>
@@ -86,7 +86,7 @@ export interface HourlyData {
         <h3 class="text-sm font-semibold text-gray-700 mb-1">Heatmap horaire des alertes</h3>
         <p class="text-xs text-gray-400 mb-3">Distribution par heure de la journée</p>
         <div class="relative h-40 w-full overflow-hidden">
-          @if (hourlyData().length === 0) {
+          @if (getHourlyData().length === 0) {
             <div class="h-full flex items-center justify-center text-xs text-gray-400">Aucune donnée horaire</div>
           }
           <canvas #hourlyCanvas class="block w-full h-full"></canvas>
