@@ -97,8 +97,12 @@ export class FraudDashboardComponent implements OnInit {
       return;
     }
 
+    // Automatically run demo analysis on page load for impressive first impression
     if (this.filteredAlerts().length === 0 && !this.supabaseResults()?.length) {
-      this.useDemoData();
+      // Small delay to allow UI to render first
+      setTimeout(() => {
+        this.useDemoData();
+      }, 500);
     }
   }
 
@@ -760,6 +764,25 @@ export class FraudDashboardComponent implements OnInit {
     }, 0);
 
     return Math.round((sumScore / list.length) * 100) / 100;
+  });
+
+  // Trend indicators (simulated for demo - in production would compare with previous period)
+  public fraudRateTrend = computed(() => {
+    const currentRate = this.fraudRate();
+    // Simulated trend - in production this would compare with previous period
+    return currentRate > 30 ? { value: 12, isPositive: false } : { value: -5, isPositive: true };
+  });
+
+  public amountAtRiskTrend = computed(() => {
+    const currentAmount = this.totalAtRisk();
+    // Simulated trend - in production this would compare with previous period
+    return currentAmount > 20000 ? { value: 8, isPositive: false } : { value: -3, isPositive: true };
+  });
+
+  public riskScoreTrend = computed(() => {
+    const currentScore = this.globalRiskScore();
+    // Simulated trend - in production this would compare with previous period
+    return currentScore > 50 ? { value: 15, isPositive: false } : { value: -2, isPositive: true };
   });
 
   public analyze(): void {

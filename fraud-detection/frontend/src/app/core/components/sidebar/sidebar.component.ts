@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, output } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -13,6 +13,7 @@ export class SidebarComponent {
   private router = inject(Router);
   
   isCollapsed = signal(false);
+  collapsedChange = output<boolean>();
   
   menuItems = [
     { 
@@ -61,6 +62,7 @@ export class SidebarComponent {
 
   toggleCollapse() {
     this.isCollapsed.update(collapsed => !collapsed);
+    this.collapsedChange.emit(this.isCollapsed());
   }
 
   navigate(path: string) {

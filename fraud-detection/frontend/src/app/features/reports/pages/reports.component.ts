@@ -136,8 +136,19 @@ export class ReportsComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
+    // Set timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (this.loading) {
+        this.loading = false;
+        this.error = 'Délai dépassé lors du chargement des rapports. Veuillez réessayer.';
+      }
+    }, 8000);
+
     // Mock data for demonstration - replace with actual API calls
     setTimeout(() => {
+      // Clear the timeout if data loads successfully
+      clearTimeout(timeout);
+
       this.summary = {
         total_transactions: 15420,
         fraud_detected: 342,

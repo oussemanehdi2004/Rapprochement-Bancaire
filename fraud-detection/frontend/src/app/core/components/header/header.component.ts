@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DOCUMENT } from '@angular/common';
 
@@ -11,6 +11,8 @@ import { DOCUMENT } from '@angular/common';
 })
 export class HeaderComponent {
   private document = inject(DOCUMENT);
+  
+  @Input() collapsed = false;
   
   currentUser = signal({
     name: 'Claire',

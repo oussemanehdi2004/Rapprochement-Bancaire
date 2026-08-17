@@ -47,50 +47,92 @@
   <!-- ===== ONGLET : VUE D'ENSEMBLE ===== -->
   @if (activeTab() === 'overview') {
 
-    <!-- Import / Démo -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm mb-6 flex items-center justify-between flex-wrap gap-4">
-      <div>
-        <h3 class="font-semibold text-gray-800 dark:text-white mb-1">Importer des transactions</h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400">Fichier CSV — colonnes : tenant_id, mongo_transaction_id, id, date, description, amount, sender_balance_before, sender_balance_after, receiver_balance_before, receiver_balance_after, transaction_type</p>
-        @if (importedFileName()) {
-          <p class="text-xs text-green-600 dark:text-green-400 mt-1">✅ Fichier chargé : {{ importedFileName() }}</p>
-        }
-        @if (importError()) {
-          <p class="text-xs text-red-600 dark:text-red-400 mt-1">⚠️ {{ importError() }}</p>
-        }
+    <!-- Import / Démo (minimized since auto-analysis runs) -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm mb-6">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div class="flex items-center gap-3">
+          <span class="h-10 w-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl">📁</span>
+          <div>
+            <h3 class="font-semibold text-gray-800 dark:text-white text-sm">Importer des transactions</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">CSV: tenant_id, mongo_transaction_id, id, date, description, amount, balances...</p>
+          </div>
+        </div>
+        <div class="flex gap-2 items-center">
+          <label class="px-3 py-2 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 rounded-lg cursor-pointer text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+            Choisir CSV
+            <input type="file" accept=".csv" class="hidden" (change)="onFileSelected($event)" />
+          </label>
+          <button
+            (click)="useDemoData()"
+            [disabled]="loading()"
+            class="px-3 py-2 bg-blue-600 text-white border-none rounded-lg cursor-pointer text-sm font-semibold hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+          >
+            {{ loading() ? 'Analyse…' : 'Relancer Démo' }}
+          </button>
+        </div>
       </div>
-      <div class="flex gap-3 items-center">
-        <label class="px-4 py-2.5 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 rounded-lg cursor-pointer text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
-          📁 Choisir un CSV
-          <input type="file" accept=".csv" class="hidden" (change)="onFileSelected($event)" />
-        </label>
-        <button
-          (click)="useDemoData()"
-          [disabled]="loading()"
-          class="px-5 py-2.5 bg-blue-600 text-white border-none rounded-lg cursor-pointer text-sm font-semibold hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
-        >
-          {{ loading() ? 'Analyse en cours…' : '🚀 Utiliser données de démo' }}
-        </button>
-      </div>
+      @if (importedFileName()) {
+        <p class="text-xs text-green-600 dark:text-green-400 mt-2 ml-12">✅ Fichier chargé : {{ importedFileName() }}</p>
+      }
+      @if (importError()) {
+        <p class="text-xs text-red-600 dark:text-red-400 mt-2 ml-12">⚠️ {{ importError() }}</p>
+      }
     </div>
 
     <!-- KPI Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
-        <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Transactions analysées</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Transactions analysées</p>
+          <span class="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">📊</span>
+        </div>
         <p class="text-3xl font-bold text-gray-800 dark:text-white mt-2">{{ totalAnalyzed() }}</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">total des transactions</p>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
-        <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Taux de fraude détecté</p>
-        <p class="text-3xl font-bold text-red-600 dark:text-red-400 mt-2">{{ fraudRate() }}%</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Taux de fraude détecté</p>
+          <span class="h-8 w-8 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400">⚠️</span>
+        </div>
+        <div class="flex items-baseline gap-2 mt-2">
+          <p class="text-3xl font-bold text-red-600 dark:text-red-400">{{ fraudRate() }}%</p>
+          @if (fraudRateTrend()) {
+            <span class="text-xs font-medium" [class.text-green-600]="fraudRateTrend().isPositive" [class.text-red-600]="!fraudRateTrend().isPositive">
+              {{ fraudRateTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(fraudRateTrend().value) }}%
+            </span>
+          }
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">sur {{ totalAnalyzed() }} transactions</p>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
-        <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Montant total à risque</p>
-        <p class="text-3xl font-bold text-gray-800 dark:text-white mt-2">{{ totalAtRisk() | number: '1.0-0' }} €</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Montant total à risque</p>
+          <span class="h-8 w-8 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">💰</span>
+        </div>
+        <div class="flex items-baseline gap-2 mt-2">
+          <p class="text-3xl font-bold text-gray-800 dark:text-white">{{ totalAtRisk() | number: '1.0-0' }} €</p>
+          @if (amountAtRiskTrend()) {
+            <span class="text-xs font-medium" [class.text-green-600]="amountAtRiskTrend().isPositive" [class.text-red-600]="!amountAtRiskTrend().isPositive">
+              {{ amountAtRiskTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(amountAtRiskTrend().value) }}%
+            </span>
+          }
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">montant suspect détecté</p>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
-        <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Score de risque global</p>
-        <p class="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">{{ globalRiskScore() }}</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Score de risque global</p>
+          <span class="h-8 w-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">🎯</span>
+        </div>
+        <div class="flex items-baseline gap-2 mt-2">
+          <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ globalRiskScore() }}</p>
+          @if (riskScoreTrend()) {
+            <span class="text-xs font-medium" [class.text-green-600]="riskScoreTrend().isPositive" [class.text-red-600]="!riskScoreTrend().isPositive">
+              {{ riskScoreTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(riskScoreTrend().value) }}%
+            </span>
+          }
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">score moyen de risque</p>
       </div>
     </div>
 
