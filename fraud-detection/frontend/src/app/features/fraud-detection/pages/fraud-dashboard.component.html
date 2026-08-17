@@ -1,4 +1,4 @@
-<div [class.dark]="darkMode()" class="p-6 max-w-[90rem] mx-auto transition-colors duration-300">
+<div [class.dark]="darkMode()" class="p-6 max-w-[90rem] mx-auto transition-colors duration-300 min-w-0">
 
   <!-- ===== EN-TÊTE ===== -->
   <div class="flex items-center justify-between mb-4">
@@ -217,12 +217,12 @@
 
     <!-- Alerts Table (Analyse Locale) -->
     @if (!loading() && filteredAlerts().length > 0) {
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6 min-w-0">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h3 class="font-semibold text-gray-800 dark:text-white">Alertes de Fraude (Règles Locales)</h3>
         </div>
-        
-        <div class="overflow-x-auto">
+
+        <div class="overflow-x-auto min-w-0">
           <table class="w-full text-sm min-w-[900px]">
             <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
               <tr>
@@ -275,12 +275,12 @@
 
     <!-- Résultats Supabase -->
     @if (!loading() && supabaseResults() && supabaseResults()!.length > 0) {
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-w-0">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/30">
           <h3 class="font-semibold text-slate-800 dark:text-slate-200">Résultats — Cas Supabase (Stateful)</h3>
         </div>
-        
-        <div class="overflow-x-auto">
+
+        <div class="overflow-x-auto min-w-0">
           <table class="w-full text-sm min-w-[700px]">
             <thead class="bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 text-xs uppercase font-semibold">
               <tr>
@@ -424,7 +424,7 @@
 
   <!-- ===== ONGLET : DÉTECTION HYBRIDE ===== -->
   @if (activeTab() === 'hybrid') {
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-w-0">
       <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <h3 class="font-semibold text-gray-800 dark:text-white">Détail Règles + ML par transaction</h3>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Score consolidé = max(règle métier, probabilité IA)</p>
@@ -432,7 +432,7 @@
       @if (filteredAlerts().length === 0) {
         <div class="p-10 text-center text-gray-400 dark:text-gray-500">Lancez une analyse pour voir le détail.</div>
       } @else {
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto min-w-0">
           <table class="w-full text-sm min-w-[800px]">
             <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
               <tr>
@@ -549,7 +549,7 @@
       </div>
 
       <!-- Tableau des règles avec jauge par catégorie -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-w-0">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3 class="font-semibold text-gray-800 dark:text-white">Règles déclenchées sur le lot analysé</h3>
           <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Triées par score de risque moyen décroissant</p>
@@ -557,7 +557,7 @@
         @if (ruleCategoryStats().length === 0) {
           <div class="p-10 text-center text-gray-400 dark:text-gray-500">Aucune règle déclenchée sur ce lot (ou aucune analyse lancée).</div>
         } @else {
-          <div class="overflow-x-auto">
+          <div class="overflow-x-auto min-w-0">
             <table class="w-full text-sm min-w-[800px]">
               <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
                 <tr>
