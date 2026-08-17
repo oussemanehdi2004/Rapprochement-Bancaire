@@ -1,50 +1,54 @@
-<div style="padding: 1.5rem; max-width: 80rem; margin: 0 auto;">
-  <div style="margin-bottom: 1.5rem;">
-    <h1 style="font-size: 1.5rem; font-weight: bold; color: #1f2937;">Cas d'usage du projet BankMatch</h1>
-    <p style="color: #6b7280; margin-top: 0.25rem;">
+<div class="p-6 max-w-5xl mx-auto">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Cas d'usage du projet BankMatch</h1>
+    <p class="text-gray-600 dark:text-gray-400 mt-1">
       Vue d'ensemble des cas d'usage couverts par le module AI Fraud Detection (implémenté) et par le module
       AI Accounting Intelligence (en collaboration avec le binôme dédié).
     </p>
   </div>
 
   <!-- Filtres -->
-  <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+  <div class="flex gap-2 mb-6 flex-wrap">
     <button (click)="filtre.set('all')"
-      [style.background-color]="filtre() === 'all' ? '#1d4ed8' : 'white'"
-      [style.color]="filtre() === 'all' ? 'white' : '#374151'"
-      style="border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem;">
+      [ngClass]="filtre() === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+      class="border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-lg cursor-pointer text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
       Tous ({{ compte('all') }})
     </button>
     <button (click)="filtre.set('fraud')"
-      [style.background-color]="filtre() === 'fraud' ? '#1d4ed8' : 'white'"
-      [style.color]="filtre() === 'fraud' ? 'white' : '#374151'"
-      style="border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem;">
+      [ngClass]="filtre() === 'fraud' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+      class="border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-lg cursor-pointer text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
       🛡️ AI Fraud Detection ({{ compte('fraud') }})
     </button>
     <button (click)="filtre.set('accounting')"
-      [style.background-color]="filtre() === 'accounting' ? '#1d4ed8' : 'white'"
-      [style.color]="filtre() === 'accounting' ? 'white' : '#374151'"
-      style="border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem;">
+      [ngClass]="filtre() === 'accounting' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+      class="border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-lg cursor-pointer text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
       📊 AI Accounting Intelligence ({{ compte('accounting') }})
     </button>
   </div>
 
   <!-- Grille des cas d'usage -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     @for (uc of filtered(); track uc.titre) {
-      <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1.25rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
-          <h3 style="font-weight: 600; color: #1f2937; font-size: 0.95rem;">{{ uc.titre }}</h3>
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
+        <div class="flex justify-between items-start gap-2 mb-2">
+          <h3 class="font-semibold text-gray-900 dark:text-white text-sm">{{ uc.titre }}</h3>
           <span
             [style.background-color]="badgeColor(uc.statut).bg"
             [style.color]="badgeColor(uc.statut).text"
             [style.border-color]="badgeColor(uc.statut).border"
-            style="font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 9999px; border: 1px solid; white-space: nowrap;">
+            class="dark:hidden text-xs font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap">
+            {{ badgeColor(uc.statut).label }}
+          </span>
+          <span
+            [style.background-color]="badgeColor(uc.statut).darkBg"
+            [style.color]="badgeColor(uc.statut).darkText"
+            [style.border-color]="badgeColor(uc.statut).darkBorder"
+            class="hidden dark:inline-block text-xs font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap">
             {{ badgeColor(uc.statut).label }}
           </span>
         </div>
-        <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 0.75rem;">{{ uc.description }}</p>
-        <p style="font-size: 0.75rem; color: #9ca3af; font-family: monospace;">{{ uc.source }}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ uc.description }}</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ uc.source }}</p>
       </div>
     }
   </div>

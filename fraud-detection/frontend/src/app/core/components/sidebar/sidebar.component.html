@@ -1,7 +1,14 @@
-<aside 
+<!-- Mobile overlay -->
+@if (mobileOpen()) {
+  <div class="fixed inset-0 bg-black/40 z-30 lg:hidden" (click)="closeMobile()"></div>
+}
+
+<aside
   [class.w-20]="isCollapsed()"
   [class.w-64]="!isCollapsed()"
-  class="bg-white border-r border-gray-200 h-screen flex flex-col transition-all duration-300 ease-in-out fixed left-0 top-0 z-40 dark:bg-gray-800 dark:border-gray-700"
+  [class.translate-x-0]="mobileOpen()"
+  [class.-translate-x-full]="!mobileOpen()"
+  class="bg-white border-r border-gray-200 h-screen flex flex-col transition-all duration-300 ease-in-out fixed left-0 top-0 z-40 dark:bg-gray-800 dark:border-gray-700 lg:relative lg:translate-x-0 lg:h-auto lg:flex-shrink-0"
 >
   <!-- Logo -->
   <div class="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -24,6 +31,7 @@
       <a
         [routerLink]="item.path"
         routerLinkActive="active-link"
+        (click)="closeMobile()"
         class="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-700 sidebar-link"
       >
         <span class="text-xl">{{ item.icon }}</span>

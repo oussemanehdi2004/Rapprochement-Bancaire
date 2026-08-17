@@ -1,4 +1,4 @@
-import { Component, signal, inject, output } from '@angular/core';
+import { Component, signal, inject, output, input } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -11,58 +11,64 @@ import { CommonModule } from '@angular/common';
 })
 export class SidebarComponent {
   private router = inject(Router);
-  
+
   isCollapsed = signal(false);
+  mobileOpen = input<boolean>(false);
   collapsedChange = output<boolean>();
-  
+  mobileClose = output<void>();
+
   menuItems = [
-    { 
-      icon: '📊', 
-      label: 'Tableau de bord', 
+    {
+      icon: '📊',
+      label: 'Tableau de bord',
       path: '/dashboard',
       description: 'Vue d\'ensemble'
     },
-    { 
-      icon: '🛡️', 
-      label: 'Détection de fraude', 
+    {
+      icon: '🛡️',
+      label: 'Détection de fraude',
       path: '/fraud-detection',
       description: 'Alertes IA'
     },
-    { 
-      icon: '💳', 
-      label: 'Transactions', 
+    {
+      icon: '💳',
+      label: 'Transactions',
       path: '/transactions',
       description: 'Historique'
     },
-    { 
-      icon: '📋', 
-      label: 'Cas d\'usage', 
+    {
+      icon: '📋',
+      label: 'Cas d\'usage',
       path: '/use-cases',
       description: 'Vitrine des cas d\'usage'
     },
-    { 
-      icon: '📈', 
-      label: 'Rapports', 
+    {
+      icon: '📈',
+      label: 'Rapports',
       path: '/reports',
       description: 'Statistiques'
     },
-    { 
-      icon: '⚙️', 
-      label: 'Règles', 
+    {
+      icon: '⚙️',
+      label: 'Règles',
       path: '/rules',
       description: 'Configuration'
     },
-    { 
-      icon: '📥', 
-      label: 'Imports', 
+    {
+      icon: '📥',
+      label: 'Imports',
       path: '/imports',
       description: 'Fichiers'
     },
   ];
 
   toggleCollapse() {
-    this.isCollapsed.update(collapsed => !collapsed);
+    this.isCollapsed.update(c => !c);
     this.collapsedChange.emit(this.isCollapsed());
+  }
+
+  closeMobile() {
+    this.mobileClose.emit();
   }
 
   navigate(path: string) {

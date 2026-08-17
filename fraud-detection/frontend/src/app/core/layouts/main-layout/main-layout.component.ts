@@ -12,4 +12,5 @@ import { HeaderComponent } from '../../components/header/header.component';
 })
 export class MainLayoutComponent {
   sidebarCollapsed = signal(false);
+  mobileSidebarOpen = signal(false);
 }

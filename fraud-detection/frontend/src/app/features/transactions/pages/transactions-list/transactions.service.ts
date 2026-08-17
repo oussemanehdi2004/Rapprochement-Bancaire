@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface TransactionListItem {
   id: string;
@@ -44,6 +45,17 @@ export class TransactionsService {
       }
     });
 
-    return this.http.get<TransactionListItem[]>(this.baseUrl, { params });
+    return this.http.get<TransactionListItem[]>(this.baseUrl, { params }).pipe(
+      map(items => this.dedupe(items))
+    );
+  }
+
+  private dedupe(items: TransactionListItem[]): TransactionListItem[] {
+    const byRef = new Map<string, TransactionListItem>();
+    for (const item of items) {
+      const key = item.transaction_reference || item.id;
+      byRef.set(key, item); // last write wins (assumes API returns latest last, or sort by date first)
+    }
+    return Array.from(byRef.values());
   }
 }

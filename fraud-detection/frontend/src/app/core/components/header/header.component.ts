@@ -1,4 +1,4 @@
-import { Component, signal, inject, Input } from '@angular/core';
+import { Component, signal, inject, Input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DOCUMENT } from '@angular/common';
 
@@ -11,9 +11,10 @@ import { DOCUMENT } from '@angular/common';
 })
 export class HeaderComponent {
   private document = inject(DOCUMENT);
-  
+
   @Input() collapsed = false;
-  
+  menuClick = output<void>();
+
   currentUser = signal({
     name: 'Claire',
     role: 'ACCOUNTANT',
@@ -60,11 +61,11 @@ export class HeaderComponent {
 
   getCurrentDate(): string {
     const now = new Date();
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     };
     return now.toLocaleDateString('fr-FR', options);
   }

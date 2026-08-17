@@ -92,34 +92,34 @@
   <!-- Transactions Table -->
   <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mt-6 shadow-sm overflow-hidden min-w-0">
     <div class="overflow-x-auto min-w-0">
-      <table class="w-full text-sm min-w-[800px]">
+      <table class="w-full text-sm min-w-[800px] border-separate border-spacing-0">
         <thead class="bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
           <tr>
-            <th class="text-left px-4 py-3 w-[120px]">Date</th>
-            <th class="text-left px-4 py-3 min-w-[200px]">Libellé</th>
-            <th class="text-right px-4 py-3 w-[120px]">Montant</th>
-            <th class="text-left px-4 py-3 w-[140px]">Statut</th>
-            <th class="text-left px-4 py-3 min-w-[150px]">Référence</th>
-            <th class="text-center px-4 py-3 w-[100px]">Actions</th>
+            <th class="text-left px-4 py-3 w-[120px] border-b border-gray-200 dark:border-gray-700">Date</th>
+            <th class="text-left px-4 py-3 min-w-[200px] border-b border-l border-gray-200 dark:border-gray-700">Libellé</th>
+            <th class="text-right px-4 py-3 w-[120px] border-b border-l border-gray-200 dark:border-gray-700">Montant</th>
+            <th class="text-left px-4 py-3 w-[140px] border-b border-l border-gray-200 dark:border-gray-700">Statut</th>
+            <th class="text-left px-4 py-3 min-w-[150px] border-b border-l border-gray-200 dark:border-gray-700">Référence</th>
+            <th class="text-center px-4 py-3 w-[100px] border-b border-l border-gray-200 dark:border-gray-700">Actions</th>
           </tr>
         </thead>
         <tbody>
           @for (tx of transactions(); track tx.id) {
             <tr class="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
               <td class="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ tx.date }}</td>
-              <td class="px-4 py-3 text-gray-900 dark:text-white font-medium truncate max-w-[250px]">{{ tx.description }}</td>
-              <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              <td class="px-4 py-3 text-gray-900 dark:text-white font-medium truncate max-w-[250px] border-l border-gray-200 dark:border-gray-700">{{ tx.description }}</td>
+              <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300 whitespace-nowrap border-l border-gray-200 dark:border-gray-700">
                 {{ tx.amount | number: '1.2-2' }} €
               </td>
-              <td class="px-4 py-3 whitespace-nowrap">
-                <span class="text-xs font-semibold px-2 py-1 rounded-full inline-block" 
-                  [style.background-color]="getStatusBgColor(tx.reconciliationStatus)" 
+              <td class="px-4 py-3 whitespace-nowrap border-l border-gray-200 dark:border-gray-700">
+                <span class="text-xs font-semibold px-2 py-1 rounded-full inline-block"
+                  [style.background-color]="getStatusBgColor(tx.reconciliationStatus)"
                   [style.color]="getStatusTextColor(tx.reconciliationStatus)">
                   {{ tx.reconciliationStatus }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-gray-500 dark:text-gray-400 font-mono text-xs truncate">{{ tx.id }}</td>
-              <td class="px-4 py-3">
+              <td class="px-4 py-3 text-gray-500 dark:text-gray-400 font-mono text-xs truncate border-l border-gray-200 dark:border-gray-700">{{ tx.id }}</td>
+              <td class="px-4 py-3 border-l border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-center gap-2">
                   <button class="p-1.5 bg-transparent border-none cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-lg" title="Modifier">
                     ✏️
@@ -133,10 +133,10 @@
           } @empty {
             <tr>
               <td colspan="6" class="text-center text-gray-400 dark:text-gray-500 py-10">
-                @if (loading()) { 
-                  Chargement en cours... 
-                } @else { 
-                  Aucune transaction trouvée 
+                @if (loading()) {
+                  Chargement en cours...
+                } @else {
+                  Aucune transaction trouvée
                 }
               </td>
             </tr>

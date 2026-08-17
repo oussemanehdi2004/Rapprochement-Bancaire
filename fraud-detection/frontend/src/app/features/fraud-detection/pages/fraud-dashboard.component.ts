@@ -63,7 +63,8 @@ export interface GraphNodePosition {
     InteractiveGraphComponent,
     SkeletonLoaderComponent,
   ],
-  templateUrl: './fraud-dashboard.component.html'
+  templateUrl: './fraud-dashboard.component.html',
+  styleUrls: ['./fraud-dashboard.component.css']
 })
 export class FraudDashboardComponent implements OnInit {
   // Services injectés

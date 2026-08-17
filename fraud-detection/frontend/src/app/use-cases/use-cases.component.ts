@@ -154,9 +154,9 @@ export class UseCasesComponent {
 
   badgeColor(s: Statut) {
     switch (s) {
-      case 'implemente': return { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0', label: '✅ Implémenté' };
-      case 'partiel': return { bg: '#fffbeb', text: '#92400e', border: '#fde68a', label: '🟡 Partiel' };
-      default: return { bg: '#f3f4f6', text: '#4b5563', border: '#e5e7eb', label: '🔜 Prévu (collab. Accounting)' };
+      case 'implemente': return { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0', label: '✅ Implémenté', darkBg: '#14532d', darkText: '#86efac', darkBorder: '#166534' };
+      case 'partiel': return { bg: '#fffbeb', text: '#92400e', border: '#fde68a', label: '🟡 Partiel', darkBg: '#78350f', darkText: '#fcd34d', darkBorder: '#92400e' };
+      default: return { bg: '#f3f4f6', text: '#4b5563', border: '#e5e7eb', label: '🔜 Prévu (collab. Accounting)', darkBg: '#1f2937', darkText: '#9ca3af', darkBorder: '#374151' };
     }
   }
 }

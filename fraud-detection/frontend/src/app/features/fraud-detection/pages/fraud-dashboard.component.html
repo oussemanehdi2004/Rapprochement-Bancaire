@@ -20,20 +20,15 @@
   </div>
 
   <!-- ===== BARRE D'ONGLETS ===== -->
-  <div class="flex gap-2 border-b border-gray-200 mb-6 overflow-x-auto">
+  <div class="tabs-container">
     @for (tab of tabs; track tab.id) {
       <button
         (click)="tab.ready && setTab(tab.id)"
         [disabled]="!tab.ready"
-        class="px-4 py-3 border-none bg-none text-sm font-medium cursor-pointer whitespace-nowrap border-b-2 border-transparent flex items-center gap-1.5 transition-colors"
-        [class.text-blue-600]="activeTab() === tab.id"
+        class="tab-button"
+        [class.active]="activeTab() === tab.id"
         [class.text-gray-600]="activeTab() !== tab.id && tab.ready"
         [class.text-gray-400]="!tab.ready"
-        [class.border-blue-600]="activeTab() === tab.id"
-        [class.cursor-pointer]="tab.ready"
-        [class.cursor-not-allowed]="!tab.ready"
-        [class.hover:text-blue-700]="activeTab() === tab.id"
-        [class.hover:text-gray-800]="activeTab() !== tab.id && tab.ready"
       >
         <span>{{ tab.icon }}</span>
         <span>{{ tab.label }}</span>
@@ -137,7 +132,7 @@
     </div>
 
     <!-- Boutons d'analyse -->
-    <div class="mb-4 flex flex-wrap gap-3">
+    <div class="button-group">
       <button (click)="analyze()" [disabled]="loading()" class="px-4 py-2.5 bg-white dark:bg-gray-800 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg cursor-pointer font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
         Relancer l'analyse locale
       </button>
@@ -182,7 +177,7 @@
         </div>
       </div>
       
-      <div class="grid grid-cols-2 gap-4 stats-grid">
+      <div class="stats-grid">
         <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
           <p class="text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400 font-semibold">Total alertes</p>
           <p class="text-3xl font-bold text-blue-800 dark:text-blue-300 mt-2">{{ safeStats().totalAlerts }}</p>
