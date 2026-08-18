@@ -36,7 +36,7 @@ export interface ShapContribution {
 export interface FraudExplainability {
   summary: string;
   factors: string[];
-  shapContributions?: ShapContribution[];
+  shap_contributions?: ShapContribution[];
 }
 
 export interface FraudAlert {

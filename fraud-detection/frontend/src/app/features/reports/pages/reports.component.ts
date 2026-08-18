@@ -1,27 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-
-interface FraudSummary {
-  total_transactions: number;
-  fraud_detected: number;
-  fraud_rate: number;
-  total_amount: number;
-  blocked_amount: number;
-}
-
-interface CategoryBreakdown {
-  category: string;
-  count: number;
-  percentage: number;
-}
-
-interface TimeSeriesData {
-  date: string;
-  fraud_count: number;
-  total_count: number;
-}
+import { ReportsService, FraudSummary, CategoryBreakdown, TimeSeriesData } from '../../services/reports.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-reports',
@@ -48,11 +29,11 @@ interface TimeSeriesData {
           <button (click)="loadReports()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition">
             Générer le rapport
           </button>
-          <button (click)="exportPDF()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition">
-            Exporter PDF
+          <button (click)="exportPDF()" [disabled]="loading" class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded transition">
+            {{ loading ? 'Export en cours...' : 'Exporter PDF' }}
           </button>
-          <button (click)="exportCSV()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded transition">
-            Exporter CSV
+          <button (click)="exportCSV()" [disabled]="loading" class="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-4 py-2 rounded transition">
+            {{ loading ? 'Export en cours...' : 'Exporter CSV' }}
           </button>
         </div>
       </div>
@@ -121,7 +102,10 @@ export class ReportsComponent implements OnInit {
   loading = false;
   error = '';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private reportsService: ReportsService,
+    private toastService: ToastService
+  ) {}
 
   ngOnInit() {
     // Set default date range (last 30 days)
@@ -144,57 +128,79 @@ export class ReportsComponent implements OnInit {
       }
     }, 8000);
 
-    // Mock data for demonstration - replace with actual API calls
-    setTimeout(() => {
-      // Clear the timeout if data loads successfully
-      clearTimeout(timeout);
-
-      this.summary = {
-        total_transactions: 15420,
-        fraud_detected: 342,
-        fraud_rate: 2.22,
-        total_amount: 8923400,
-        blocked_amount: 234500
-      };
-
-      this.categoryBreakdown = [
-        { category: 'SEUIL_REGLEMENTAIRE', count: 145, percentage: 42.4 },
-        { category: 'MOTCLE_SENSIBLE', count: 89, percentage: 26.0 },
-        { category: 'VELOCITE_ANORMALE', count: 56, percentage: 16.4 },
-        { category: 'CHANGEMENT_GEOLOC', count: 32, percentage: 9.4 },
-        { category: 'HORAIRE_ATYPIQUE', count: 20, percentage: 5.8 }
-      ];
-
-      this.timeSeriesData = this.generateMockTimeSeries();
-      this.loading = false;
-    }, 1000);
-  }
-
-  generateMockTimeSeries(): TimeSeriesData[] {
-    const data: TimeSeriesData[] = [];
-    const startDate = new Date(this.startDate);
-    const endDate = new Date(this.endDate);
-    
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const total = Math.floor(Math.random() * 100) + 50;
-      const fraud = Math.floor(total * (Math.random() * 0.05 + 0.01));
-      data.push({
-        date: d.toISOString().split('T')[0],
-        fraud_count: fraud,
-        total_count: total
-      });
-    }
-    return data;
+    this.reportsService.getReports(this.startDate, this.endDate).subscribe({
+      next: (data) => {
+        clearTimeout(timeout);
+        this.summary = data.summary;
+        this.categoryBreakdown = data.categoryBreakdown;
+        this.timeSeriesData = data.timeSeriesData;
+        this.loading = false;
+      },
+      error: (err) => {
+        clearTimeout(timeout);
+        console.error('Error loading reports:', err);
+        this.error = 'Erreur lors du chargement des rapports. Veuillez vérifier la connexion au service.';
+        this.loading = false;
+        
+        // Fallback to empty state
+        this.summary = null;
+        this.categoryBreakdown = [];
+        this.timeSeriesData = [];
+      }
+    });
   }
 
   exportPDF() {
-    // Placeholder for PDF export functionality
-    alert('Export PDF - Fonctionnalité à implémenter avec jsPDF ou similaire');
+    this.loading = true;
+    this.error = null;
+    
+    this.reportsService.exportPDF(this.startDate, this.endDate).subscribe({
+      next: (blob) => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `fraud_report_${this.startDate}_to_${this.endDate}.pdf`;
+        link.click();
+        this.loading = false;
+        this.toastService.success('Export réussi', 'Le rapport PDF a été téléchargé');
+      },
+      error: (err) => {
+        console.error('Error exporting PDF:', err);
+        this.error = 'Erreur lors de l\'export PDF. Veuillez réessayer.';
+        this.loading = false;
+        this.toastService.error('Erreur d\'export', 'Erreur lors de l\'export PDF. Veuillez réessayer.');
+      }
+    });
   }
 
   exportCSV() {
-    if (!this.timeSeriesData.length) return;
+    this.loading = true;
+    this.error = null;
     
+    this.reportsService.exportCSV(this.startDate, this.endDate).subscribe({
+      next: (blob) => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `fraud_report_${this.startDate}_to_${this.endDate}.csv`;
+        link.click();
+        this.loading = false;
+        this.toastService.success('Export réussi', 'Le rapport CSV a été téléchargé');
+      },
+      error: (err) => {
+        console.error('Error exporting CSV:', err);
+        this.error = 'Erreur lors de l\'export CSV. Veuillez réessayer.';
+        this.toastService.error('Erreur d\'export', 'Erreur lors de l\'export CSV. Génération côté client en cours...');
+        
+        // Fallback to client-side CSV generation
+        if (this.timeSeriesData.length) {
+          this.generateClientSideCSV();
+          this.toastService.success('Export réussi', 'Le rapport CSV a été généré côté client');
+        }
+        this.loading = false;
+      }
+    });
+  }
+
+  private generateClientSideCSV() {
     const headers = ['Date', 'Fraudes Détectées', 'Total Transactions'];
     const csvContent = [
       headers.join(','),

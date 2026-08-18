@@ -455,7 +455,7 @@ export class FraudDashboardComponent implements OnInit {
     const groups = new Map<string, { positive: number; negative: number }>();
 
     for (const alert of this.filteredAlerts()) {
-      const contributions = alert.explainability.shapContributions ?? [];
+      const contributions = alert.explainability.shap_contributions ?? [];
 
       for (const c of contributions) {
         const entry = groups.get(c.feature) ?? { positive: 0, negative: 0 };
@@ -474,11 +474,11 @@ export class FraudDashboardComponent implements OnInit {
   });
 
   public alertsWithMlFactors = computed(() =>
-    this.filteredAlerts().filter(a => ((a.explainability as any)?.shapContributions?.length ?? 0) > 0)
+    this.filteredAlerts().filter(a => ((a.explainability as any)?.shap_contributions?.length ?? 0) > 0)
   );
 
   public mlFactorsOf(alert: FraudAlert): string[] {
-    const contributions = (alert.explainability as any)?.shapContributions ?? [];
+    const contributions = (alert.explainability as any)?.shap_contributions ?? [];
     if (contributions.length > 0) {
       return contributions.map((c: any) => `${c.feature} (${c.direction === 'positive' ? '+' : '-'}${c.value})`);
     }
@@ -846,7 +846,7 @@ export class FraudDashboardComponent implements OnInit {
         explainability: {
           summary: 'Montant supérieur au seuil réglementaire TRACFIN',
           factors: ['Montant exceptionnel vs historique', 'Seuil réglementaire TRACFIN (>10k€)'],
-          shapContributions: [
+          shap_contributions: [
             { feature: 'amount', value: 0.65, direction: 'positive' },
             { feature: 'transaction_type', value: 0.20, direction: 'positive' },
             { feature: 'beneficiary_risk', value: 0.15, direction: 'positive' }
@@ -869,7 +869,7 @@ export class FraudDashboardComponent implements OnInit {
         explainability: {
           summary: 'Approche du seuil réglementaire',
           factors: ['Approche du seuil (90% de 10k€)'],
-          shapContributions: [
+          shap_contributions: [
             { feature: 'amount', value: 0.45, direction: 'positive' },
             { feature: 'frequency', value: 0.25, direction: 'positive' },
             { feature: 'time_pattern', value: -0.10, direction: 'negative' }
@@ -892,7 +892,7 @@ export class FraudDashboardComponent implements OnInit {
         explainability: {
           summary: 'Retrait cash important détecté',
           factors: ['Retrait cash important (>5k€)'],
-          shapContributions: [
+          shap_contributions: [
             { feature: 'transaction_type', value: 0.55, direction: 'positive' },
             { feature: 'location_risk', value: 0.30, direction: 'positive' },
             { feature: 'amount', value: 0.15, direction: 'positive' }
@@ -915,7 +915,7 @@ export class FraudDashboardComponent implements OnInit {
         explainability: {
           summary: 'Paiement dupliqué détecté',
           factors: ['Paiement dupliqué'],
-          shapContributions: [
+          shap_contributions: [
             { feature: 'duplication_score', value: 0.50, direction: 'positive' },
             { feature: 'time_interval', value: 0.30, direction: 'positive' },
             { feature: 'amount', value: 0.10, direction: 'positive' }
@@ -938,7 +938,7 @@ export class FraudDashboardComponent implements OnInit {
         explainability: {
           summary: 'Transaction normale',
           factors: ['Aucun facteur de risque détecté'],
-          shapContributions: [
+          shap_contributions: [
             { feature: 'amount', value: -0.05, direction: 'negative' },
             { feature: 'merchant_trust', value: -0.10, direction: 'negative' }
           ]

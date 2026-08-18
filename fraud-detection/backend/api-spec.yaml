@@ -7,7 +7,7 @@ info:
     - Règles métier (horaires, vélocité, device, géolocalisation)
     - Analyse de graphe (Neo4j - réseaux, comptes mules, PageRank)
     - Notifications temps réel (SSE)
-  version: 2.0.0
+  version: 2.2.0
   contact:
     name: API Support
     email: support@bankmatch.com
@@ -80,10 +80,48 @@ paths:
                         - feature: "amount"
                           value: 0.23
                           direction: "positive"
+        '400':
+          description: Données de transaction invalides
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Données de transaction invalides"
         '401':
           description: Token d'authentification manquant ou invalide
         '429':
           description: Taux de requêtes dépassé (Rate limiting)
+        '500':
+          description: Erreur interne du serveur
+
+  /api/analyze-demo:
+    post:
+      summary: Analyser des transactions pour détecter les fraudes (mode démo)
+      description: Endpoint de démonstration sans authentification pour le développement
+      operationId: analyzeTransactionsDemo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/TransactionInput'
+      responses:
+        '200':
+          description: Analyse complétée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeResponse'
+        '400':
+          description: Données de transaction invalides
         '500':
           description: Erreur interne du serveur
 
@@ -100,6 +138,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ThresholdsModel'
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '403':
+          description: Permissions insuffisantes
+        '500':
+          description: Erreur interne du serveur
     put:
       summary: Mettre à jour les seuils de configuration
       operationId: updateThresholds
@@ -114,6 +158,18 @@ paths:
       responses:
         '200':
           description: Seuils mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThresholdsModel'
+        '400':
+          description: Données de seuils invalides
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '403':
+          description: Permissions insuffisantes
+        '500':
+          description: Erreur interne du serveur
 
   /api/graph/top-accounts:
     get:
@@ -270,6 +326,268 @@ paths:
               schema:
                 type: string
 
+  /api/reports:
+    get:
+      summary: Générer un rapport de détection de fraude
+      operationId: getReports
+      security:
+        - HTTPBearer: []
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Date de début (format YYYY-MM-DD)
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Date de fin (format YYYY-MM-DD)
+      responses:
+        '200':
+          description: Rapport généré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportsData'
+        '400':
+          description: Paramètres invalides
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '500':
+          description: Erreur interne du serveur
+
+  /api/reports/categories:
+    get:
+      summary: Répartition des fraudes par catégorie
+      operationId: getCategoryBreakdown
+      security:
+        - HTTPBearer: []
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Répartition par catégorie
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryBreakdown'
+        '400':
+          description: Paramètres invalides
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '500':
+          description: Erreur interne du serveur
+
+  /api/reports/timeseries:
+    get:
+      summary: Données temporelles de fraude
+      operationId: getTimeSeriesData
+      security:
+        - HTTPBearer: []
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Données temporelles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeSeriesData'
+        '400':
+          description: Paramètres invalides
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '500':
+          description: Erreur interne du serveur
+
+  /api/reports/pdf:
+    get:
+      summary: Exporter le rapport en PDF
+      operationId: exportPDF
+      security:
+        - HTTPBearer: []
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Fichier PDF généré
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Paramètres invalides
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '500':
+          description: Erreur interne du serveur
+
+  /api/reports/csv:
+    get:
+      summary: Exporter le rapport en CSV
+      operationId: exportCSV
+      security:
+        - HTTPBearer: []
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Fichier CSV généré
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Paramètres invalides
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '500':
+          description: Erreur interne du serveur
+
+  /api/notifications:
+    get:
+      summary: Récupérer les notifications de l'utilisateur
+      operationId: getNotifications
+      security:
+        - HTTPBearer: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: unread_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Liste des notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '500':
+          description: Erreur interne du serveur
+
+  /api/notifications/{notification_id}/read:
+    patch:
+      summary: Marquer une notification comme lue
+      operationId: markNotificationAsRead
+      security:
+        - HTTPBearer: []
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification marquée comme lue
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '404':
+          description: Notification non trouvée
+        '500':
+          description: Erreur interne du serveur
+
+  /api/notifications/read-all:
+    patch:
+      summary: Marquer toutes les notifications comme lues
+      operationId: markAllNotificationsAsRead
+      security:
+        - HTTPBearer: []
+      responses:
+        '200':
+          description: Toutes les notifications marquées comme lues
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '500':
+          description: Erreur interne du serveur
+
+  /api/notifications/{notification_id}:
+    delete:
+      summary: Supprimer une notification
+      operationId: deleteNotification
+      security:
+        - HTTPBearer: []
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification supprimée
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '404':
+          description: Notification non trouvée
+        '500':
+          description: Erreur interne du serveur
+
   /health:
     get:
       summary: Health check endpoint
@@ -289,6 +607,15 @@ paths:
                     properties:
                       status:
                         type: string
+                      service:
+                        type: string
+                        example: "fraud-detection"
+                      version:
+                        type: string
+                        example: "2.2.0"
+                      timestamp:
+                        type: string
+                        format: date-time
 
 components:
   schemas:
@@ -559,6 +886,81 @@ components:
             type: string
         community_size:
           type: integer
+
+    ReportsData:
+      type: object
+      properties:
+        summary:
+          $ref: '#/components/schemas/FraudSummary'
+        categoryBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryBreakdown'
+        timeSeriesData:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSeriesData'
+
+    FraudSummary:
+      type: object
+      properties:
+        total_transactions:
+          type: integer
+        fraud_detected:
+          type: integer
+        fraud_rate:
+          type: number
+          format: float
+        total_amount:
+          type: number
+          format: float
+        blocked_amount:
+          type: number
+          format: float
+
+    CategoryBreakdown:
+      type: object
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
+        percentage:
+          type: number
+          format: float
+
+    TimeSeriesData:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        fraud_count:
+          type: integer
+        total_count:
+          type: integer
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [critical, warning, info, success]
+        title:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        read:
+          type: boolean
+          default: false
+        icon:
+          type: string
+          nullable: true
 
   securitySchemes:
     HTTPBearer:

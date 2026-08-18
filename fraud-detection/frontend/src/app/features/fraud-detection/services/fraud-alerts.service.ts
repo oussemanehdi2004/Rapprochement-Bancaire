@@ -2,53 +2,29 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
+import {
+  ShapContributionDTO,
+  ExplainabilityDTO,
+  TransactionOutputDTO,
+  AnalyzeResponseDTO
+} from '../models';
+import type { APIResponse } from '../../../core/types/index';
 
-export interface APIResponse<T=any> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
-export interface ShapContribution {
-  feature: string;
-  value: number;
-  direction: 'positive' | 'negative' | string;
-}
-
-export interface ExplainabilityOutput {
-  summary: string;
-  factors: string[];
-  shap_contributions: ShapContribution[];
-  shapContributions?: ShapContribution[];
-}
-
-export interface TransactionOutput {
-  tenant_id?: string;
+// Interface étendue pour compatibilité avec le code existant
+export interface TransactionOutputExtended extends TransactionOutputDTO {
   tenantId?: string;
-  transaction_reference?: string;
-  id?: string;
   transactionId?: string;
-  date: string;
-  description: string;
-  amount: number;
-  isFraud: boolean;
-  fraudProbability: number;
-  score: number;
   fraudScore?: number;
-  confidence: 'HIGH' | 'MEDIUM' | 'LOW';
   severity?: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | string;
-  reconciliationStatus: string;
-  ruleCategory?: string;
   category?: string;
   sender_account?: string;
   receiver_account?: string;
   beneficiary?: string;
   status?: string;
-  explainability: ExplainabilityOutput;
 }
 
 // Alias de compatibilité pour FraudDashboardComponent
-export type FraudAlert = TransactionOutput;
+export type FraudAlert = TransactionOutputExtended;
 
 @Injectable({
   providedIn: 'root'
@@ -58,7 +34,7 @@ export class FraudAlertsService {
   // L'URL pointe désormais vers la route standardisée sécurisée
   private apiUrl = '/api';
 
-  public alerts = signal<TransactionOutput[]>([]);
+  public alerts = signal<TransactionOutputExtended[]>([]);
   public loading = signal<boolean>(false);
   public stats = signal<{
     totalAlerts: number;
@@ -78,9 +54,9 @@ export class FraudAlertsService {
     });
   }
 
-  private mapTransactionData(items: TransactionOutput[]): TransactionOutput[] {
+  private mapTransactionData(items: TransactionOutputDTO[]): TransactionOutputExtended[] {
     return items.map(tx => {
-      const score = tx.fraudScore ?? tx.score ?? (tx.fraudProbability ? Math.round(tx.fraudProbability * 100) : 0);
+      const score = tx.score ?? (tx.fraudProbability ? Math.round(tx.fraudProbability * 100) : 0);
       
       // Application stricte des seuils de confiance de Dhirar
       let derivedConfidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
@@ -96,7 +72,7 @@ export class FraudAlertsService {
       else derivedSeverity = 'low';
 
       // Infer category from factors when ruleCategory is NON_CATEGORISE
-      let derivedCategory = tx.category || tx.ruleCategory || 'NON_CATEGORISE';
+      let derivedCategory = tx.ruleCategory || 'NON_CATEGORISE';
       if (derivedCategory === 'NON_CATEGORISE' && tx.explainability?.factors) {
         const factorsStr = tx.explainability.factors.join(' ').toLowerCase();
         if (factorsStr.includes('montant') && (factorsStr.includes('inhabituel') || factorsStr.includes('exceptionnel'))) {
@@ -106,16 +82,17 @@ export class FraudAlertsService {
 
       return {
         ...tx,
-        transactionId: tx.transactionId || tx.id || tx.transaction_reference,
+        tenantId: tx.tenant_id,
+        transactionId: tx.id || tx.transaction_reference,
         category: derivedCategory,
         confidence: derivedConfidence, // On écrase avec la règle métier stricte
-        severity: tx.severity || derivedSeverity,
-        beneficiary: tx.beneficiary || tx.receiver_account || '—',
+        severity: derivedSeverity,
+        beneficiary: '—',
         fraudScore: score,
         status: tx.isFraud ? 'new' : 'dismissed',
         explainability: {
           ...tx.explainability,
-          shapContributions: tx.explainability?.shapContributions || tx.explainability?.shap_contributions || []
+          shap_contributions: tx.explainability?.shap_contributions || []
         }
       };
     });
@@ -155,7 +132,7 @@ analyze(transactions?: any[]): Observable<any> {
     search?: string;
     limit?: number;
     offset?: number;
-  }): Observable<TransactionOutput[]> {
+  }): Observable<TransactionOutputExtended[]> {
     this.loading.set(true);
     let params = new HttpParams();
     if (filters?.status) params = params.set('status', filters.status);
@@ -164,7 +141,7 @@ analyze(transactions?: any[]): Observable<any> {
     if (filters?.offset) params = params.set('offset', filters.offset.toString());
 
     return this.http
-      .get<APIResponse<TransactionOutput[]>>(`${this.apiUrl}/transactions`, { params })
+      .get<APIResponse<TransactionOutputDTO[]>>(`${this.apiUrl}/transactions`, { params })
       .pipe(
         map(res => this.mapTransactionData(res.data)),
         tap(data => {
@@ -179,7 +156,7 @@ analyze(transactions?: any[]): Observable<any> {
       );
   }
 
-  public updateStats(data: TransactionOutput[]): void {
+  public updateStats(data: TransactionOutputExtended[]): void {
     const totalAlerts = data.length;
     
     // Application des seuils de Dhirar pour les KPIs

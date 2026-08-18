@@ -2,11 +2,15 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { FraudAlertsService } from './fraud-alerts.service';
-import { TransactionOutput } from '../../../api';
+import { TransactionOutputDTO, ExplainabilityDTO } from '../models';
 
-function makeOutput(overrides: Partial<TransactionOutput & { ruleCategory?: string }> = {}): TransactionOutput & { ruleCategory?: string } {
+function makeOutput(overrides: Partial<TransactionOutputDTO & { ruleCategory?: string }> = {}): TransactionOutputDTO & { ruleCategory?: string } {
+  const explainability: ExplainabilityDTO = {
+    summary: 'Aucune anomalie détectée.',
+    factors: []
+  };
+
   return {
-    tenant_id: 'tenant-123',
     transaction_reference: 'mongo_001',
     id: 'TX-1',
     date: '2026-07-16',
@@ -16,7 +20,7 @@ function makeOutput(overrides: Partial<TransactionOutput & { ruleCategory?: stri
     fraudProbability: 0,
     reconciliationStatus: 'MATCHED',
     ruleCategory: 'NON_CATEGORISE',
-    explainability: { summary: 'Aucune anomalie détectée.', factors: [] },
+    explainability: explainability,
     ...overrides,
   };
 }
@@ -31,6 +35,23 @@ describe('FraudAlertsService', () => {
     });
     service = TestBed.inject(FraudAlertsService);
     httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  beforeEach(() => {
+    // Mock localStorage
+    const localStorageMock = (() => {
+      let store: Record<string, string> = {};
+      return {
+        getItem: (key: string) => store[key] || null,
+        setItem: (key: string, value: string) => store[key] = value.toString(),
+        removeItem: (key: string) => delete store[key],
+        clear: () => store = {},
+      };
+    })();
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+    });
   });
 
   afterEach(() => {
@@ -59,7 +80,7 @@ describe('FraudAlertsService', () => {
     expect(service.loading()).toBe(false);
   });
 
-  it('should map TransactionOutput[] to FraudAlert[] and populate alerts()', () => {
+  it('should map TransactionOutputDTO[] to FraudAlert[] and populate alerts()', () => {
     service.analyzeTransactions([{ id: 'TX-1', amount: 100 }]).subscribe();
 
     const req = httpMock.expectOne('/api/analyze-demo');

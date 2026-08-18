@@ -31,10 +31,11 @@
       <a
         [routerLink]="item.path"
         routerLinkActive="active-link"
+        [attr.aria-current]="isRouteActive(item.path) ? 'page' : null"
         (click)="closeMobile()"
         class="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-700 sidebar-link"
       >
-        <span class="text-xl">{{ item.icon }}</span>
+        <span class="text-xl" [attr.aria-label]="item.label">{{ item.icon }}</span>
         @if (!isCollapsed()) {
           <div class="flex-1">
             <p class="font-medium text-sm">{{ item.label }}</p>

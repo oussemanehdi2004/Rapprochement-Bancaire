@@ -1,5 +1,5 @@
 import { Component, signal, inject, output, input } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -11,6 +11,7 @@ import { CommonModule } from '@angular/common';
 })
 export class SidebarComponent {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   isCollapsed = signal(false);
   mobileOpen = input<boolean>(false);
@@ -19,13 +20,7 @@ export class SidebarComponent {
 
   menuItems = [
     {
-      icon: '📊',
-      label: 'Tableau de bord',
-      path: '/dashboard',
-      description: 'Vue d\'ensemble'
-    },
-    {
-      icon: '🛡️',
+      icon: '️',
       label: 'Détection de fraude',
       path: '/fraud-detection',
       description: 'Alertes IA'
@@ -37,10 +32,10 @@ export class SidebarComponent {
       description: 'Historique'
     },
     {
-      icon: '📋',
-      label: 'Cas d\'usage',
-      path: '/use-cases',
-      description: 'Vitrine des cas d\'usage'
+      icon: '🏦',
+      label: 'Multi-Banking',
+      path: '/multi-banking',
+      description: 'Ingestion fichiers'
     },
     {
       icon: '📈',
@@ -49,16 +44,10 @@ export class SidebarComponent {
       description: 'Statistiques'
     },
     {
-      icon: '⚙️',
-      label: 'Règles',
-      path: '/rules',
-      description: 'Configuration'
-    },
-    {
-      icon: '📥',
-      label: 'Imports',
-      path: '/imports',
-      description: 'Fichiers'
+      icon: '📋',
+      label: 'Cas d\'usage',
+      path: '/use-cases',
+      description: 'Vitrine des cas d\'usage'
     },
   ];
 
@@ -73,5 +62,9 @@ export class SidebarComponent {
 
   navigate(path: string) {
     this.router.navigate([path]);
+  }
+
+  isRouteActive(path: string): boolean {
+    return this.router.url === path;
   }
 }

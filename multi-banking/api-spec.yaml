@@ -1,0 +1,455 @@
+openapi: 3.0.3
+info:
+  title: Multi-Banking Ingestion Service API
+  description: |
+    API pour l'ingestion et le traitement de fichiers bancaires multi-format.
+    Supporte les formats: PAIN.001, CAMT.053, MT940, CSV.
+    Intégration avec le service de détection de fraude et BankMatch.
+  version: 1.1.0
+  contact:
+    name: API Support
+    email: support@bankmatch.com
+servers:
+  - url: http://localhost:8005/banking
+    description: Serveur de développement local (FastAPI)
+  - url: https://api.bankmatch.com/banking
+    description: Serveur de production
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service en bonne santé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "multi-banking"
+                  environment:
+                    type: string
+                    example: "development"
+                  version:
+                    type: string
+                    example: "1.1.0"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/multi-banking/parse:
+    post:
+      summary: Parser un fichier bancaire
+      description: Parse un fichier bancaire selon le format spécifié et retourne les transactions extraites
+      operationId: parseFile
+      security:
+        - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - format
+                - tenant_id
+                - bank_id
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Fichier bancaire à parser
+                format:
+                  type: string
+                  enum: [csv, camt053, mt940, pain.001, pain001]
+                  description: Format du fichier
+                tenant_id:
+                  type: string
+                  description: ID du tenant
+                bank_id:
+                  type: string
+                  description: ID de la banque
+      responses:
+        '200':
+          description: Fichier parsé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParseResponse'
+        '400':
+          description: Erreur de validation ou format non supporté
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Format de fichier non supporté"
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '413':
+          description: Fichier trop volumineux
+        '500':
+          description: Erreur interne du serveur
+
+  /api/multi-banking/validate:
+    post:
+      summary: Valider un fichier bancaire
+      description: Valide un fichier bancaire et retourne les résultats de validation
+      operationId: validateFile
+      security:
+        - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - format
+                - tenant_id
+                - bank_id
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Fichier bancaire à valider
+                format:
+                  type: string
+                  enum: [csv, camt053, mt940, pain.001, pain001]
+                  description: Format du fichier
+                tenant_id:
+                  type: string
+                  description: ID du tenant
+                bank_id:
+                  type: string
+                  description: ID de la banque
+      responses:
+        '200':
+          description: Validation complétée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateResponse'
+        '400':
+          description: Erreur de validation ou format non supporté
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '500':
+          description: Erreur interne du serveur
+
+  /api/multi-banking/ingest:
+    post:
+      summary: Ingestion complète d'un fichier bancaire
+      description: Parse, valide, analyse pour fraude et intègre les transactions
+      operationId: ingestFile
+      security:
+        - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - format
+                - tenant_id
+                - bank_id
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Fichier bancaire à ingérer
+                format:
+                  type: string
+                  enum: [csv, camt053, mt940, pain.001, pain001]
+                  description: Format du fichier
+                tenant_id:
+                  type: string
+                  description: ID du tenant
+                bank_id:
+                  type: string
+                  description: ID de la banque
+      responses:
+        '200':
+          description: Ingestion complétée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '400':
+          description: Erreur de validation ou format non supporté
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '502':
+          description: Erreur de communication avec le service de fraude ou BankMatch
+        '500':
+          description: Erreur interne du serveur
+
+  /stats:
+    get:
+      summary: Statistiques d'ingestion
+      description: Récupère les statistiques globales d'ingestion de fichiers
+      operationId: getStats
+      security:
+        - HTTPBearer: []
+      responses:
+        '200':
+          description: Statistiques récupérées avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionStats'
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '500':
+          description: Erreur interne du serveur
+
+  /uploads:
+    get:
+      summary: Liste des téléchargements récents
+      description: Récupère la liste des fichiers récemment téléchargés
+      operationId: getRecentUploads
+      security:
+        - HTTPBearer: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Nombre maximum de résultats
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, processing, completed, failed]
+          description: Filtrer par statut
+      responses:
+        '200':
+          description: Liste des téléchargements récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FileUpload'
+        '401':
+          description: Token d'authentification manquant ou invalide
+        '500':
+          description: Erreur interne du serveur
+
+components:
+  schemas:
+    ParseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        count:
+          type: integer
+          description: Nombre de transactions extraites
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParsedTransaction'
+        metadata:
+          $ref: '#/components/schemas/ParseMetadata'
+
+    ValidateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        count:
+          type: integer
+          description: Nombre de transactions validées
+        validation:
+          $ref: '#/components/schemas/ValidationResult'
+
+    IngestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        parsed_count:
+          type: integer
+          description: Nombre de transactions parsées
+        fraud_result:
+          type: object
+          description: Résultats de l'analyse de fraude
+          properties:
+            transactions:
+              type: array
+              items:
+                $ref: '#/components/schemas/FraudAnalysisResult'
+        bankmatch_result:
+          type: object
+          description: Résultats de l'intégration BankMatch
+          nullable: true
+          properties:
+            session_id:
+              type: string
+            matching:
+              type: object
+            error:
+              type: string
+        metadata:
+          $ref: '#/components/schemas/IngestMetadata'
+
+    ParsedTransaction:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+        source_line_hash:
+          type: string
+        reference:
+          type: string
+        value_date:
+          type: string
+          format: date
+        label:
+          type: string
+        amount:
+          type: number
+          format: float
+        balance_before:
+          type: number
+          format: float
+          nullable: true
+        balance_after:
+          type: number
+          format: float
+          nullable: true
+        account_balance:
+          type: number
+          format: float
+          nullable: true
+        account_iban:
+          type: string
+        counterparty_iban:
+          type: string
+          nullable: true
+
+    FraudAnalysisResult:
+      type: object
+      properties:
+        transaction_reference:
+          type: string
+        isFraud:
+          type: boolean
+        fraudProbability:
+          type: number
+          format: float
+        reconciliationStatus:
+          type: string
+        ruleCategory:
+          type: string
+          nullable: true
+
+    ValidationResult:
+      type: object
+      properties:
+        valid_count:
+          type: integer
+        invalid_count:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              line_number:
+                type: integer
+              error:
+                type: string
+              field:
+                type: string
+
+    ParseMetadata:
+      type: object
+      properties:
+        filename:
+          type: string
+        format:
+          type: string
+        tenant_id:
+          type: string
+        bank_id:
+          type: string
+        authenticated_tenant:
+          type: string
+        authenticated_user:
+          type: string
+
+    IngestMetadata:
+      type: object
+      properties:
+        filename:
+          type: string
+        format:
+          type: string
+        tenant_id:
+          type: string
+        bank_id:
+          type: string
+        bankmatch_integration_enabled:
+          type: boolean
+
+    IngestionStats:
+      type: object
+      properties:
+        total_files:
+          type: integer
+        successful:
+          type: integer
+        failed:
+          type: integer
+        pending:
+          type: integer
+        total_transactions:
+          type: integer
+
+    FileUpload:
+      type: object
+      properties:
+        id:
+          type: string
+        filename:
+          type: string
+        bank:
+          type: string
+        format:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        transaction_count:
+          type: integer
+        uploaded_at:
+          type: string
+          format: date-time
+        error_message:
+          type: string
+          nullable: true
+
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
