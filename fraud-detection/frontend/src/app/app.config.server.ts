@@ -1,10 +1,10 @@
 import { mergeApplicationConfig, ApplicationConfig } from '@angular/core';
-import { provideServerRendering } from '@angular/ssr'; // 👈 On garde le bon membre recommandé par le compilateur
+import { provideServerRendering } from '@angular/ssr';
 import { appConfig } from './app.config';
 
 const serverConfig: ApplicationConfig = {
   providers: [
-    provideServerRendering() // 👈 On le laisse vide ! C'est la bonne syntaxe pour votre version.
+    provideServerRendering()
   ]
 };
 

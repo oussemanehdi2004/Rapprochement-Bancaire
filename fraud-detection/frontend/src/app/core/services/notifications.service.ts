@@ -23,10 +23,11 @@ export class NotificationsService {
   private unreadCountSubject = new BehaviorSubject<number>(0);
   public unreadCount$ = this.unreadCountSubject.asObservable();
   
-  private apiUrl = 'http://localhost:8005/api';
+  private apiUrl = '/api';
 
   constructor(private http: HttpClient) {
-    this.loadNotifications();
+    // Removed automatic loading to reduce startup tasks
+    // Call loadNotificationsManual() when needed
   }
 
   loadNotifications() {
@@ -44,8 +45,15 @@ export class NotificationsService {
     });
   }
 
+  // Prevent automatic loading on service initialization to reduce startup tasks
+  // Call this manually when needed
+  loadNotificationsManual() {
+    this.loadNotifications();
+  }
+
   getNotificationsFromAPI(): Observable<Notification[]> {
-    return this.http.get<Notification[]>(`${this.apiUrl}/notifications`).pipe(
+    return this.http.get<{success: boolean, data: Notification[]}>(`${this.apiUrl}/notifications`).pipe(
+      map(response => response.data || []),
       catchError(error => {
         console.error('Error fetching notifications from API:', error);
         return of(this.getMockNotifications());

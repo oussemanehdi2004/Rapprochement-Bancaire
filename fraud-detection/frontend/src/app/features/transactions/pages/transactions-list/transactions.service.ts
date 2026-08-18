@@ -45,8 +45,11 @@ export class TransactionsService {
       }
     });
 
-    return this.http.get<TransactionListItem[]>(this.baseUrl, { params }).pipe(
-      map(items => this.dedupe(items))
+    return this.http.get<{ success: boolean; data: TransactionListItem[] }>(this.baseUrl, { params }).pipe(
+      map(response => {
+        const items = response?.data || [];
+        return this.dedupe(items);
+      })
     );
   }
 

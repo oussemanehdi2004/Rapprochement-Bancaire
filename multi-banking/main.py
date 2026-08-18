@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 import logging
 import os
@@ -23,7 +24,11 @@ from bankmatch_client import (
 )
 from internal_auth import verify_internal_token
 from parsers import camt053, csv_bank, mt940
+from validators import validate_transactions
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,6 +36,8 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger("multi-banking")
+logger.info(f"DISABLE_INTERNAL_AUTH: {os.getenv('DISABLE_INTERNAL_AUTH')}")
+logger.info(f"INTERNAL_SERVICE_SECRET: {os.getenv('INTERNAL_SERVICE_SECRET')}")
 
 
 FRAUD_SERVICE_URL = os.getenv(
@@ -199,6 +206,39 @@ async def health():
         "service": "multi-banking",
         "environment": ENVIRONMENT,
     }
+
+
+# In-memory storage for upload statistics (in production, use a database)
+upload_stats = {
+    "total_files": 0,
+    "successful": 0,
+    "failed": 0,
+    "pending": 0,
+    "total_transactions": 0
+}
+
+recent_uploads = []
+
+
+@app.get("/stats")
+async def get_stats(ctx: dict = Depends(verify_internal_token)):
+    """Get ingestion statistics."""
+    return upload_stats
+
+
+@app.get("/uploads")
+async def get_recent_uploads(
+    limit: int = 50,
+    status: str = None,
+    ctx: dict = Depends(verify_internal_token)
+):
+    """Get recent uploads with optional filtering."""
+    filtered_uploads = recent_uploads
+    
+    if status:
+        filtered_uploads = [u for u in recent_uploads if u.get("status") == status]
+    
+    return filtered_uploads[:limit]
 
 
 @app.post("/api/multi-banking/parse")
@@ -407,6 +447,39 @@ async def ingest_file(
             )
             bankmatch_result = {"error": str(exc)}
 
+    # Update statistics
+    upload_stats["total_files"] += 1
+    upload_stats["total_transactions"] += len(transactions)
+    
+    # Determine status based on fraud_result
+    upload_status = "completed"
+    if fraud_result and isinstance(fraud_result, dict):
+        # Check if there were any errors in fraud analysis
+        if fraud_result.get("error"):
+            upload_status = "failed"
+            upload_stats["failed"] += 1
+        else:
+            upload_stats["successful"] += 1
+    else:
+        upload_stats["successful"] += 1
+    
+    # Store recent upload
+    upload_record = {
+        "id": str(uuid.uuid4()),
+        "filename": file.filename,
+        "bank": bank_id,
+        "format": normalized_format,
+        "status": upload_status,
+        "transaction_count": len(transactions),
+        "uploaded_at": datetime.datetime.now().isoformat(),
+        "error_message": None if upload_status == "completed" else "Processing error"
+    }
+    
+    recent_uploads.insert(0, upload_record)
+    # Keep only last 100 uploads
+    if len(recent_uploads) > 100:
+        recent_uploads.pop()
+
     return {
         "success": True,
         "parsed_count": len(transactions),
@@ -420,3 +493,8 @@ async def ingest_file(
             "bankmatch_integration_enabled": BANKMATCH_INTEGRATION_ENABLED,
         },
     }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8010)

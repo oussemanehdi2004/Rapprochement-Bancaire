@@ -1,4 +1,4 @@
-<div [class.dark]="darkMode()" class="p-6 max-w-[90rem] mx-auto transition-colors duration-300 min-w-0">
+<div [class.dark]="darkMode()" [class.loading]="loading" class="p-6 max-w-[90rem] mx-auto transition-colors duration-300 min-w-0 fade-in">
 
   <!-- ===== EN-TÊTE ===== -->
   <div class="flex items-center justify-between mb-6">
@@ -95,8 +95,8 @@
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Format</label>
         <select [(ngModel)]="selectedFormat" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
           <option value="">Sélectionner un format</option>
-          <option value="pain001">PAIN.001 (Virement)</option>
-          <option value="pain.001">PAIN.001 (Virement - alt)</option>
+          <option value="pain.001">PAIN.001 (Virement)</option>
+          <option value="pain001">PAIN.001 (Virement - alt)</option>
           <option value="camt053">CAMT.053 (Relevé)</option>
           <option value="mt940">MT940 (Swift)</option>
           <option value="csv">CSV</option>

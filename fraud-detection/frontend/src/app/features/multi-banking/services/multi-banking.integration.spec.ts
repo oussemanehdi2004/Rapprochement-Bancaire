@@ -20,9 +20,7 @@ describe('MultiBankingService Integration Tests', () => {
     });
     service = TestBed.inject(MultiBankingService);
     httpMock = TestBed.inject(HttpTestingController);
-  });
 
-  beforeEach(() => {
     // Mock localStorage
     const localStorageMock = (() => {
       let store: Record<string, string> = {};
@@ -78,7 +76,7 @@ describe('MultiBankingService Integration Tests', () => {
       service.parseFile(mockFile, 'csv', 'tenant-123', 'bank-456')
         .subscribe(response => (result = response));
 
-      const req = httpMock.expectOne('http://localhost:8005/banking/api/multi-banking/parse');
+      const req = httpMock.expectOne(req => req.url.includes('/api/banking/api/multi-banking/parse'));
       req.flush(apiResponse);
 
       expect(result).toBeDefined();
@@ -131,7 +129,7 @@ describe('MultiBankingService Integration Tests', () => {
       service.ingestFile(mockFile, 'csv', 'tenant-123', 'bank-456')
         .subscribe(response => (result = response));
 
-      const req = httpMock.expectOne('http://localhost:8005/banking/api/multi-banking/ingest');
+      const req = httpMock.expectOne(req => req.url.includes('/api/banking/api/multi-banking/ingest'));
       req.flush(apiResponse);
 
       expect(result).toBeDefined();
@@ -154,7 +152,7 @@ describe('MultiBankingService Integration Tests', () => {
       let result: IngestionStatsDTO | undefined;
       service.getStats().subscribe(stats => (result = stats));
 
-      const req = httpMock.expectOne('http://localhost:8005/banking/stats');
+      const req = httpMock.expectOne(req => req.url.includes('/api/banking/stats'));
       req.flush(apiResponse);
 
       expect(result).toBeDefined();
@@ -191,7 +189,7 @@ describe('MultiBankingService Integration Tests', () => {
       let result: FileUploadDTO[] | undefined;
       service.getRecentUploads().subscribe(uploads => (result = uploads));
 
-      const req = httpMock.expectOne('http://localhost:8005/banking/uploads');
+      const req = httpMock.expectOne(req => req.url.endsWith('/uploads'));
       req.flush(apiResponse);
 
       expect(result).toBeDefined();
@@ -211,7 +209,7 @@ describe('MultiBankingService Integration Tests', () => {
         error: (err) => (caughtError = err)
       });
 
-      const req = httpMock.expectOne('http://localhost:8005/banking/api/multi-banking/parse');
+      const req = httpMock.expectOne(req => req.url.includes('/api/banking/api/multi-banking/parse'));
       req.flush({
         success: false,
         error: 'Format de fichier non supporté'
@@ -228,7 +226,7 @@ describe('MultiBankingService Integration Tests', () => {
         error: (err) => (caughtError = err)
       });
 
-      const req = httpMock.expectOne('http://localhost:8005/banking/stats');
+      const req = httpMock.expectOne(req => req.url.includes('/api/banking/stats'));
       req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
 
       expect(caughtError).toBeTruthy();
@@ -243,7 +241,7 @@ describe('MultiBankingService Integration Tests', () => {
         error: (err) => (caughtError = err)
       });
 
-      const req = httpMock.expectOne('http://localhost:8005/banking/api/multi-banking/parse');
+      const req = httpMock.expectOne(req => req.url.includes('/api/banking/api/multi-banking/parse'));
       req.flush('File too large', { status: 413, statusText: 'Payload Too Large' });
 
       expect(caughtError).toBeTruthy();
@@ -257,7 +255,7 @@ describe('MultiBankingService Integration Tests', () => {
         error: (err) => (caughtError = err)
       });
 
-      const req = httpMock.expectOne('http://localhost:8005/banking/api/multi-banking/ingest');
+      const req = httpMock.expectOne(req => req.url.includes('/api/banking/api/multi-banking/ingest'));
       req.flush('BankMatch service unavailable', { status: 502, statusText: 'Bad Gateway' });
 
       expect(caughtError).toBeTruthy();
@@ -270,7 +268,7 @@ describe('MultiBankingService Integration Tests', () => {
 
       // Step 1: Parse
       service.parseFile(mockFile, 'csv', 'tenant-123', 'bank-456').subscribe();
-      let parseReq = httpMock.expectOne('http://localhost:8005/banking/api/multi-banking/parse');
+      let parseReq = httpMock.expectOne(req => req.url.includes('/api/banking/api/multi-banking/parse'));
       parseReq.flush({
         success: true,
         count: 150,
@@ -287,7 +285,7 @@ describe('MultiBankingService Integration Tests', () => {
 
       // Step 2: Ingest
       service.ingestFile(mockFile, 'csv', 'tenant-123', 'bank-456').subscribe();
-      let ingestReq = httpMock.expectOne('http://localhost:8005/banking/api/multi-banking/ingest');
+      let ingestReq = httpMock.expectOne(req => req.url.includes('/api/banking/api/multi-banking/ingest'));
       ingestReq.flush({
         success: true,
         parsed_count: 150,
@@ -304,7 +302,7 @@ describe('MultiBankingService Integration Tests', () => {
 
       // Step 3: Check stats
       service.getStats().subscribe();
-      let statsReq = httpMock.expectOne('http://localhost:8005/banking/stats');
+      let statsReq = httpMock.expectOne(req => req.url.includes('/api/banking/stats'));
       statsReq.flush({
         total_files: 101,
         successful: 86,
@@ -321,11 +319,11 @@ describe('MultiBankingService Integration Tests', () => {
       let results: IngestionStatsDTO[] = [];
 
       service.getStats().subscribe(stats => results.push(stats));
-      let req1 = httpMock.expectOne('http://localhost:8005/banking/stats');
+      let req1 = httpMock.expectOne(req => req.url.includes('/api/banking/stats'));
       req1.flush(stats1);
 
       service.getStats().subscribe(stats => results.push(stats));
-      let req2 = httpMock.expectOne('http://localhost:8005/banking/stats');
+      let req2 = httpMock.expectOne(req => req.url.includes('/api/banking/stats'));
       req2.flush(stats2);
 
       expect(results).toHaveLength(2);

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
@@ -13,24 +13,16 @@ import {
   providedIn: 'root'
 })
 export class ReportsService {
-  private apiUrl = 'http://localhost:8005/api';
-  private headers = new HttpHeaders({
-    'Content-Type': 'application/json'
-  });
+  // Route relative : passe par le proxy Express (/api/*) en SSR comme en dev,
+  // au lieu de pointer en dur sur un host/port du backend FastAPI.
+  // L'authentification est ajoutée automatiquement par `authInterceptor`
+  // (voir app.config.ts / auth.interceptor.ts) : aucun token en dur ici.
+  private apiUrl = '/api';
 
   constructor(private http: HttpClient) {}
 
-  private getAuthHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      return this.headers.set('Authorization', `Bearer ${token}`);
-    }
-    return this.headers;
-  }
-
   getReports(startDate: string, endDate: string): Observable<ReportsDataDTO> {
     return this.http.get<ReportsDataDTO>(`${this.apiUrl}/reports`, {
-      headers: this.getAuthHeaders(),
       params: {
         start_date: startDate,
         end_date: endDate
@@ -45,7 +37,6 @@ export class ReportsService {
 
   exportPDF(startDate: string, endDate: string): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/reports/pdf`, {
-      headers: this.getAuthHeaders(),
       params: {
         start_date: startDate,
         end_date: endDate
@@ -61,7 +52,6 @@ export class ReportsService {
 
   exportCSV(startDate: string, endDate: string): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/reports/csv`, {
-      headers: this.getAuthHeaders(),
       params: {
         start_date: startDate,
         end_date: endDate
@@ -77,7 +67,6 @@ export class ReportsService {
 
   getCategoryBreakdown(startDate: string, endDate: string): Observable<CategoryBreakdownDTO[]> {
     return this.http.get<CategoryBreakdownDTO[]>(`${this.apiUrl}/reports/categories`, {
-      headers: this.getAuthHeaders(),
       params: {
         start_date: startDate,
         end_date: endDate
@@ -92,7 +81,6 @@ export class ReportsService {
 
   getTimeSeriesData(startDate: string, endDate: string): Observable<TimeSeriesDataDTO[]> {
     return this.http.get<TimeSeriesDataDTO[]>(`${this.apiUrl}/reports/timeseries`, {
-      headers: this.getAuthHeaders(),
       params: {
         start_date: startDate,
         end_date: endDate

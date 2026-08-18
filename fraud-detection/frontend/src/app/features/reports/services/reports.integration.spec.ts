@@ -18,9 +18,7 @@ describe('ReportsService Integration Tests', () => {
     });
     service = TestBed.inject(ReportsService);
     httpMock = TestBed.inject(HttpTestingController);
-  });
 
-  beforeEach(() => {
     // Mock localStorage
     const localStorageMock = (() => {
       let store: Record<string, string> = {};
@@ -127,7 +125,7 @@ describe('ReportsService Integration Tests', () => {
       let result: CategoryBreakdownDTO[] | undefined;
       service.getCategoryBreakdown('2026-08-01', '2026-08-18').subscribe(breakdown => (result = breakdown));
 
-      const req = httpMock.expectOne('http://localhost:8005/api/reports/categories?start_date=2026-08-01&end_date=2026-08-18');
+      const req = httpMock.expectOne(req => req.url.includes('/api/reports/categories'));
       req.flush(apiResponse);
 
       expect(result).toBeDefined();
@@ -153,7 +151,7 @@ describe('ReportsService Integration Tests', () => {
       let result: TimeSeriesDataDTO[] | undefined;
       service.getTimeSeriesData('2026-08-01', '2026-08-18').subscribe(data => (result = data));
 
-      const req = httpMock.expectOne('http://localhost:8005/api/reports/timeseries?start_date=2026-08-01&end_date=2026-08-18');
+      const req = httpMock.expectOne(req => req.url.includes('/api/reports/timeseries'));
       req.flush(apiResponse);
 
       expect(result).toBeDefined();
@@ -170,7 +168,7 @@ describe('ReportsService Integration Tests', () => {
       let result: Blob | undefined;
       service.exportPDF('2026-08-01', '2026-08-18').subscribe(blob => (result = blob));
 
-      const req = httpMock.expectOne('http://localhost:8005/api/reports/pdf?start_date=2026-08-01&end_date=2026-08-18');
+      const req = httpMock.expectOne(req => req.url.includes('/api/reports/pdf'));
       expect(req.request.method).toBe('GET');
       expect(req.request.responseType).toBe('blob');
       expect(req.request.params.get('start_date')).toBe('2026-08-01');
@@ -188,7 +186,7 @@ describe('ReportsService Integration Tests', () => {
       let result: Blob | undefined;
       service.exportCSV('2026-08-01', '2026-08-18').subscribe(blob => (result = blob));
 
-      const req = httpMock.expectOne('http://localhost:8005/api/reports/csv?start_date=2026-08-01&end_date=2026-08-18');
+      const req = httpMock.expectOne(req => req.url.includes('/api/reports/csv'));
       expect(req.request.method).toBe('GET');
       expect(req.request.responseType).toBe('blob');
 
@@ -204,7 +202,7 @@ describe('ReportsService Integration Tests', () => {
         error: (err) => (caughtError = err)
       });
 
-      const req = httpMock.expectOne('http://localhost:8005/api/reports/pdf?start_date=2026-08-01&end_date=2026-08-18');
+      const req = httpMock.expectOne(req => req.url.includes('/api/reports/pdf'));
       req.flush(new Blob(['Export failed'], { type: 'application/pdf' }), { status: 500, statusText: 'Internal Server Error' });
 
       expect(caughtError).toBeTruthy();

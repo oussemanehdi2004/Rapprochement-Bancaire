@@ -1,7 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastService, Toast } from '../../services/toast.service';
-import { trigger, style, animate, transition } from '@angular/animations';
 
 @Component({
   selector: 'app-toast',
@@ -11,18 +10,17 @@ import { trigger, style, animate, transition } from '@angular/animations';
     <div class="fixed top-4 right-4 z-50 flex flex-col gap-2">
       @for (toast of toastService.getCurrentToasts(); track toast.id) {
         <div
-          [@slideIn]
-          [class]="getToastClasses(toast.type)"
+          [ngClass]="getToastClasses(toast.type)"
           class="toast-notification min-w-80 max-w-md p-4 rounded-lg shadow-lg flex items-start gap-3"
         >
-          <span class="text-2xl">{{ getToastIcon(toast.type) }}</span>
-          <div class="flex-1">
-            <h4 class="font-semibold text-sm">{{ toast.title }}</h4>
-            <p class="text-sm opacity-90">{{ toast.message }}</p>
+          <span class="text-2xl flex-shrink-0">{{ getToastIcon(toast.type) }}</span>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-semibold text-sm text-white">{{ toast.title }}</h4>
+            <p class="text-sm opacity-90 break-words text-white">{{ toast.message }}</p>
           </div>
           <button 
             (click)="toastService.remove(toast.id)"
-            class="text-lg opacity-70 hover:opacity-100 transition-opacity"
+            class="text-lg opacity-70 hover:opacity-100 transition-opacity flex-shrink-0 text-white"
             aria-label="Fermer"
           >
             ×
@@ -34,6 +32,20 @@ import { trigger, style, animate, transition } from '@angular/animations';
   styles: [`
     .toast-notification {
       animation: slideIn 0.3s ease-out;
+      min-width: 320px;
+      max-width: 400px;
+    }
+    
+    .toast-notification h4 {
+      margin: 0 0 4px 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .toast-notification p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.4;
     }
     
     @keyframes slideIn {
@@ -46,15 +58,7 @@ import { trigger, style, animate, transition } from '@angular/animations';
         opacity: 1;
       }
     }
-  `],
-  animations: [
-    trigger('slideIn', [
-      transition(':enter', [
-        style({ transform: 'translateX(100%)', opacity: 0 }),
-        animate('0.3s ease-out', style({ transform: 'translateX(0)', opacity: 1 }))
-      ])
-    ])
-  ]
+  `]
 })
 export class ToastComponent {
   toastService = inject(ToastService);

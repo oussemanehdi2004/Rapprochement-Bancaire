@@ -52,20 +52,12 @@ export class TransactionsListComponent {
         date_from: f.from || undefined,
         date_to: f.to || undefined,
         search: f.search || undefined,
+        limit: 500, // Increase limit to show more transactions
       })
       .subscribe({
-        next: (response: any) => {
-          // Extraction sécurisée du tableau d'objets
-          let dataList: TransactionListItem[] = [];
-
-          if (Array.isArray(response)) {
-            dataList = response;
-          } else if (response && Array.isArray(response.data)) {
-            dataList = response.data;
-          } else if (response && Array.isArray(response.transactions)) {
-            dataList = response.transactions;
-          }
-
+        next: (response: TransactionListItem[]) => {
+          // The service already returns the extracted array
+          const dataList = Array.isArray(response) ? response : [];
           this.transactions.set(dataList);
           this.loading.set(false);
         },

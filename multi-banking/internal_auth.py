@@ -4,6 +4,9 @@ import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
 
 INTERNAL_SERVICE_SECRET = os.getenv(
     "INTERNAL_SERVICE_SECRET",

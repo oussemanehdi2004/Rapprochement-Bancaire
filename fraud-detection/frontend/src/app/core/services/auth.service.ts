@@ -18,10 +18,11 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
   
-  private apiUrl = 'http://localhost:8005/api';
+  private apiUrl = '/api';
 
   constructor(private http: HttpClient) {
-    this.loadUserFromSession();
+    // Removed automatic loading to reduce startup tasks
+    // Call loadUserFromSession() when needed
   }
 
   private loadUserFromSession() {
@@ -61,6 +62,11 @@ export class AuthService {
         }
       }
     }
+  }
+
+  // Manual loading method to reduce startup tasks
+  loadUserFromSessionManual() {
+    this.loadUserFromSession();
   }
 
   getCurrentUser(): User | null {

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import {
@@ -14,25 +14,16 @@ import type { BankFileFormat } from '../../../core/types/index';
   providedIn: 'root'
 })
 export class MultiBankingService {
-  private apiUrl = 'http://localhost:8005/banking';
-  private headers = new HttpHeaders({
-    'Content-Type': 'application/json'
-  });
+  // Route relative : passe par le proxy Express (/api/*) en SSR comme en dev,
+  // au lieu de pointer en dur sur un host/port du backend FastAPI.
+  // L'authentification est ajoutée automatiquement par `authInterceptor`
+  // (voir app.config.ts / auth.interceptor.ts) : aucun token en dur ici.
+  private apiUrl = '/api/banking';
 
   constructor(private http: HttpClient) {}
 
-  private getAuthHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      return this.headers.set('Authorization', `Bearer ${token}`);
-    }
-    return this.headers;
-  }
-
   getStats(): Observable<IngestionStatsDTO> {
-    return this.http.get<IngestionStatsDTO>(`${this.apiUrl}/stats`, {
-      headers: this.getAuthHeaders()
-    }).pipe(
+    return this.http.get<IngestionStatsDTO>(`${this.apiUrl}/stats`).pipe(
       catchError(error => {
         console.error('Error fetching stats:', error);
         return throwError(() => error);
@@ -41,9 +32,7 @@ export class MultiBankingService {
   }
 
   getRecentUploads(): Observable<FileUploadDTO[]> {
-    return this.http.get<FileUploadDTO[]>(`${this.apiUrl}/uploads`, {
-      headers: this.getAuthHeaders()
-    }).pipe(
+    return this.http.get<FileUploadDTO[]>(`${this.apiUrl}/uploads`).pipe(
       catchError(error => {
         console.error('Error fetching recent uploads:', error);
         return throwError(() => error);
@@ -58,9 +47,7 @@ export class MultiBankingService {
     formData.append('tenant_id', tenantId);
     formData.append('bank_id', bankId);
 
-    return this.http.post<ParseResponseDTO>(`${this.apiUrl}/api/multi-banking/parse`, formData, {
-      headers: this.getAuthHeaders().delete('Content-Type'), // Let browser set multipart boundary
-    }).pipe(
+    return this.http.post<ParseResponseDTO>(`${this.apiUrl}/api/multi-banking/parse`, formData).pipe(
       catchError(error => {
         console.error('Error parsing file:', error);
         return throwError(() => error);
@@ -75,9 +62,7 @@ export class MultiBankingService {
     formData.append('tenant_id', tenantId);
     formData.append('bank_id', bankId);
 
-    return this.http.post(`${this.apiUrl}/api/multi-banking/validate`, formData, {
-      headers: this.getAuthHeaders().delete('Content-Type'),
-    }).pipe(
+    return this.http.post(`${this.apiUrl}/api/multi-banking/validate`, formData).pipe(
       catchError(error => {
         console.error('Error validating file:', error);
         return throwError(() => error);
@@ -92,9 +77,7 @@ export class MultiBankingService {
     formData.append('tenant_id', tenantId);
     formData.append('bank_id', bankId);
 
-    return this.http.post<IngestResponseDTO>(`${this.apiUrl}/api/multi-banking/ingest`, formData, {
-      headers: this.getAuthHeaders().delete('Content-Type'),
-    }).pipe(
+    return this.http.post<IngestResponseDTO>(`${this.apiUrl}/api/multi-banking/ingest`, formData).pipe(
       catchError(error => {
         console.error('Error ingesting file:', error);
         return throwError(() => error);

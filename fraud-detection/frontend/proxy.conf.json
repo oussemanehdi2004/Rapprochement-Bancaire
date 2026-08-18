@@ -19,9 +19,20 @@
     "secure": false,
     "changeOrigin": true
   },
-  "/api": {
-    "target": "http://127.0.0.1:8005",
+  "/api/banking": {
+    "target": "http://127.0.0.1:8010",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api/banking": "/banking"
+    }
+  },
+  "/api": {
+    "target": "http://127.0.0.1:8005/fraud",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api": "/api"
+    }
   }
 }

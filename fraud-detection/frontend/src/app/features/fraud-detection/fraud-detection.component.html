@@ -81,8 +81,8 @@
                   </td>
                   <td class="p-3 whitespace-nowrap">
                     <div class="flex items-center gap-2">
-                      <span [class]="getScoreColorClass(tx.score)">
-                        {{ tx.score }}/100
+                      <span [class]="getScoreColorClass(tx.score ?? 0)">
+                        {{ tx.score ?? 0 }}/100
                       </span>
                       <span class="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase"
                         [ngClass]="{

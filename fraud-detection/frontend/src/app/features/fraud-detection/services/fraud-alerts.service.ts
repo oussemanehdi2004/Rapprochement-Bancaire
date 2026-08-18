@@ -25,6 +25,7 @@ export interface TransactionOutputExtended extends TransactionOutputDTO {
 
 // Alias de compatibilité pour FraudDashboardComponent
 export type FraudAlert = TransactionOutputExtended;
+export type TransactionOutput = TransactionOutputExtended;
 
 @Injectable({
   providedIn: 'root'
@@ -123,10 +124,11 @@ export class FraudAlertsService {
   );
 }
 
-// Alias pour conserver la compatibilité
-analyze(transactions?: any[]): Observable<any> {
-  return this.analyzeTransactions(transactions);
-}
+  // Alias pour conserver la compatibilité
+  analyze(transactions?: any[]): Observable<any> {
+    return this.analyzeTransactions(transactions);
+  }
+
   getTransactions(filters?: {
     status?: string;
     search?: string;

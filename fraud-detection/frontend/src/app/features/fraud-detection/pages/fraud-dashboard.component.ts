@@ -93,18 +93,34 @@ export class FraudDashboardComponent implements OnInit {
   // Exposition de Math pour le template HTML
   protected readonly Math = Math;
 
+  // Time signal that updates every minute to avoid ExpressionChangedAfterItHasBeenCheckedError
+  private currentTime = signal('');
+
   public ngOnInit(): void {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
 
+    // Update time every minute
+    this.updateTime();
+    setInterval(() => this.updateTime(), 60000);
+
     // Automatically run demo analysis on page load for impressive first impression
+    // Use requestAnimationFrame to ensure SSR stabilization is not affected
     if (this.filteredAlerts().length === 0 && !this.supabaseResults()?.length) {
-      // Small delay to allow UI to render first
-      setTimeout(() => {
-        this.useDemoData();
-      }, 500);
+      // Use requestAnimationFrame to avoid blocking SSR stabilization
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          this.useDemoData();
+        }, 500);
+      });
     }
+  }
+
+  private updateTime(): void {
+    this.currentTime.set(
+      new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    );
   }
 
   // Colonnes requises & colonnes numériques pour CSV
@@ -1200,6 +1216,6 @@ export class FraudDashboardComponent implements OnInit {
     this.pdfExportService.exportSummaryToPdf(summary, 'Synthèse des Alertes de Fraude');
   }
   public getCurrentTime(): string {
-    return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return this.currentTime();
   }
 }

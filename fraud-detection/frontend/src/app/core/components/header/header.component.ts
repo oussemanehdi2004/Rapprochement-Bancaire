@@ -18,6 +18,7 @@ export class HeaderComponent implements AfterViewInit {
   private authService = inject(AuthService);
   private notificationsService = inject(NotificationsService);
 
+  @Input() collapsed = false;
   menuClick = output<void>();
 
   currentUser = signal({
@@ -36,7 +37,8 @@ export class HeaderComponent implements AfterViewInit {
   private timeUpdateInterval: any;
 
   constructor() {
-    // Load user from auth service
+    // Load user from auth service manually to reduce startup tasks
+    this.authService.loadUserFromSessionManual();
     const user = this.authService.getCurrentUser();
     if (user) {
       this.currentUser.set({
@@ -45,17 +47,16 @@ export class HeaderComponent implements AfterViewInit {
         avatar: user.avatar || '👤'
       });
     } else {
-      // Try to fetch from API if not in session
-      this.authService.getUserFromAPI().subscribe({
-        next: (user) => {
-          this.currentUser.set({
-            name: user.name,
-            role: user.role,
-            avatar: user.avatar || '👤'
-          });
-        }
+      // Set default user to avoid API call during startup
+      this.currentUser.set({
+        name: 'Utilisateur Démo',
+        role: 'ACCOUNTANT',
+        avatar: '👤'
       });
     }
+
+    // Load notifications manually to reduce startup tasks
+    this.notificationsService.loadNotificationsManual();
 
     // Load notifications from service
     this.notificationsService.notifications$.subscribe({
@@ -81,7 +82,7 @@ export class HeaderComponent implements AfterViewInit {
       }
       this.applyDarkMode();
     }
-    
+
     // Initialize time only on client side to avoid SSR hydration mismatch
     if (typeof window !== 'undefined') {
       this.updateTime();

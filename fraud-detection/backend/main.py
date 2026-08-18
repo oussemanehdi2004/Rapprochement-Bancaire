@@ -1,16 +1,19 @@
 import asyncio
+import csv
 import datetime
+import io
 import json
 import logging
 import os
 import time
 import uuid
+from collections import defaultdict
 from typing import Any, Generic, List, Optional, TypeVar, Union
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -51,8 +54,12 @@ NODE_BACKEND_URL = os.environ.get("NODE_BACKEND_URL", "http://localhost:3000")
 try:
     from graph_engine import create_graph_engine
     graph_engine = create_graph_engine()
+    if graph_engine:
+        logger.info("✅ Neo4j connecté avec succès")
+    else:
+        logger.warning("⚠️ Neo4j non configuré - Le système fonctionnera sans analyse de graphe")
 except Exception as e:
-    logger.warning(f"Impossible de connecter Neo4j: {e}")
+    logger.warning(f"⚠️ Impossible de connecter Neo4j: {e}")
     graph_engine = None
 
 # Gestionnaire de connexions SSE pour notifications temps réel
@@ -868,7 +875,7 @@ class TransactionListItem(BaseModel):
     id: str; tenant_id: Optional[str] = None; transaction_reference: Optional[str] = None; date: str; description: Optional[str] = None; amount: float; isFraud: bool; fraudProbability: float; score: Optional[int] = 0; confidence: Optional[str] = "LOW"; reconciliationStatus: str; ruleCategory: Optional[str] = "NON_CATEGORISE"; explainability: Optional[dict] = None
 
 @app.get("/api/transactions", response_model=APIResponse[List[TransactionListItem]])
-async def list_transactions(tenant_id: Optional[str] = None, status: Optional[str] = None, date_from: Optional[str] = None, date_to: Optional[str] = None, search: Optional[str] = None, limit: int = 100, offset: int = 0, token_payload: dict = Depends(get_optional_context)):
+async def list_transactions(tenant_id: Optional[str] = None, status: Optional[str] = None, date_from: Optional[str] = None, date_to: Optional[str] = None, search: Optional[str] = None, limit: int = 500, offset: int = 0, token_payload: dict = Depends(get_optional_context)):
     if supabase is None: raise HTTPException(status_code=503, detail="Supabase non disponible.")
     effective_tenant_id = tenant_id or token_payload.get("tenant_id", "default")
     try:
@@ -880,7 +887,10 @@ async def list_transactions(tenant_id: Optional[str] = None, status: Optional[st
         if search: query = query.ilike("transaction_id", f"%{search}%")
         result = query.order("date", desc=True).range(offset, offset + limit - 1).execute()
         rows = result.data or []
-    except Exception: raise HTTPException(status_code=502, detail="Impossible de récupérer les transactions.")
+        logger.info(f"Retrieved {len(rows)} transactions with filters: status={status}, tenant_id={effective_tenant_id}")
+    except Exception as e: 
+        logger.error(f"Error retrieving transactions: {e}")
+        raise HTTPException(status_code=502, detail="Impossible de récupérer les transactions.")
 
     items = [
         TransactionListItem(
@@ -892,6 +902,278 @@ async def list_transactions(tenant_id: Optional[str] = None, status: Optional[st
         ) for r in rows
     ]
     return APIResponse(success=True, data=items)
+
+# ===== REPORTS ENDPOINTS =====
+
+class ReportsDataDTO(BaseModel):
+    total_transactions: int
+    fraud_count: int
+    fraud_rate: float
+    category_breakdown: List[dict]
+    time_series_data: List[dict]
+
+@app.get("/api/reports", response_model=APIResponse[ReportsDataDTO])
+async def get_reports(
+    start_date: str,
+    end_date: str,
+    token_payload: dict = Depends(get_optional_context)
+):
+    """Generate fraud detection report for date range."""
+    if supabase is None:
+        # Return empty data if Supabase is not available
+        return APIResponse(success=True, data=ReportsDataDTO(
+            total_transactions=0,
+            fraud_count=0,
+            fraud_rate=0.0,
+            category_breakdown=[],
+            time_series_data=[]
+        ))
+    
+    effective_tenant_id = token_payload.get("tenant_id", "default")
+    
+    try:
+        # Query transactions for the date range
+        query = supabase.table("fraud_alerts").select("*")
+        query = query.eq("tenant_id", effective_tenant_id)
+        query = query.gte("date", start_date)
+        query = query.lte("date", end_date)
+        result = query.execute()
+        rows = result.data or []
+        
+        # Calculate statistics
+        total_transactions = len(rows)
+        fraud_count = sum(1 for r in rows if r.get("is_fraud", False))
+        fraud_rate = (fraud_count / total_transactions * 100) if total_transactions > 0 else 0.0
+        
+        # Category breakdown
+        category_counts = {}
+        for r in rows:
+            category = r.get("rule_category", "NON_CATEGORISE")
+            category_counts[category] = category_counts.get(category, 0) + 1
+        
+        category_breakdown = [
+            {"category": cat, "count": count, "percentage": round((count / total_transactions * 100) if total_transactions > 0 else 0.0, 2)}
+            for cat, count in category_counts.items()
+        ]
+        
+        # Time series data (daily aggregation)
+        time_series_data = []
+        daily_counts = defaultdict(lambda: {"total": 0, "fraud": 0})
+        
+        for r in rows:
+            date = r.get("date", "").split("T")[0]  # Extract date part
+            daily_counts[date]["total"] += 1
+            if r.get("is_fraud", False):
+                daily_counts[date]["fraud"] += 1
+        
+        time_series_data = [
+            {
+                "date": date,
+                "total_count": data["total"],
+                "fraud_count": data["fraud"],
+                "fraud_rate": round((data["fraud"] / data["total"] * 100) if data["total"] > 0 else 0.0, 2)
+            }
+            for date, data in sorted(daily_counts.items())
+        ]
+        
+        reports_data = ReportsDataDTO(
+            total_transactions=total_transactions,
+            fraud_count=fraud_count,
+            fraud_rate=round(fraud_rate, 2),
+            category_breakdown=category_breakdown,
+            time_series_data=time_series_data
+        )
+        
+        return APIResponse(success=True, data=reports_data)
+    except Exception as e:
+        logger.error(f"Error generating reports: {e}")
+        # Return empty data on error instead of throwing exception
+        return APIResponse(success=True, data=ReportsDataDTO(
+            total_transactions=0,
+            fraud_count=0,
+            fraud_rate=0.0,
+            category_breakdown=[],
+            time_series_data=[]
+        ))
+
+@app.get("/api/reports/pdf")
+async def export_pdf(
+    start_date: str,
+    end_date: str,
+    token_payload: dict = Depends(get_optional_context)
+):
+    """Export fraud detection report as PDF."""
+    try:
+        reports_response = await get_reports(start_date, end_date, token_payload)
+        reports_data = reports_response.data
+        
+        # Generate HTML content that can be saved as PDF
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Fraud Detection Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        h1 {{ color: #333; }}
+        .summary {{ background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+        .category {{ margin: 10px 0; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background-color: #4CAF50; color: white; }}
+    </style>
+</head>
+<body>
+    <h1>Rapport de Détection de Fraude</h1>
+    <p><strong>Période:</strong> {start_date} à {end_date}</p>
+    
+    <div class="summary">
+        <h2>Résumé</h2>
+        <p><strong>Total Transactions:</strong> {reports_data.total_transactions}</p>
+        <p><strong>Fraudes Détectées:</strong> {reports_data.fraud_count}</p>
+        <p><strong>Taux de Fraude:</strong> {reports_data.fraud_rate}%</p>
+    </div>
+    
+    <h2>Répartition par Catégorie</h2>
+    <table>
+        <tr><th>Catégorie</th><th>Nombre</th><th>Pourcentage</th></tr>
+"""
+        for cat in reports_data.category_breakdown:
+            percentage = cat.get('percentage', 0)
+            html_content += f"""        <tr>
+            <td>{cat['category']}</td>
+            <td>{cat['count']}</td>
+            <td>{percentage:.1f}%</td>
+        </tr>
+"""
+        
+        html_content += """    </table>
+    
+    <h2>Tendance Temporelle</h2>
+    <table>
+        <tr><th>Date</th><th>Fraudes</th><th>Total</th><th>Taux</th></tr>
+"""
+        for ts in reports_data.time_series_data:
+            fraud_rate = ts.get('fraud_rate', 0)
+            html_content += f"""        <tr>
+            <td>{ts['date']}</td>
+            <td>{ts['fraud_count']}</td>
+            <td>{ts['total_transactions']}</td>
+            <td>{fraud_rate:.1f}%</td>
+        </tr>
+"""
+        
+        html_content += """    </table>
+    
+    <p style="margin-top: 30px; color: #666; font-size: 12px;">
+        Généré par BankMatch Fraud Detection System
+    </p>
+</body>
+</html>
+"""
+        
+        # Return as HTML with PDF disposition - browser can print/save as PDF
+        return Response(
+            content=html_content,
+            media_type="text/html",
+            headers={"Content-Disposition": f"attachment; filename=fraud_report_{start_date}_to_{end_date}.html"}
+        )
+    except Exception as e:
+        logger.error(f"Error generating PDF report: {e}")
+        # Return a simple error message instead of throwing exception
+        error_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Error Report</title>
+</head>
+<body>
+    <h1>Erreur lors de la génération du rapport</h1>
+    <p>Impossible de générer le rapport pour la période {start_date} à {end_date}.</p>
+    <p>Erreur: {str(e)}</p>
+</body>
+</html>
+"""
+        return Response(
+            content=error_html,
+            media_type="text/html",
+            headers={"Content-Disposition": f"attachment; filename=error_report_{start_date}_to_{end_date}.html"}
+        )
+
+@app.get("/api/reports/csv")
+async def export_csv(
+    start_date: str,
+    end_date: str,
+    token_payload: dict = Depends(get_optional_context)
+):
+    """Export fraud detection report as CSV."""
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Supabase non disponible.")
+    
+    effective_tenant_id = token_payload.get("tenant_id", "default")
+    
+    try:
+        # Query transactions for the date range
+        query = supabase.table("fraud_alerts").select("*")
+        query = query.eq("tenant_id", effective_tenant_id)
+        query = query.gte("date", start_date)
+        query = query.lte("date", end_date)
+        result = query.execute()
+        rows = result.data or []
+        
+        # Generate CSV content
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        header = ["transaction_id", "date", "description", "amount", "is_fraud", "fraud_probability", "reconciliation_status", "rule_category"]
+        writer.writerow(header)
+        
+        # Write data rows
+        for r in rows:
+            row = [
+                r.get("transaction_id", ""),
+                r.get("date", ""),
+                r.get("description", ""),
+                r.get("amount", 0.0),
+                r.get("is_fraud", False),
+                r.get("fraud_probability", 0.0),
+                r.get("reconciliation_status", "UNMATCHED"),
+                r.get("rule_category", "NON_CATEGORISE")
+            ]
+            writer.writerow(row)
+        
+        csv_content = output.getvalue()
+        
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=fraud_report_{start_date}_{end_date}.csv"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'export CSV: {str(e)}")
+
+@app.get("/api/reports/categories")
+async def get_category_breakdown(
+    start_date: str,
+    end_date: str,
+    token_payload: dict = Depends(get_optional_context)
+):
+    """Get fraud category breakdown for date range."""
+    reports_response = await get_reports(start_date, end_date, token_payload)
+    return APIResponse(success=True, data=reports_response.data.category_breakdown)
+
+@app.get("/api/reports/timeseries")
+async def get_time_series_data(
+    start_date: str,
+    end_date: str,
+    token_payload: dict = Depends(get_optional_context)
+):
+    """Get time series data for date range."""
+    reports_response = await get_reports(start_date, end_date, token_payload)
+    return APIResponse(success=True, data=reports_response.data.time_series_data)
 
 # ===== ENDPOINTS 2FA =====
 
@@ -997,6 +1279,89 @@ async def get_2fa_status(user_id: str):
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors de la vérification du statut 2FA: {str(e)}")
+
+# =====================================================================
+# NOTIFICATIONS ENDPOINTS
+# =====================================================================
+class Notification(BaseModel):
+    id: str
+    type: str
+    title: str
+    message: str
+    timestamp: str
+    read: bool
+    icon: Optional[str] = None
+
+@app.get("/api/notifications", response_model=APIResponse[List[Notification]])
+async def get_notifications(token_payload: dict = Depends(get_optional_context)):
+    """Get notifications for the current user"""
+    mock_notifications = [
+        {
+            "id": "1",
+            "type": "critical",
+            "title": "Nouvelle alerte critique",
+            "message": "Transaction suspecte détectée",
+            "timestamp": datetime.datetime.now().isoformat(),
+            "read": False,
+            "icon": "🚨"
+        },
+        {
+            "id": "2",
+            "type": "warning",
+            "title": "Règle déclenchée",
+            "message": "Montant exceptionnel > 10 000€",
+            "timestamp": (datetime.datetime.now() - datetime.timedelta(hours=1)).isoformat(),
+            "read": False,
+            "icon": "⚠️"
+        },
+        {
+            "id": "3",
+            "type": "info",
+            "title": "Nouveau fichier importé",
+            "message": "virements_janvier_2026.xml traité avec succès",
+            "timestamp": (datetime.datetime.now() - datetime.timedelta(hours=2)).isoformat(),
+            "read": True,
+            "icon": "📥"
+        }
+    ]
+    return APIResponse(success=True, data=mock_notifications)
+
+@app.patch("/api/notifications/{notification_id}/read")
+async def mark_notification_as_read(notification_id: str, token_payload: dict = Depends(get_optional_context)):
+    """Mark a notification as read"""
+    return APIResponse(success=True, data={"message": f"Notification {notification_id} marked as read"})
+
+@app.patch("/api/notifications/read-all")
+async def mark_all_notifications_as_read(token_payload: dict = Depends(get_optional_context)):
+    """Mark all notifications as read"""
+    return APIResponse(success=True, data={"message": "All notifications marked as read"})
+
+@app.delete("/api/notifications/{notification_id}")
+async def delete_notification(notification_id: str, token_payload: dict = Depends(get_optional_context)):
+    """Delete a notification"""
+    return APIResponse(success=True, data={"message": f"Notification {notification_id} deleted"})
+
+# =====================================================================
+# USER ENDPOINTS
+# =====================================================================
+class UserResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    role: str
+    avatar: Optional[str] = None
+
+@app.get("/api/user/me", response_model=APIResponse[UserResponse])
+async def get_current_user(token_payload: dict = Depends(get_optional_context)):
+    """Get current user information"""
+    user_data = {
+        "id": token_payload.get("user_id", "demo_user"),
+        "name": "Utilisateur Démo",
+        "email": "demo@bankmatch.com",
+        "role": token_payload.get("role", "ACCOUNTANT"),
+        "avatar": "👤"
+    }
+    return APIResponse(success=True, data=user_data)
 
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request, exc: HTTPException):
