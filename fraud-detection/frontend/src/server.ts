@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
+import multer from 'multer';
 
 // Import du module serveur principal généré par Angular
 import bootstrap from './main.server';
@@ -22,7 +23,7 @@ const indexHtml = join(serverDistFolder, 'index.server.html');
 const FRAUD_API_URL = 'http://localhost:8005'; // Force correct port
 const MULTI_BANKING_API_URL = 'http://localhost:8010';
 const NODE_BACKEND_URL = 'http://localhost:8005';
-const JWT_SECRET = process.env['JWT_SECRET'] || 'your-secret-key';
+const JWT_SECRET = process.env['JWT_SECRET'] || 'internal_dev_secret';
 
 if (!process.env['JWT_SECRET']) {
   console.warn("⚠️  JWT_SECRET non défini dans l'environnement. Utilisation de la clé par défaut.");
@@ -58,6 +59,15 @@ app.set('views', browserDistFolder);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Configure multer for handling multipart/form-data
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB max file size
+  }
+});
+
 // ====================================================================
 // 🚀 3. PROXY API UNIFIÉ VERS FASTAPI (8005) & NODE BACKEND (3000)
 // ====================================================================
@@ -66,7 +76,7 @@ app.use(express.urlencoded({ extended: true }));
 // ====================================================================
 
 // Proxy pour Multi-Banking API (port 8010)
-app.use('/api/banking', async (req: Request, res: Response) => {
+app.use('/api/banking', upload.any(), async (req: Request, res: Response) => {
   try {
     // Remove /api/banking prefix and add /banking for the target
     const targetPath = req.originalUrl.replace('/api/banking', '/banking');
@@ -77,27 +87,61 @@ app.use('/api/banking', async (req: Request, res: Response) => {
     const hasValidToken = rawAuth && rawAuth.replace('Bearer ', '').trim().length > 0;
     const authHeader = hasValidToken ? rawAuth : `Bearer ${generateInternalToken()}`;
 
-    // Handle multipart/form-data for file uploads
-    const contentType = req.headers['content-type'];
-    const headers: any = {
-      'Authorization': authHeader
-    };
+    // Check if this is a file upload request (has files from multer)
+    const hasFiles = (req as any).files && (req as any).files.length > 0;
     
-    if (contentType && !contentType.includes('multipart/form-data')) {
-      headers['Content-Type'] = 'application/json';
+    if (hasFiles) {
+      // For file uploads, create FormData with the files
+      const FormData = (await import('form-data')).default;
+      const formData = new FormData();
+      
+      // Add files to FormData
+      (req as any).files.forEach((file: any) => {
+        formData.append(file.fieldname, file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype
+        });
+      });
+      
+      // Add other form fields from req.body
+      Object.keys(req.body).forEach(key => {
+        formData.append(key, req.body[key]);
+      });
+      
+      // Get headers from formData (includes proper content-type with boundary)
+      const formDataHeaders = formData.getHeaders();
+      
+      const response = await axios({
+        method: req.method,
+        url: targetUrl,
+        data: formData,
+        headers: {
+          'Authorization': authHeader,
+          ...formDataHeaders
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity
+      });
+      
+      res.status(response.status).json(response.data);
+    } else {
+      // Regular JSON request
+      const headers: any = {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      };
+
+      const response = await axios({
+        method: req.method,
+        url: targetUrl,
+        data: ['POST', 'PUT', 'PATCH'].includes(req.method) ? req.body : undefined,
+        headers: headers,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity
+      });
+
+      res.status(response.status).json(response.data);
     }
-
-    const response = await axios({
-      method: req.method,
-      url: targetUrl,
-      data: ['POST', 'PUT', 'PATCH'].includes(req.method) ? req.body : undefined,
-      headers: headers,
-      // For file uploads, we need to handle the request differently
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity
-    });
-
-    res.status(response.status).json(response.data);
   } catch (error: any) {
     const status = error.response?.status || 500;
     const errorData = error.response?.data || { detail: 'Erreur proxy vers Multi-Banking API' };

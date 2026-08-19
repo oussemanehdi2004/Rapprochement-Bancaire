@@ -869,7 +869,13 @@ if not IS_PRODUCTION:
 
 @app.get("/")
 async def root():
-    return {"status": "production_ready", "service": "Fraud API", "model_loaded": model is not None, "database_connected": supabase is not None}
+    return {
+        "status": "production_ready", 
+        "service": "Fraud API", 
+        "model_loaded": model is not None, 
+        "database_connected": supabase is not None,
+        "neo4j_connected": graph_engine is not None
+    }
 
 class TransactionListItem(BaseModel):
     id: str; tenant_id: Optional[str] = None; transaction_reference: Optional[str] = None; date: str; description: Optional[str] = None; amount: float; isFraud: bool; fraudProbability: float; score: Optional[int] = 0; confidence: Optional[str] = "LOW"; reconciliationStatus: str; ruleCategory: Optional[str] = "NON_CATEGORISE"; explainability: Optional[dict] = None

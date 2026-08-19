@@ -58,6 +58,7 @@ services:
     environment:
       - FRAUD_SERVICE_URL=http://fraud-service:8005
       - INTERNAL_SERVICE_SECRET=${MULTIBANKING_INTERNAL_SECRET:-multibanking_dev_secret_456}
+      - FRAUD_INTERNAL_SECRET=${FRAUD_INTERNAL_SECRET:-fraud_dev_secret_123}
       - DISABLE_INTERNAL_AUTH=false
       - JWT_SECRET=${JWT_SECRET}
       - ENVIRONMENT=${ENVIRONMENT:-development}

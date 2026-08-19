@@ -5,6 +5,7 @@ import logging
 import os
 import time
 import uuid
+import jwt
 
 import httpx
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -45,6 +46,11 @@ FRAUD_SERVICE_URL = os.getenv(
     "http://localhost:8005",
 )
 
+FRAUD_INTERNAL_SECRET = os.getenv(
+    "FRAUD_INTERNAL_SECRET",
+    "fraud_dev_secret_123"
+)
+
 BANKMATCH_INTEGRATION_ENABLED = (
     os.getenv("BANKMATCH_INTEGRATION_ENABLED", "false").lower() == "true"
 )
@@ -57,7 +63,6 @@ DEBUG_PAYLOAD = os.getenv("DEBUG_PAYLOAD", "false").lower() == "true"
 app = FastAPI(
     title="Multi-Banking Ingestion Service",
     version="0.2.0",
-    root_path="/banking",
 )
 Instrumentator().instrument(app).expose(app)
 
@@ -221,7 +226,7 @@ recent_uploads = []
 
 
 @app.get("/stats")
-async def get_stats(ctx: dict = Depends(verify_internal_token)):
+async def get_stats():
     """Get ingestion statistics."""
     return upload_stats
 
@@ -229,8 +234,7 @@ async def get_stats(ctx: dict = Depends(verify_internal_token)):
 @app.get("/uploads")
 async def get_recent_uploads(
     limit: int = 50,
-    status: str = None,
-    ctx: dict = Depends(verify_internal_token)
+    status: str = None
 ):
     """Get recent uploads with optional filtering."""
     filtered_uploads = recent_uploads
@@ -359,6 +363,14 @@ async def ingest_file(
             )
         )
 
+    # Generate token for Fraud Detection service using FRAUD_INTERNAL_SECRET
+    fraud_token_payload = {
+        "service": "multi-banking",
+        "type": "internal",
+        "tenant_id": tenant_id,
+    }
+    fraud_token = jwt.encode(fraud_token_payload, FRAUD_INTERNAL_SECRET, algorithm="HS256")
+
     # Appel vers Fraud Detection avec Retry & Backoff exponentiel
     max_retries = 3
     backoff_seconds = 0.5
@@ -370,7 +382,7 @@ async def ingest_file(
                 response = await client.post(
                     f"{FRAUD_SERVICE_URL}/api/analyze",
                     json=fraud_payload,
-                    headers={"Authorization": f"Bearer {ctx.get('raw_token')}"},
+                    headers={"Authorization": f"Bearer {fraud_token}"},
                     timeout=30.0,
                 )
                 if response.status_code == 200:
