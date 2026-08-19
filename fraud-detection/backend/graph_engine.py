@@ -373,13 +373,10 @@ def create_graph_engine() -> Optional["GraphEngine"]:
         logger.warning("Le package 'neo4j' n'est pas installé. Moteur de graphe désactivé.")
         return None
 
-    uri = os.environ.get("NEO4J_URI")
-    user = os.environ.get("NEO4J_USER")
-    password = os.environ.get("NEO4J_PASSWORD")
-    if not uri or not user or not password:
-        logger.warning("NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD manquants. Moteur de graphe désactivé.")
-        return None
-
+    uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+    user = os.environ.get("NEO4J_USER", "neo4j")
+    password = os.environ.get("NEO4J_PASSWORD", "password_super_securise")
+    
     try:
         engine = GraphEngine(uri, user, password)
         logger.info("Connexion à Neo4j établie avec succès (moteur de graphe Phase 3 actif).")

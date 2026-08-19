@@ -204,7 +204,7 @@ def build_fraud_payload(transactions: list) -> list[dict]:
     return payload
 
 
-@app.get("/health")
+@app.get("/banking/health")
 async def health():
     return {
         "status": "ok",
@@ -225,13 +225,13 @@ upload_stats = {
 recent_uploads = []
 
 
-@app.get("/stats")
+@app.get("/banking/stats")
 async def get_stats():
     """Get ingestion statistics."""
     return upload_stats
 
 
-@app.get("/uploads")
+@app.get("/banking/uploads")
 async def get_recent_uploads(
     limit: int = 50,
     status: str = None
@@ -245,7 +245,7 @@ async def get_recent_uploads(
     return filtered_uploads[:limit]
 
 
-@app.post("/api/multi-banking/parse")
+@app.post("/banking/api/multi-banking/parse")
 async def parse_file(
     file: UploadFile = File(...),
     format: str = Form(...),
@@ -285,7 +285,7 @@ async def parse_file(
     }
 
 
-@app.post("/api/multi-banking/validate")
+@app.post("/banking/api/multi-banking/validate")
 async def validate_file(
     file: UploadFile = File(...),
     format: str = Form(...),
@@ -319,7 +319,7 @@ async def validate_file(
     }
 
 
-@app.post("/api/multi-banking/ingest")
+@app.post("/banking/api/multi-banking/ingest")
 async def ingest_file(
     file: UploadFile = File(...),
     format: str = Form(...),

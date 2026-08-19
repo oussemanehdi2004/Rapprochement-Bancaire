@@ -192,10 +192,14 @@ export class ReportsComponent implements OnInit, AfterViewInit {
           }
           this.loading = false;
           
-          if (this.summary) {
+          if (this.summary && this.summary.total_transactions > 0) {
             this.toastService.success('Succès', 'Rapport chargé avec succès');
             // Render chart after data is loaded
             setTimeout(() => this.renderTimeSeriesChart(), 100);
+          } else if (this.summary && this.summary.total_transactions === 0) {
+            this.toastService.warning('Attention', 'Aucune transaction trouvée pour la période sélectionnée');
+          } else {
+            this.toastService.error('Erreur', 'Impossible de charger les données du rapport');
           }
         },
         error: (err: any) => {

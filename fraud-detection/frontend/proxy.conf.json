@@ -28,11 +28,8 @@
     }
   },
   "/api": {
-    "target": "http://127.0.0.1:8005/fraud",
+    "target": "http://127.0.0.1:8005",
     "secure": false,
-    "changeOrigin": true,
-    "pathRewrite": {
-      "^/api": "/api"
-    }
+    "changeOrigin": true
   }
 }

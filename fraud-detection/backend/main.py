@@ -84,7 +84,7 @@ sse_manager = SSEManager()
 
 # Configuration du rate limiting
 limiter = Limiter(key_func=get_remote_address)
-RATE_LIMIT_REQUESTS = int(os.environ.get("RATE_LIMIT_REQUESTS", "2"))
+RATE_LIMIT_REQUESTS = int(os.environ.get("RATE_LIMIT_REQUESTS", "30"))
 RATE_LIMIT_PERIOD = int(os.environ.get("RATE_LIMIT_PERIOD", "60"))  # seconds
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development").lower()
@@ -915,6 +915,7 @@ class ReportsDataDTO(BaseModel):
     total_transactions: int
     fraud_count: int
     fraud_rate: float
+    blocked_amount: float = 0.0
     category_breakdown: List[dict]
     time_series_data: List[dict]
 
@@ -931,6 +932,7 @@ async def get_reports(
             total_transactions=0,
             fraud_count=0,
             fraud_rate=0.0,
+            blocked_amount=0.0,
             category_breakdown=[],
             time_series_data=[]
         ))
@@ -950,6 +952,7 @@ async def get_reports(
         total_transactions = len(rows)
         fraud_count = sum(1 for r in rows if r.get("is_fraud", False))
         fraud_rate = (fraud_count / total_transactions * 100) if total_transactions > 0 else 0.0
+        blocked_amount = sum(r.get("amount", 0) for r in rows if r.get("is_fraud", False))
         
         # Category breakdown
         category_counts = {}
@@ -975,7 +978,7 @@ async def get_reports(
         time_series_data = [
             {
                 "date": date,
-                "total_count": data["total"],
+                "total_transactions": data["total"],
                 "fraud_count": data["fraud"],
                 "fraud_rate": round((data["fraud"] / data["total"] * 100) if data["total"] > 0 else 0.0, 2)
             }
@@ -986,6 +989,7 @@ async def get_reports(
             total_transactions=total_transactions,
             fraud_count=fraud_count,
             fraud_rate=round(fraud_rate, 2),
+            blocked_amount=round(blocked_amount, 2),
             category_breakdown=category_breakdown,
             time_series_data=time_series_data
         )
@@ -998,6 +1002,7 @@ async def get_reports(
             total_transactions=0,
             fraud_count=0,
             fraud_rate=0.0,
+            blocked_amount=0.0,
             category_breakdown=[],
             time_series_data=[]
         ))
@@ -1039,6 +1044,7 @@ async def export_pdf(
         <p><strong>Total Transactions:</strong> {reports_data.total_transactions}</p>
         <p><strong>Fraudes Détectées:</strong> {reports_data.fraud_count}</p>
         <p><strong>Taux de Fraude:</strong> {reports_data.fraud_rate}%</p>
+        <p><strong>Montant Bloqué:</strong> {reports_data.blocked_amount} €</p>
     </div>
     
     <h2>Répartition par Catégorie</h2>
