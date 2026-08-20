@@ -302,8 +302,15 @@ export class FraudDashboardComponent implements OnInit {
   public onSimulationChange(newThresholds: SimulationThresholds): void {
     this.currentSimulation.set(newThresholds);
     this.appliedMlThreshold.set(newThresholds.mlProbability);
-    
-    // Re-analyze with new threshold to show effects
+    this.mlThreshold = newThresholds.mlProbability;
+    if (this.alertsService.alerts().length > 0) {
+      this.alertsService.updateStats(this.alertsService.alerts());
+    }
+  }
+
+  public onMlThresholdSliderChange(value: number): void {
+    this.appliedMlThreshold.set(value);
+    this.currentSimulation.set({ ...this.currentSimulation(), mlProbability: value });
     if (this.alertsService.alerts().length > 0) {
       this.alertsService.updateStats(this.alertsService.alerts());
     }
@@ -328,12 +335,13 @@ export class FraudDashboardComponent implements OnInit {
     }
   }
 
-  /**
-   * Sauvegarde et applique la nouvelle configuration de seuil
-   */
   public saveConfig(): void {
-    console.log(`Nouveau seuil appliqué : ${this.mlThreshold}%`);
-    this.appliedMlThreshold.set(Number(this.mlThreshold));
+    const newThreshold = Number(this.mlThreshold);
+    this.appliedMlThreshold.set(newThreshold);
+    this.currentSimulation.set({ mlProbability: newThreshold, abnormalAmount: this.currentSimulation().abnormalAmount });
+    if (this.alertsService.alerts().length > 0) {
+      this.alertsService.updateStats(this.alertsService.alerts());
+    }
     this.configSaved.set(true);
     setTimeout(() => this.configSaved.set(false), 3000);
   }

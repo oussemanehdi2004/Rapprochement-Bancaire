@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReportsService } from '../services/reports.service';
@@ -140,51 +140,56 @@ export class ReportsComponent implements OnInit, AfterViewInit {
 
   constructor(
     private reportsService: ReportsService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit() {
-    // Set default date range (last 30 days)
     const today = new Date();
     const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
     this.endDate = today.toISOString().split('T')[0];
     this.startDate = thirtyDaysAgo.toISOString().split('T')[0];
-    
-    // Use setTimeout to ensure SSR stabilization is not affected
-    setTimeout(() => {
-      this.loadReports();
-    }, 100);
+    this.loadReports();
   }
 
   loadReports() {
-    setTimeout(() => {
+    this.ngZone.run(() => {
       this.loading = true;
       this.error = '';
       this.toastService.info('Chargement', 'Génération du rapport en cours...');
+    });
 
-      // Set timeout to prevent infinite loading - reduced to 8 seconds
-      const timeout = setTimeout(() => {
+    const timeout = setTimeout(() => {
+      this.ngZone.run(() => {
         if (this.loading) {
           this.loading = false;
           this.error = 'Délai dépassé lors du chargement des rapports. Veuillez réessayer.';
           this.toastService.warning('Attention', 'Délai dépassé lors du chargement des rapports');
-          // Set empty data to prevent hanging
           this.summary = null;
           this.categoryBreakdown = [];
           this.timeSeriesData = [];
         }
-      }, 8000);
+      });
+    }, 8000);
 
       this.reportsService.getReports(this.startDate, this.endDate).subscribe({
         next: (data: any) => {
           clearTimeout(timeout);
-          // Handle different response structures
           if (data && typeof data === 'object') {
-            // Check if data is nested in APIResponse format
-            const reportsData = data.data || data;
-            this.summary = reportsData.summary || reportsData;
-            this.categoryBreakdown = reportsData.categoryBreakdown || reportsData.category_breakdown || [];
-            this.timeSeriesData = reportsData.timeSeriesData || reportsData.time_series_data || [];
+            const d = data.data || data;
+            this.summary = {
+              total_transactions: d.total_transactions ?? 0,
+              fraud_detected: d.fraud_count ?? 0,
+              fraud_rate: d.fraud_rate ?? 0,
+              total_amount: d.blocked_amount ?? 0,
+              blocked_amount: d.blocked_amount ?? 0,
+            };
+            this.categoryBreakdown = d.category_breakdown || d.categoryBreakdown || [];
+            this.timeSeriesData = (d.time_series_data || d.timeSeriesData || []).map((ts: any) => ({
+              date: ts.date,
+              fraud_count: ts.fraud_count ?? 0,
+              total_count: ts.total_transactions ?? ts.total_count ?? 0,
+            }));
           } else {
             this.summary = null;
             this.categoryBreakdown = [];
@@ -194,7 +199,6 @@ export class ReportsComponent implements OnInit, AfterViewInit {
           
           if (this.summary && this.summary.total_transactions > 0) {
             this.toastService.success('Succès', 'Rapport chargé avec succès');
-            // Render chart after data is loaded
             setTimeout(() => this.renderTimeSeriesChart(), 100);
           } else if (this.summary && this.summary.total_transactions === 0) {
             this.toastService.warning('Attention', 'Aucune transaction trouvée pour la période sélectionnée');
@@ -216,30 +220,31 @@ export class ReportsComponent implements OnInit, AfterViewInit {
           this.timeSeriesData = [];
         }
       });
-    }, 0);
   }
 
   exportPDF() {
-    setTimeout(() => {
+    this.ngZone.run(() => {
       this.exportingPDF = true;
       this.error = null;
       this.toastService.info('Export', 'Génération du PDF en cours...');
-      
-      // Set timeout to prevent infinite loading - reduced to 10 seconds
-      const timeout = setTimeout(() => {
+    });
+    
+    const timeout = setTimeout(() => {
+      this.ngZone.run(() => {
         if (this.exportingPDF) {
           this.exportingPDF = false;
           this.error = 'Délai dépassé lors de l\'export PDF. Veuillez réessayer.';
           this.toastService.error('Erreur d\'export', 'Délai dépassé lors de l\'export PDF.');
         }
-      }, 10000);
-      
-      this.reportsService.exportPDF(this.startDate, this.endDate).subscribe({
-        next: (blob: Blob) => {
-          clearTimeout(timeout);
+      });
+    }, 10000);
+    
+    this.reportsService.exportPDF(this.startDate, this.endDate).subscribe({
+      next: (blob: Blob) => {
+        clearTimeout(timeout);
+        this.ngZone.run(() => {
           const link = document.createElement('a');
           link.href = URL.createObjectURL(blob);
-          // Handle both HTML and PDF responses
           const contentType = blob.type || 'application/pdf';
           const extension = contentType.includes('html') ? 'html' : 'pdf';
           link.download = `fraud_report_${this.startDate}_to_${this.endDate}.${extension}`;
@@ -251,51 +256,57 @@ export class ReportsComponent implements OnInit, AfterViewInit {
           } else {
             this.toastService.success('Export réussi', 'Le rapport PDF a été téléchargé');
           }
-        },
-        error: (err: any) => {
-          clearTimeout(timeout);
+        });
+      },
+      error: (err: any) => {
+        clearTimeout(timeout);
+        this.ngZone.run(() => {
           console.error('Error exporting PDF:', err);
           this.error = 'Erreur lors de l\'export PDF. Veuillez réessayer.';
           this.exportingPDF = false;
           this.toastService.error('Erreur d\'export', 'Erreur lors de l\'export PDF. Le service peut être indisponible.');
-        }
-      });
-    }, 0);
+        });
+      }
+    });
   }
 
   exportCSV() {
-    setTimeout(() => {
+    this.ngZone.run(() => {
       this.exportingCSV = true;
       this.error = null;
       this.toastService.info('Export', 'Génération du CSV en cours...');
-      
-      // Set timeout to prevent infinite loading - reduced to 8 seconds
-      const timeout = setTimeout(() => {
+    });
+    
+    const timeout = setTimeout(() => {
+      this.ngZone.run(() => {
         if (this.exportingCSV) {
           this.exportingCSV = false;
           this.error = 'Délai dépassé lors de l\'export CSV. Génération côté client en cours...';
           this.generateClientSideCSV();
           this.toastService.success('Export réussi', 'Le rapport CSV a été généré côté client');
         }
-      }, 8000);
-      
-      this.reportsService.exportCSV(this.startDate, this.endDate).subscribe({
-        next: (blob: Blob) => {
-          clearTimeout(timeout);
+      });
+    }, 8000);
+    
+    this.reportsService.exportCSV(this.startDate, this.endDate).subscribe({
+      next: (blob: Blob) => {
+        clearTimeout(timeout);
+        this.ngZone.run(() => {
           const link = document.createElement('a');
           link.href = URL.createObjectURL(blob);
           link.download = `fraud_report_${this.startDate}_to_${this.endDate}.csv`;
           link.click();
           this.exportingCSV = false;
           this.toastService.success('Export réussi', 'Le rapport CSV a été téléchargé');
-        },
-        error: (err: any) => {
-          clearTimeout(timeout);
+        });
+      },
+      error: (err: any) => {
+        clearTimeout(timeout);
+        this.ngZone.run(() => {
           console.error('Error exporting CSV:', err);
           this.error = 'Erreur lors de l\'export CSV. Génération côté client en cours...';
           this.toastService.warning('Export CSV', 'Erreur serveur, génération côté client en cours...');
           
-          // Fallback to client-side CSV generation
           if (this.timeSeriesData.length) {
             this.generateClientSideCSV();
             this.toastService.success('Export réussi', 'Le rapport CSV a été généré côté client');
@@ -303,9 +314,9 @@ export class ReportsComponent implements OnInit, AfterViewInit {
             this.toastService.error('Erreur', 'Aucune donnée disponible pour l\'export CSV');
           }
           this.exportingCSV = false;
-        }
-      });
-    }, 0);
+        });
+      }
+    });
   }
 
   private generateClientSideCSV() {

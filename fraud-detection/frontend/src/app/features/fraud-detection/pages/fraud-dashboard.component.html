@@ -682,6 +682,7 @@
             min="0" 
             max="100" 
             [(ngModel)]="mlThreshold" 
+            (ngModelChange)="onMlThresholdSliderChange($event)"
             class="w-full cursor-pointer"
           />
           <div class="flex justify-between text-xs text-gray-500 mt-1">

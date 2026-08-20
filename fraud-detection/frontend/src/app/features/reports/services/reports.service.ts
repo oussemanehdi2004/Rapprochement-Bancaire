@@ -1,33 +1,31 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 import {
   FraudSummaryDTO,
   CategoryBreakdownDTO,
   TimeSeriesDataDTO,
   ReportsDataDTO
 } from '../../fraud-detection/models';
+import type { APIResponse } from '../../../core/types/index';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReportsService {
-  // Route relative : passe par le proxy Express (/api/*) en SSR comme en dev,
-  // au lieu de pointer en dur sur un host/port du backend FastAPI.
-  // L'authentification est ajoutée automatiquement par `authInterceptor`
-  // (voir app.config.ts / auth.interceptor.ts) : aucun token en dur ici.
   private apiUrl = '/api';
 
   constructor(private http: HttpClient) {}
 
   getReports(startDate: string, endDate: string): Observable<ReportsDataDTO> {
-    return this.http.get<ReportsDataDTO>(`${this.apiUrl}/reports`, {
+    return this.http.get<APIResponse<ReportsDataDTO>>(`${this.apiUrl}/reports`, {
       params: {
         start_date: startDate,
         end_date: endDate
       }
     }).pipe(
+      map(response => response?.data || response as any),
       catchError(error => {
         console.error('Error fetching reports:', error);
         return throwError(() => error);
@@ -66,12 +64,13 @@ export class ReportsService {
   }
 
   getCategoryBreakdown(startDate: string, endDate: string): Observable<CategoryBreakdownDTO[]> {
-    return this.http.get<CategoryBreakdownDTO[]>(`${this.apiUrl}/reports/categories`, {
+    return this.http.get<APIResponse<CategoryBreakdownDTO[]>>(`${this.apiUrl}/reports/categories`, {
       params: {
         start_date: startDate,
         end_date: endDate
       }
     }).pipe(
+      map(response => (response as any)?.data || (response as any) || []),
       catchError(error => {
         console.error('Error fetching category breakdown:', error);
         return throwError(() => error);
@@ -80,12 +79,13 @@ export class ReportsService {
   }
 
   getTimeSeriesData(startDate: string, endDate: string): Observable<TimeSeriesDataDTO[]> {
-    return this.http.get<TimeSeriesDataDTO[]>(`${this.apiUrl}/reports/timeseries`, {
+    return this.http.get<APIResponse<TimeSeriesDataDTO[]>>(`${this.apiUrl}/reports/timeseries`, {
       params: {
         start_date: startDate,
         end_date: endDate
       }
     }).pipe(
+      map(response => (response as any)?.data || (response as any) || []),
       catchError(error => {
         console.error('Error fetching time series data:', error);
         return throwError(() => error);

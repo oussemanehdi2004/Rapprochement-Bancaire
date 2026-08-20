@@ -20,9 +20,9 @@ const indexHtml = join(serverDistFolder, 'index.server.html');
 // ====================================================================
 // 1. CONFIGURATION ET VARIABLES D'ENVIRONNEMENT
 // ====================================================================
-const FRAUD_API_URL = 'http://localhost:8005'; // Force correct port
-const MULTI_BANKING_API_URL = 'http://localhost:8010';
-const NODE_BACKEND_URL = 'http://localhost:8005';
+const FRAUD_API_URL = process.env['FRAUD_API_URL'] || 'http://localhost:8006';
+const MULTI_BANKING_API_URL = process.env['MULTI_BANKING_API_URL'] || 'http://localhost:8010';
+const NODE_BACKEND_URL = process.env['NODE_BACKEND_URL'] || 'http://localhost:8006';
 const JWT_SECRET = process.env['JWT_SECRET'] || 'internal_dev_secret';
 
 if (!process.env['JWT_SECRET']) {

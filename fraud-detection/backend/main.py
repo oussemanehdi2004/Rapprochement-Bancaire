@@ -165,12 +165,31 @@ async def log_requests(request, call_next):
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase = None
+_supabase_attempted = False
 
+def _get_supabase():
+    global supabase, _supabase_attempted
+    if supabase is not None:
+        return supabase
+    if _supabase_attempted:
+        return None
+    if SUPABASE_URL and SUPABASE_KEY:
+        try:
+            supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+            logger.info("✅ Supabase connecté avec succès")
+        except Exception as e:
+            _supabase_attempted = True
+            logger.warning(f"⚠️ Supabase non disponible ({type(e).__name__}): le système fonctionnera sans persistance.")
+    return supabase
+
+_supabase_attempted = False
 if SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    except Exception:
-        logger.exception("Erreur Supabase.")
+        logger.info("✅ Supabase connecté avec succès")
+    except Exception as e:
+        logger.warning(f"⚠️ Supabase non disponible ({type(e).__name__}): le système fonctionnera sans persistance. Connexion différée activée.")
+        supabase = None
 
 MODEL_PATH = "model_fraud_calibrated.pkl" if os.path.exists("model_fraud_calibrated.pkl") else "model_fraud.pkl"
 ISOLATION_FOREST_PATH = "model_isolation_forest.pkl"
