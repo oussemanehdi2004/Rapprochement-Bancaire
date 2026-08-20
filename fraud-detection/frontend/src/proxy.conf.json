@@ -1,21 +1,21 @@
 {
   "/api/analyze": {
-    "target": "http://127.0.0.1:8005",
+    "target": "http://127.0.0.1:8006",
     "secure": false,
     "changeOrigin": true
   },
   "/api/config": {
-    "target": "http://127.0.0.1:8005",
+    "target": "http://127.0.0.1:8006",
     "secure": false,
     "changeOrigin": true
   },
   "/api/graph": {
-    "target": "http://127.0.0.1:8005",
+    "target": "http://127.0.0.1:8006",
     "secure": false,
     "changeOrigin": true
   },
   "/api/fraud": {
-    "target": "http://127.0.0.1:8005",
+    "target": "http://127.0.0.1:8006",
     "secure": false,
     "changeOrigin": true
   },
@@ -25,14 +25,16 @@
     "changeOrigin": true,
     "pathRewrite": {
       "^/api/banking": "/banking"
-    }
+    },
+    "logLevel": "debug"
   },
   "/api": {
-    "target": "http://127.0.0.1:8005/fraud",
+    "target": "http://127.0.0.1:8006",
     "secure": false,
     "changeOrigin": true,
     "pathRewrite": {
       "^/api": "/api"
-    }
+    },
+    "logLevel": "debug"
   }
 }

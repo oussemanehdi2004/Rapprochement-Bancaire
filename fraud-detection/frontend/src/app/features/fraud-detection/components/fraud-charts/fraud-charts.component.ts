@@ -44,9 +44,14 @@ export interface HourlyData {
   template: `
     <div class="grid grid-cols-1 gap-4 w-full">
       <!-- Evolution temporelle -->
-      <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <h3 class="text-sm font-semibold text-gray-700 mb-1">Évolution du taux de fraude</h3>
-        <p class="text-xs text-gray-400 mb-3">Tendance sur les 7 derniers jours</p>
+      <div [ngClass]="analysisMode === 'supabase' ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-300 dark:border-slate-700' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'" class="rounded-xl border p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-1">
+          <h3 [ngClass]="analysisMode === 'supabase' ? 'text-slate-800 dark:text-slate-200' : 'text-gray-700 dark:text-gray-300'" class="text-sm font-semibold">Évolution du taux de fraude</h3>
+          @if (analysisMode === 'supabase') {
+            <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">Supabase</span>
+          }
+        </div>
+        <p class="text-xs text-gray-400 mb-3">Tendance basée sur les données analysées</p>
         <div class="relative h-56 w-full overflow-hidden">
           @if (getTimeSeriesData().length === 0) {
             <div class="h-full flex items-center justify-center text-xs text-gray-400">Aucune donnée temporelle</div>
@@ -57,8 +62,13 @@ export interface HourlyData {
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Répartition par sévérité -->
-        <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-          <h3 class="text-sm font-semibold text-gray-700 mb-1">Répartition par sévérité</h3>
+        <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.dark:bg-slate-900/20]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.dark:bg-gray-800]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.dark:border-slate-700]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.dark:border-gray-700]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-1">
+            <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.dark:text-slate-200]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.dark:text-gray-300]="analysisMode !== 'supabase'" class="text-sm font-semibold">Répartition par sévérité</h3>
+            @if (analysisMode === 'supabase') {
+              <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">Supabase</span>
+            }
+          </div>
           <p class="text-xs text-gray-400 mb-3">{{ totalAlerts() }} alerte(s) au total</p>
           <div class="relative h-56 w-full overflow-hidden">
             @if (totalAlerts() === 0) {
@@ -69,8 +79,13 @@ export interface HourlyData {
         </div>
 
         <!-- Règles les plus déclenchées -->
-        <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-          <h3 class="text-sm font-semibold text-gray-700 mb-1">Règles les plus déclenchées</h3>
+        <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.dark:bg-slate-900/20]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.dark:bg-gray-800]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.dark:border-slate-700]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.dark:border-gray-700]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-1">
+            <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.dark:text-slate-200]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.dark:text-gray-300]="analysisMode !== 'supabase'" class="text-sm font-semibold">Règles les plus déclenchées</h3>
+            @if (analysisMode === 'supabase') {
+              <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">Supabase</span>
+            }
+          </div>
           <p class="text-xs text-gray-400 mb-3">Top {{ Math.min(categoryStats.length, 6) }} catégorie(s)</p>
           <div class="relative h-56 w-full overflow-hidden">
             @if (categoryStats.length === 0) {
@@ -82,8 +97,13 @@ export interface HourlyData {
       </div>
 
       <!-- Heatmap horaire -->
-      <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <h3 class="text-sm font-semibold text-gray-700 mb-1">Heatmap horaire des alertes</h3>
+      <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.dark:bg-slate-900/20]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.dark:bg-gray-800]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.dark:border-slate-700]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.dark:border-gray-700]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-1">
+          <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.dark:text-slate-200]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.dark:text-gray-300]="analysisMode !== 'supabase'" class="text-sm font-semibold">Heatmap horaire des alertes</h3>
+          @if (analysisMode === 'supabase') {
+            <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">Supabase</span>
+          }
+        </div>
         <p class="text-xs text-gray-400 mb-3">Distribution par heure de la journée</p>
         <div class="relative h-40 w-full overflow-hidden">
           @if (getHourlyData().length === 0) {
@@ -100,6 +120,7 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
   @Input() categoryStats: CategoryCount[] = [];
   @Input() timeSeriesData: TimeSeriesData[] = [];
   @Input() hourlyData: HourlyData[] = [];
+  @Input() analysisMode: 'local' | 'supabase' = 'local';
 
   // Computed properties for safer access
   protected getTimeSeriesData = () => Array.isArray(this.timeSeriesData) ? this.timeSeriesData : [];
@@ -240,7 +261,25 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
     if (!canvas) return;
 
     const data = this.getTimeSeriesData();
-    const labels = data.map(d => d.date);
+    
+    // If no data, show empty state
+    if (data.length === 0) {
+      if (this.timeSeriesChart) {
+        this.timeSeriesChart.destroy();
+        this.timeSeriesChart = undefined;
+      }
+      return;
+    }
+
+    const labels = data.map(d => {
+      // Format date for display (DD/MM)
+      const dateParts = d.date.split('-');
+      if (dateParts.length === 3) {
+        return `${dateParts[2]}/${dateParts[1]}`;
+      }
+      return d.date;
+    });
+    
     const fraudRates = data.map(d => (d.totalCount > 0 ? (d.fraudCount / d.totalCount) * 100 : 0));
 
     const config: ChartConfiguration<'line'> = {
@@ -255,7 +294,7 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
             backgroundColor: 'rgba(220, 38, 38, 0.1)',
             fill: true,
             tension: 0.4,
-            pointRadius: 4,
+            pointRadius: data.length === 1 ? 6 : 4, // Larger points for single data point
             pointHoverRadius: 6,
           },
         ],
@@ -265,6 +304,27 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (context) => {
+                const index = context[0]?.dataIndex;
+                if (index !== undefined && data[index]) {
+                  return `Date: ${data[index].date}`;
+                }
+                return '';
+              },
+              label: (context) => {
+                const index = context.dataIndex;
+                if (index !== undefined && data[index]) {
+                  const rate = context.parsed.y;
+                  const fraudCount = data[index].fraudCount;
+                  const totalCount = data[index].totalCount;
+                  return `Taux: ${rate !== null ? rate.toFixed(1) : '0'}% (${fraudCount}/${totalCount} fraudes)`;
+                }
+                return '';
+              }
+            }
+          }
         },
         scales: {
           y: {
@@ -277,7 +337,9 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
           x: {
             ticks: {
               maxRotation: 45,
-              minRotation: 45
+              minRotation: 45,
+              autoSkip: false,
+              maxTicksLimit: 10
             }
           }
         }

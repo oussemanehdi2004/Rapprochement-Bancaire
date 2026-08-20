@@ -74,6 +74,17 @@
       }
     </div>
 
+    <!-- Analysis Mode Indicator -->
+    @if (analysisMode() === 'supabase') {
+      <div class="bg-slate-900 text-white rounded-xl border border-slate-700 p-4 shadow-sm mb-6 flex items-center gap-3">
+        <span class="text-2xl">🗄️</span>
+        <div>
+          <h3 class="font-semibold text-sm">Mode Analyse Supabase Actif</h3>
+          <p class="text-xs text-slate-300">Données provenant de la base de données Supabase avec persistance d'état</p>
+        </div>
+      </div>
+    }
+
     <!-- KPI Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -165,6 +176,7 @@
       [categoryStats]="categoryChartStats()"
       [timeSeriesData]="timeSeriesData()"
       [hourlyData]="hourlyData()"
+      [analysisMode]="analysisMode()"
     ></app-fraud-charts>
 
     <!-- Fraud Detection Stats -->
@@ -280,26 +292,26 @@
                       <div class="h-2 w-16 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
                         <div
                           class="h-full bg-red-500"
-                          [style.width.%]="alert.fraudScore"
+                          [style.width.%]="$any(alert).fraudScore"
                         ></div>
                       </div>
-                      <span class="font-semibold text-gray-700 dark:text-gray-300">{{ alert.fraudScore }}%</span>
+                      <span class="font-semibold text-gray-700 dark:text-gray-300">{{ $any(alert).fraudScore }}%</span>
                     </div>
                   </td>
                   <td class="px-4 py-3 whitespace-nowrap">
-                    <app-severity-badge [severity]="alert.severity || 'LOW'"></app-severity-badge>
+                    <app-severity-badge [severity]="$any(alert).severity || 'LOW'"></app-severity-badge>
                   </td>
                   <td class="px-4 py-3 text-gray-700 dark:text-gray-300 truncate max-w-[250px]">{{ alert.description }}</td>
                   <td class="px-4 py-3 whitespace-nowrap">
-                    <app-category-badge [category]="alert.category || 'NON_CATEGORISE'"></app-category-badge>
+                    <app-category-badge [category]="$any(alert).category || 'NON_CATEGORISE'"></app-category-badge>
                   </td>
-                  <td class="px-4 py-3 text-gray-500 dark:text-gray-400 truncate max-w-[180px]">{{ alert.beneficiary || '—' }}</td>
+                  <td class="px-4 py-3 text-gray-500 dark:text-gray-400 truncate max-w-[180px]">{{ $any(alert).beneficiary || '—' }}</td>
                   <td class="px-4 py-3 text-right font-semibold text-gray-800 dark:text-white whitespace-nowrap">
                     {{ alert.amount | number: '1.2-2' }} €
                   </td>
                   <td class="px-4 py-3 whitespace-nowrap">
                     <span class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 inline-block">
-                      {{ alert.status || 'analyse' }}
+                      {{ $any(alert).status || 'analyse' }}
                     </span>
                   </td>
                 </tr>
@@ -483,18 +495,18 @@
             <tbody>
               @for (alert of filteredAlerts(); track alert.id) {
                 <tr class="border-t border-gray-100 dark:border-gray-700">
-                  <td class="px-4 py-3 font-medium text-gray-800 dark:text-white whitespace-nowrap">{{ alert.transactionId || alert.id }}</td>
+                  <td class="px-4 py-3 font-medium text-gray-800 dark:text-white whitespace-nowrap">{{ $any(alert).transactionId || alert.id }}</td>
                   <td class="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                    <app-category-badge [category]="alert.category || 'NON_CATEGORISE'"></app-category-badge>
+                    <app-category-badge [category]="$any(alert).category || 'NON_CATEGORISE'"></app-category-badge>
                   </td>
-                  <td class="px-4 py-3 text-center font-semibold whitespace-nowrap" [class.text-red-600]="(alert.fraudScore ?? 0) >= 50" [class.text-green-600]="(alert.fraudScore ?? 0) < 50" [class.dark:text-red-400]="(alert.fraudScore ?? 0) >= 50" [class.dark:text-green-400]="(alert.fraudScore ?? 0) < 50">
-                    {{ alert.fraudScore ?? 0 }}%
+                  <td class="px-4 py-3 text-center font-semibold whitespace-nowrap" [class.text-red-600]="($any(alert).fraudScore ?? 0) >= 50" [class.text-green-600]="($any(alert).fraudScore ?? 0) < 50" [class.dark:text-red-400]="($any(alert).fraudScore ?? 0) >= 50" [class.dark:text-green-400]="($any(alert).fraudScore ?? 0) < 50">
+                    {{ $any(alert).fraudScore ?? 0 }}%
                   </td>
                   <td class="px-4 py-3 text-center whitespace-nowrap">
-                    <app-severity-badge [severity]="alert.severity || (((alert.fraudScore ?? 0) >= 70) ? 'HIGH' : 'LOW')"></app-severity-badge>
+                    <app-severity-badge [severity]="$any(alert).severity || ((($any(alert).fraudScore ?? 0) >= 70) ? 'HIGH' : 'LOW')"></app-severity-badge>
                   </td>
                   <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs truncate max-w-[320px]">
-                    {{ alert.explainability.factors.join(' · ') || '—' }}
+                    {{ $any(alert).explainability?.factors?.join(' · ') || '—' }}
                   </td>
                 </tr>
               }

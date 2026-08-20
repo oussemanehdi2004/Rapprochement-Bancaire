@@ -2,7 +2,7 @@ import { Component, OnInit, PLATFORM_ID, computed, inject, signal } from '@angul
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { FraudAlertsService } from '../services/fraud-alerts.service';
+import { FraudAlertsService, TransactionOutputExtended } from '../services/fraud-alerts.service';
 import { DefaultService, TransactionInput, TransactionOutput } from '../../../api';
 import { GraphService, GraphAccountNode, GraphNetworkResponse } from '../services/graph.service';
 import { FraudAlert } from '../models/fraud-alert.model';
@@ -133,95 +133,152 @@ export class FraudDashboardComponent implements OnInit {
     'receiver_balance_after'
   ];
 
-  // Données de démonstration
+  // Données de démonstration - SPREAD ACROSS MULTIPLE DATES FOR TIME SERIES
   public readonly mockTransactionsToAnalyze: CsvTransaction[] = [
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_001", id: "tx_seuil",
-      date: "2026-07-24T10:00:00Z", description: "Virement fournisseur externe",
+      date: "2026-08-13T10:00:00Z", description: "Virement fournisseur externe",
       amount: 15000.0, sender_balance_before: 50000.0, sender_balance_after: 35000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 15000.0, transaction_type: "TRANSFER"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_002", id: "tx_approche",
-      date: "2026-07-24T10:02:00Z", description: "Virement fournisseur B",
+      date: "2026-08-13T10:02:00Z", description: "Virement fournisseur B",
       amount: 9500.0, sender_balance_before: 20000.0, sender_balance_after: 10500.0,
       receiver_balance_before: 0.0, receiver_balance_after: 9500.0, transaction_type: "TRANSFER"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_003", id: "tx_cash",
-      date: "2026-07-24T10:05:00Z", description: "Retrait exceptionnel PARIS",
+      date: "2026-08-14T10:05:00Z", description: "Retrait exceptionnel PARIS",
       amount: 6000.0, sender_balance_before: 10000.0, sender_balance_after: 4000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 0.0, transaction_type: "CASH_OUT"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_004", id: "tx_casino",
-      date: "2026-07-24T10:07:00Z", description: "Virement casino en ligne",
+      date: "2026-08-14T10:07:00Z", description: "Virement casino en ligne",
       amount: 250.0, sender_balance_before: 2000.0, sender_balance_after: 1750.0,
       receiver_balance_before: 0.0, receiver_balance_after: 250.0, transaction_type: "TRANSFER"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_005", id: "tx_dup_1",
-      date: "2026-07-24T11:00:00Z", description: "Paiement Fournisseur ABC",
+      date: "2026-08-15T11:00:00Z", description: "Paiement Fournisseur ABC",
       amount: 2500.0, sender_balance_before: 8000.0, sender_balance_after: 5500.0,
       receiver_balance_before: 0.0, receiver_balance_after: 2500.0, transaction_type: "PAYMENT"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_006", id: "tx_dup_2",
-      date: "2026-07-24T11:01:00Z", description: "Paiement Fournisseur ABC",
+      date: "2026-08-15T11:01:00Z", description: "Paiement Fournisseur ABC",
       amount: 2500.0, sender_balance_before: 5500.0, sender_balance_after: 3000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 2500.0, transaction_type: "PAYMENT"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_007", id: "tx_rep_1",
-      date: "2026-07-24T12:00:00Z", description: "Abonnement mensuel Service X",
+      date: "2026-08-16T12:00:00Z", description: "Abonnement mensuel Service X",
       amount: 800.0, sender_balance_before: 3000.0, sender_balance_after: 2200.0,
       receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_008", id: "tx_rep_2",
-      date: "2026-07-24T12:01:00Z", description: "Abonnement mensuel Service X",
+      date: "2026-08-16T12:01:00Z", description: "Abonnement mensuel Service X",
       amount: 800.0, sender_balance_before: 2200.0, sender_balance_after: 1400.0,
       receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_009", id: "tx_rep_3",
-      date: "2026-07-24T12:02:00Z", description: "Abonnement mensuel Service X",
+      date: "2026-08-17T12:02:00Z", description: "Abonnement mensuel Service X",
       amount: 800.0, sender_balance_before: 1400.0, sender_balance_after: 600.0,
       receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_010", id: "tx_frac_1",
-      date: "2026-07-24T13:00:00Z", description: "Virement partiel A",
+      date: "2026-08-17T13:00:00Z", description: "Virement partiel A",
       amount: 4000.0, sender_balance_before: 20000.0, sender_balance_after: 16000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 4000.0, transaction_type: "TRANSFER"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_011", id: "tx_frac_2",
-      date: "2026-07-24T13:10:00Z", description: "Virement partiel B",
+      date: "2026-08-18T13:10:00Z", description: "Virement partiel B",
       amount: 4000.0, sender_balance_before: 16000.0, sender_balance_after: 12000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 4000.0, transaction_type: "TRANSFER"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_012", id: "tx_frac_3",
-      date: "2026-07-24T13:20:00Z", description: "Virement partiel C",
+      date: "2026-08-18T13:20:00Z", description: "Virement partiel C",
       amount: 3000.0, sender_balance_before: 12000.0, sender_balance_after: 9000.0,
       receiver_balance_before: 0.0, receiver_balance_after: 3000.0, transaction_type: "TRANSFER"
     },
     {
       tenant_id: "tenant-123", transaction_reference: "mongo_013", id: "tx_clean",
-      date: "2026-07-24T14:00:00Z", description: "Achat fournitures de bureau",
+      date: "2026-08-19T14:00:00Z", description: "Achat fournitures de bureau",
       amount: 45.0, sender_balance_before: 1000.0, sender_balance_after: 955.0,
       receiver_balance_before: 0.0, receiver_balance_after: 45.0, transaction_type: "PAYMENT"
     }
   ];
 
+  // Analysis mode to track data source
+  public analysisMode = signal<'local' | 'supabase'>('local');
+
   // Exposition des signaux du service
-  public filteredAlerts = this.alertsService.alerts;
+  public filteredAlerts = computed(() => {
+    if (this.analysisMode() === 'supabase') {
+      const supa = this.supabaseResults();
+      return supa ? this.mapTransactionData(supa) : [];
+    }
+    return this.alertsService.alerts();
+  });
+  
   public loading = this.alertsService.loading;
   public errorMessage = signal<string | null>(null);
 
   // Signal pour stocker les résultats des cas Supabase
   public supabaseResults = signal<TransactionOutput[] | null>(null);
+
+  // Helper method to map TransactionOutput to TransactionOutputExtended
+  private mapTransactionData(items: TransactionOutput[]): TransactionOutputExtended[] {
+    return items.map(tx => {
+      const score = (tx as any).score ?? (tx.fraudProbability ? Math.round(tx.fraudProbability * 100) : 0);
+      
+      let derivedConfidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
+      if (score >= 85) derivedConfidence = 'HIGH';
+      else if (score >= 70) derivedConfidence = 'MEDIUM';
+      else derivedConfidence = 'LOW';
+
+      let derivedSeverity: 'critical' | 'high' | 'medium' | 'low' = 'low';
+      const fraudProb = tx.fraudProbability ?? 0;
+      if (fraudProb >= 0.9) derivedSeverity = 'critical';
+      else if (fraudProb >= 0.7) derivedSeverity = 'high';
+      else if (fraudProb >= 0.5) derivedSeverity = 'medium';
+      else derivedSeverity = 'low';
+
+      let derivedCategory = (tx as any).ruleCategory || 'NON_CATEGORISE';
+      if (derivedCategory === 'NON_CATEGORISE' && tx.explainability?.factors) {
+        const factorsStr = tx.explainability.factors.join(' ').toLowerCase();
+        if (factorsStr.includes('montant') && (factorsStr.includes('inhabituel') || factorsStr.includes('exceptionnel'))) {
+          derivedCategory = 'montant_exceptionnel';
+        }
+      }
+
+      return {
+        ...tx,
+        tenantId: tx.tenant_id,
+        transactionId: tx.id || tx.transaction_reference,
+        category: derivedCategory,
+        confidence: derivedConfidence,
+        severity: derivedSeverity,
+        beneficiary: '—',
+        fraudScore: score,
+        status: tx.isFraud ? 'new' : 'dismissed',
+        isFraud: tx.isFraud ?? false,
+        fraudProbability: tx.fraudProbability ?? 0,
+        reconciliationStatus: tx.reconciliationStatus ?? 'PENDING' as any,
+        explainability: {
+          summary: tx.explainability?.summary ?? 'No explanation available',
+          factors: tx.explainability?.factors ?? [],
+          shap_contributions: tx.explainability?.shap_contributions ?? []
+        }
+      } as TransactionOutputExtended;
+    });
+  }
 
   // Filtres UI
   public statusFilter = signal<string>('tous');
@@ -356,26 +413,36 @@ export class FraudDashboardComponent implements OnInit {
     const alerts = this.filteredAlerts();
     if (alerts.length === 0) return [];
 
-    // Grouper par date
-    const grouped = new Map<string, { fraudCount: number; totalCount: number }>();
+    // Extract unique dates from actual transaction data
+    const dateMap = new Map<string, { fraudCount: number; totalCount: number }>();
     
     for (const alert of alerts) {
-      const date = alert.date?.split('T')[0] || new Date().toISOString().split('T')[0];
-      const entry = grouped.get(date) || { fraudCount: 0, totalCount: 0 };
-      
-      if (alert.isFraud) {
-        entry.fraudCount++;
+      try {
+        const alertDate = alert.date?.split('T')[0];
+        if (!alertDate) continue;
+        
+        const entry = dateMap.get(alertDate) ?? { fraudCount: 0, totalCount: 0 };
+        entry.totalCount++;
+        if (alert.isFraud) {
+          entry.fraudCount++;
+        }
+        dateMap.set(alertDate, entry);
+      } catch (e) {
+        // Ignore invalid dates
       }
-      entry.totalCount++;
-      
-      grouped.set(date, entry);
     }
-
-    // Convertir en tableau et trier par date
-    return Array.from(grouped.entries())
-      .map(([date, stats]) => ({ date, ...stats }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(-7); // Derniers 7 jours
+    
+    // Convert to array and sort by date
+    const timeSeries = Array.from(dateMap.entries())
+      .map(([date, stats]) => ({
+        date,
+        fraudCount: stats.fraudCount,
+        totalCount: stats.totalCount
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    
+    // If we have data, return it; otherwise return empty array
+    return timeSeries.length > 0 ? timeSeries : [];
   });
 
   // ===== DONNÉES HORAIRES POUR LA HEATMAP =====
@@ -451,13 +518,12 @@ export class FraudDashboardComponent implements OnInit {
 
   // ===== STATISTIQUES DE SÉVÉRITÉ POUR LE GRAPHE DONUT =====
   public severityCounts = computed<SeverityCounts>(() => {
-    const supa = this.supabaseResults();
-    const list: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
+    const list = this.filteredAlerts();
     const threshold = this.appliedMlThreshold();
 
     const counts: SeverityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
     for (const item of list) {
-      const score = item.fraudScore ?? item.fraud_score ?? item.score ?? 0;
+      const score = (item as any).fraudScore ?? (item as any).fraud_score ?? (item as any).score ?? 0;
       if (score >= 85) counts.critical++;
       else if (score >= threshold && score >= 70) counts.high++;
       else if (score >= threshold) counts.medium++;
@@ -471,7 +537,7 @@ export class FraudDashboardComponent implements OnInit {
     const groups = new Map<string, { positive: number; negative: number }>();
 
     for (const alert of this.filteredAlerts()) {
-      const contributions = alert.explainability.shap_contributions ?? [];
+      const contributions = (alert as any).explainability?.shap_contributions ?? [];
 
       for (const c of contributions) {
         const entry = groups.get(c.feature) ?? { positive: 0, negative: 0 };
@@ -494,15 +560,15 @@ export class FraudDashboardComponent implements OnInit {
   );
 
   public mlFactorsOf(alert: FraudAlert): string[] {
-    const contributions = (alert.explainability as any)?.shap_contributions ?? [];
+    const contributions = (alert as any).explainability?.shap_contributions ?? [];
     if (contributions.length > 0) {
       return contributions.map((c: any) => `${c.feature} (${c.direction === 'positive' ? '+' : '-'}${c.value})`);
     }
-    return alert.explainability.factors.filter(f => / a contribué (positivement|négativement)$/.test(f));
+    return (alert as any).explainability?.factors?.filter((f: string) => / a contribué (positivement|négativement)$/.test(f)) ?? [];
   }
 
   public ruleFactorsOf(alert: FraudAlert): string[] {
-    return alert.explainability.factors.filter(f => !/ a contribué (positivement|négativement)$/.test(f));
+    return (alert as any).explainability?.factors?.filter((f: string) => !/ a contribué (positivement|négativement)$/.test(f)) ?? [];
   }
 
   // ===== CONFIG API SERVICE =====
@@ -716,6 +782,7 @@ export class FraudDashboardComponent implements OnInit {
     this.importError.set(null);
     this.importedFileName.set(null);
     this.supabaseResults.set(null);
+    this.analysisMode.set('local');
     this.resetLocalAlerts();
     this.analyze();
   }
@@ -736,21 +803,18 @@ export class FraudDashboardComponent implements OnInit {
   // ===== KPIS CALCULÉS STRICTEMENT SELON LE SEUIL DÉFINI =====
 
   public totalAnalyzed = computed(() => {
-    const supa = this.supabaseResults();
-    if (supa && supa.length > 0) return supa.length;
     return this.filteredAlerts().length;
   });
 
   public fraudRate = computed(() => {
-    const supa = this.supabaseResults();
-    const list: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
+    const list = this.filteredAlerts();
     const total = list.length;
     if (total === 0) return 0;
 
     const threshold = this.appliedMlThreshold();
 
     const fraudCount = list.filter(item => {
-      const score = item.fraudScore ?? item.fraud_score ?? item.score ?? 0;
+      const score = (item as any).fraudScore ?? (item as any).fraud_score ?? (item as any).score ?? 0;
       return score >= threshold;
     }).length;
 
@@ -758,12 +822,11 @@ export class FraudDashboardComponent implements OnInit {
   });
 
   public totalAtRisk = computed(() => {
-    const supa = this.supabaseResults();
-    const list: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
+    const list = this.filteredAlerts();
     const threshold = this.appliedMlThreshold();
 
     const suspiciousItems = list.filter(item => {
-      const score = item.fraudScore ?? item.fraud_score ?? item.score ?? 0;
+      const score = (item as any).fraudScore ?? (item as any).fraud_score ?? (item as any).score ?? 0;
       return score >= threshold;
     });
 
@@ -771,41 +834,88 @@ export class FraudDashboardComponent implements OnInit {
   });
 
   public globalRiskScore = computed(() => {
-    const supa = this.supabaseResults();
-    const list: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
+    const list = this.filteredAlerts();
     if (list.length === 0) return 0;
 
     const sumScore = list.reduce((acc, item) => {
-      const score = item.fraudScore ?? item.fraud_score ?? item.score ?? 0;
+      const score = (item as any).fraudScore ?? (item as any).fraud_score ?? (item as any).score ?? 0;
       return acc + score;
     }, 0);
 
     return Math.round((sumScore / list.length) * 100) / 100;
   });
 
-  // Trend indicators (simulated for demo - in production would compare with previous period)
+  // Store previous period data for real trend calculations
+  private previousPeriodData = signal<{
+    fraudRate: number;
+    amountAtRisk: number;
+    riskScore: number;
+  } | null>(null);
+
+  // Real trend indicators based on actual data comparison
   public fraudRateTrend = computed(() => {
     const currentRate = this.fraudRate();
-    // Simulated trend - in production this would compare with previous period
-    return currentRate > 30 ? { value: 12, isPositive: false } : { value: -5, isPositive: true };
+    const previous = this.previousPeriodData();
+    
+    if (!previous || previous.fraudRate === 0) {
+      return { value: 0, isPositive: true };
+    }
+    
+    const change = ((currentRate - previous.fraudRate) / previous.fraudRate) * 100;
+    return {
+      value: Math.round(change),
+      isPositive: change < 0 // positive = good (decrease in fraud)
+    };
   });
 
   public amountAtRiskTrend = computed(() => {
     const currentAmount = this.totalAtRisk();
-    // Simulated trend - in production this would compare with previous period
-    return currentAmount > 20000 ? { value: 8, isPositive: false } : { value: -3, isPositive: true };
+    const previous = this.previousPeriodData();
+    
+    if (!previous || previous.amountAtRisk === 0) {
+      return { value: 0, isPositive: true };
+    }
+    
+    const change = ((currentAmount - previous.amountAtRisk) / previous.amountAtRisk) * 100;
+    return {
+      value: Math.round(change),
+      isPositive: change < 0 // positive = good (decrease in risk)
+    };
   });
 
   public riskScoreTrend = computed(() => {
     const currentScore = this.globalRiskScore();
-    // Simulated trend - in production this would compare with previous period
-    return currentScore > 50 ? { value: 15, isPositive: false } : { value: -2, isPositive: true };
+    const previous = this.previousPeriodData();
+    
+    if (!previous || previous.riskScore === 0) {
+      return { value: 0, isPositive: true };
+    }
+    
+    const change = ((currentScore - previous.riskScore) / previous.riskScore) * 100;
+    return {
+      value: Math.round(change),
+      isPositive: change < 0 // positive = good (decrease in risk score)
+    };
   });
+
+  // Save current data as previous period for next comparison
+  private saveCurrentAsPrevious(): void {
+    this.previousPeriodData.set({
+      fraudRate: this.fraudRate(),
+      amountAtRisk: this.totalAtRisk(),
+      riskScore: this.globalRiskScore()
+    });
+  }
 
   public analyze(): void {
     this.errorMessage.set(null);
     this.importError.set(null);
     this.supabaseResults.set(null);
+    this.analysisMode.set('local');
+    
+    // Save current data as previous for trend calculation
+    this.saveCurrentAsPrevious();
+    
     this.resetLocalAlerts();
 
     this.alertsService.analyzeTransactions(this.mockTransactionsToAnalyze).subscribe({
@@ -844,12 +954,12 @@ export class FraudDashboardComponent implements OnInit {
   }
 
   private useMockDataForDemo(): void {
-    // Données mockées pour la démo sans authentification
+    // Données mockées pour la démo sans authentification - SPREAD ACROSS DATES
     const mockAlerts: any[] = [
       {
         id: 'tx_seuil',
         transactionId: 'mongo_001',
-        date: '2026-07-24T10:00:00Z',
+        date: '2026-08-13T10:00:00Z',
         description: 'Virement fournisseur externe',
         amount: 15000.0,
         isFraud: true,
@@ -872,7 +982,7 @@ export class FraudDashboardComponent implements OnInit {
       {
         id: 'tx_approche',
         transactionId: 'mongo_002',
-        date: '2026-07-24T10:02:00Z',
+        date: '2026-08-14T10:02:00Z',
         description: 'Virement fournisseur B',
         amount: 9500.0,
         isFraud: true,
@@ -895,7 +1005,7 @@ export class FraudDashboardComponent implements OnInit {
       {
         id: 'tx_cash',
         transactionId: 'mongo_003',
-        date: '2026-07-24T10:05:00Z',
+        date: '2026-08-15T10:05:00Z',
         description: 'Retrait exceptionnel PARIS',
         amount: 6000.0,
         isFraud: true,
@@ -918,7 +1028,7 @@ export class FraudDashboardComponent implements OnInit {
       {
         id: 'tx_dup_1',
         transactionId: 'mongo_005',
-        date: '2026-07-24T11:00:00Z',
+        date: '2026-08-16T11:00:00Z',
         description: 'Paiement Fournisseur ABC',
         amount: 2500.0,
         isFraud: true,
@@ -941,7 +1051,7 @@ export class FraudDashboardComponent implements OnInit {
       {
         id: 'tx_clean',
         transactionId: 'mongo_013',
-        date: '2026-07-24T14:00:00Z',
+        date: '2026-08-17T14:00:00Z',
         description: 'Achat fournitures de bureau',
         amount: 45.0,
         isFraud: false,
@@ -971,14 +1081,17 @@ export class FraudDashboardComponent implements OnInit {
   public analyzeSupabaseCases(): void {
     this.errorMessage.set(null);
     this.loading.set(true);
-    this.resetLocalAlerts();
+    this.analysisMode.set('supabase');
+    
+    // Save current data as previous for trend calculation
+    this.saveCurrentAsPrevious();
 
     const transactionsSupabase: TransactionInput[] = [
       {
         tenant_id: "tenant-123",
         transaction_reference: "mongo_supa_001",
         id: "tx_montant_except",
-        date: "2026-07-27T09:00:00Z",
+        date: "2026-08-13T09:00:00Z",
         description: "Virement urgent fournisseur",
         amount: 900.0,
         sender_balance_before: 5000.0,
@@ -994,7 +1107,7 @@ export class FraudDashboardComponent implements OnInit {
         tenant_id: "tenant-123",
         transaction_reference: "mongo_supa_002",
         id: "tx_compte_dormant",
-        date: "2026-07-27T09:05:00Z",
+        date: "2026-08-14T09:05:00Z",
         description: "Virement réactivation compte",
         amount: 500.0,
         sender_balance_before: 1200.0,
@@ -1010,7 +1123,7 @@ export class FraudDashboardComponent implements OnInit {
         tenant_id: "tenant-123",
         transaction_reference: "mongo_supa_003",
         id: "tx_nouvel_iban",
-        date: "2026-07-27T09:10:00Z",
+        date: "2026-08-15T09:10:00Z",
         description: "Virement nouveau bénéficiaire",
         amount: 800.0,
         sender_balance_before: 3000.0,
@@ -1026,7 +1139,14 @@ export class FraudDashboardComponent implements OnInit {
 
     this.apiService.analyzeTransactions(transactionsSupabase).subscribe({
       next: (resultats: TransactionOutput[]) => {
+        // Store in supabaseResults for reference
         this.supabaseResults.set(resultats);
+        
+        // Also put in main alerts service for consistent UI
+        const mappedResults = this.mapTransactionData(resultats);
+        this.alertsService.alerts.set(mappedResults);
+        this.alertsService.updateStats(mappedResults);
+        
         this.loading.set(false);
       },
       error: (erreur: any) => {
@@ -1048,7 +1168,7 @@ export class FraudDashboardComponent implements OnInit {
     const mockSupabaseResults: any[] = [
       {
         id: 'tx_montant_except',
-        date: '2026-07-27T09:00:00Z',
+        date: '2026-08-13T09:00:00Z',
         description: 'Virement urgent fournisseur',
         amount: 900.0,
         isFraud: true,
@@ -1072,7 +1192,7 @@ export class FraudDashboardComponent implements OnInit {
         id: 'tx_compte_dormant',
         transaction_reference: 'mongo_supa_002',
         transactionId: 'mongo_supa_002',
-        date: '2026-07-27T09:05:00Z',
+        date: '2026-08-14T09:05:00Z',
         description: 'Virement réactivation compte',
         amount: 500.0,
         isFraud: true,
@@ -1096,7 +1216,7 @@ export class FraudDashboardComponent implements OnInit {
         id: 'tx_nouvel_iban',
         transaction_reference: 'mongo_supa_003',
         transactionId: 'mongo_supa_003',
-        date: '2026-07-27T09:10:00Z',
+        date: '2026-08-15T09:10:00Z',
         description: 'Virement nouveau bénéficiaire',
         amount: 800.0,
         isFraud: true,
@@ -1119,6 +1239,11 @@ export class FraudDashboardComponent implements OnInit {
     ];
 
     this.supabaseResults.set(mockSupabaseResults);
+    
+    // Also put in main alerts service for consistent UI when in fallback mode
+    const mappedResults = this.mapTransactionData(mockSupabaseResults);
+    this.alertsService.alerts.set(mappedResults);
+    this.alertsService.updateStats(mappedResults);
   }
 
   // ===== FONCTIONS UTILITAIRES D'AFFICHAGE =====
@@ -1127,8 +1252,7 @@ export class FraudDashboardComponent implements OnInit {
   }
   // ===== EXPORT CSV DES ALERTES =====
   public exportToCsv(): void {
-    const supa = this.supabaseResults();
-    const source: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
+    const source = this.filteredAlerts();
 
     if (!source || source.length === 0) {
       return;
@@ -1140,15 +1264,15 @@ export class FraudDashboardComponent implements OnInit {
     ];
 
     const rows = source.map((item: any) => [
-      item.id ?? item.transactionId ?? '',
+      item.id ?? (item as any).transactionId ?? '',
       item.date ?? '',
       (item.description ?? '').replace(/"/g, '""'),
       item.amount ?? 0,
-      item.fraudScore ?? item.score ?? 0,
-      item.severity ?? '',
-      item.category ?? item.ruleCategory ?? 'NON_CATEGORISE',
-      item.status ?? item.reconciliationStatus ?? '',
-      item.beneficiary ?? '',
+      (item as any).fraudScore ?? (item as any).score ?? 0,
+      (item as any).severity ?? '',
+      (item as any).category ?? (item as any).ruleCategory ?? 'NON_CATEGORISE',
+      (item as any).status ?? (item as any).reconciliationStatus ?? '',
+      (item as any).beneficiary ?? '',
       item.isFraud ? 'OUI' : 'NON'
     ]);
 
@@ -1172,8 +1296,7 @@ export class FraudDashboardComponent implements OnInit {
 
   // ===== EXPORT PDF DES ALERTES =====
   public exportToPdf(): void {
-    const supa = this.supabaseResults();
-    const source: any[] = (supa && supa.length > 0) ? supa : this.filteredAlerts();
+    const source = this.filteredAlerts();
 
     if (!source || source.length === 0) {
       return;
@@ -1181,17 +1304,17 @@ export class FraudDashboardComponent implements OnInit {
 
     // Convertir en format FraudAlert attendu par le service
     const alerts: FraudAlert[] = source.map((item: any) => ({
-      id: item.id ?? item.transactionId ?? '',
-      tenantId: item.tenantId ?? item.tenant_id ?? 'unknown',
-      transactionId: item.id ?? item.transactionId ?? '',
+      id: item.id ?? (item as any).transactionId ?? '',
+      tenantId: (item as any).tenantId ?? item.tenant_id ?? 'unknown',
+      transactionId: item.id ?? (item as any).transactionId ?? '',
       date: item.date ?? '',
       description: item.description ?? '',
       amount: item.amount ?? 0,
-      beneficiary: item.beneficiary ?? '',
-      category: item.category ?? item.ruleCategory ?? 'NON_CATEGORISE',
-      severity: item.severity ?? 'low',
-      fraudScore: item.fraudScore ?? item.score ?? 0,
-      status: item.status ?? 'new',
+      beneficiary: (item as any).beneficiary ?? '',
+      category: (item as any).category ?? (item as any).ruleCategory ?? 'NON_CATEGORISE',
+      severity: (item as any).severity ?? 'low',
+      fraudScore: (item as any).fraudScore ?? (item as any).score ?? 0,
+      status: (item as any).status ?? 'new',
       explainability: item.explainability ?? { summary: '', factors: [] }
     }));
 

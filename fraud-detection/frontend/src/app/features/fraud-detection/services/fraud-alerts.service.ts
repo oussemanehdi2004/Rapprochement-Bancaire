@@ -181,6 +181,17 @@ export class FraudAlertsService {
     });
   }
 
+  public clearAlerts(): void {
+    this.alerts.set([]);
+    this.stats.set({
+      totalAlerts: 0,
+      critical: 0,
+      high: 0,
+      underInvestigation: 0,
+      totalAmountAtRisk: 0
+    });
+  }
+
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'Une erreur réseau ou serveur est survenue.';
     if (error.error instanceof ErrorEvent) {

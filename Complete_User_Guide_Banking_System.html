@@ -1,0 +1,952 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete User Guide - Banking System</title>
+    
+<style>
+    body { 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        line-height: 1.6; 
+        max-width: 900px; 
+        margin: 0 auto; 
+        padding: 40px;
+        color: #333;
+        background-color: #fff;
+    }
+    h1 { 
+        color: #2c3e50; 
+        border-bottom: 4px solid #3498db; 
+        padding-bottom: 15px; 
+        font-size: 28px;
+        margin-top: 40px;
+    }
+    h2 { 
+        color: #34495e; 
+        border-bottom: 2px solid #95a5a6; 
+        padding-bottom: 10px; 
+        margin-top: 35px;
+        font-size: 22px;
+    }
+    h3 { 
+        color: #7f8c8d; 
+        margin-top: 25px;
+        font-size: 18px;
+    }
+    h4 {
+        color: #95a5a6;
+        margin-top: 20px;
+        font-size: 16px;
+    }
+    table { 
+        border-collapse: collapse; 
+        width: 100%; 
+        margin: 25px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    th, td { 
+        border: 1px solid #ddd; 
+        padding: 12px 15px; 
+        text-align: left;
+    }
+    th { 
+        background-color: #3498db; 
+        color: white;
+        font-weight: bold;
+    }
+    tr:nth-child(even) { 
+        background-color: #f8f9fa;
+    }
+    tr:hover {
+        background-color: #e8f4f8;
+    }
+    code {
+        background-color: #f4f4f4;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+    }
+    pre {
+        background-color: #f4f4f4;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+    }
+    blockquote {
+        border-left: 5px solid #3498db;
+        padding-left: 20px;
+        margin: 25px 0;
+        color: #555;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 0 5px 5px 0;
+    }
+    hr {
+        border: none;
+        border-top: 3px solid #3498db;
+        margin: 35px 0;
+    }
+    ul, ol {
+        margin: 15px 0;
+        padding-left: 30px;
+    }
+    li {
+        margin: 8px 0;
+    }
+    strong {
+        color: #2c3e50;
+    }
+    a {
+        color: #3498db;
+        text-decoration: none;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+    .emoji {
+        font-size: 1.2em;
+    }
+    @media print {
+        body {
+            max-width: 100%;
+            padding: 20px;
+        }
+        h1, h2, h3, h4 {
+            page-break-after: avoid;
+        }
+        table, blockquote, pre {
+            page-break-inside: avoid;
+        }
+    }
+</style>
+
+</head>
+<body>
+    
+<div style="text-align: center; margin-bottom: 40px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px;">
+    <h1 style="color: white; border: none; margin: 0; font-size: 32px;">🏦 Complete User Guide - Banking System</h1>
+    <p style="margin: 10px 0 0 0; font-size: 18px;">Fraud Detection & Multi-Banking for Accountants</p>
+    <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Created: August 19, 2026 | Target Audience: Accountants and Banking Staff</p>
+</div>
+
+    <h1>Complete User Guide - Banking System</h1>
+<h2>Fraud Detection &amp; Multi-Banking for Accountants</h2>
+<p><strong>Document Title:</strong> Complete User Guide - Banking System<br />
+<strong>Created:</strong> August 19, 2026<br />
+<strong>Target Audience:</strong> Accountants and Banking Staff<br />
+<strong>Purpose:</strong> Step-by-step guide for using Fraud Detection and Multi-Banking modules in BankMatch/Rapprochement Bancaire</p>
+<hr />
+<h1>Table of Contents</h1>
+<ol>
+<li><a href="#1-introduction-what-is-this-system">Introduction: What is this system?</a></li>
+<li><a href="#2-the-4-main-pages-overview">The 4 Main Pages - Overview</a></li>
+<li><a href="#3--fraud-detection-page---the-security-guard-room">Fraud Detection Page - Detailed Guide</a></li>
+<li><a href="#4--multi-banking-page---the-central-hub">Multi-Banking Page - Detailed Guide</a></li>
+<li><a href="#5--transactions-page---the-search-engine">Transactions Page - Detailed Guide</a></li>
+<li><a href="#6--reports-page---the-analytics-center">Reports Page - Detailed Guide</a></li>
+<li><a href="#7-why-these-modules-are-crucial-for-bankmatch">Why These Modules Are Crucial for BankMatch</a></li>
+<li><a href="#8-a-day-in-the-life---practical-example">A Day in the Life - Practical Example</a></li>
+<li><a href="#9-key-benefits-summary">Key Benefits Summary</a></li>
+<li><a href="#10-quick-reference-card">Quick Reference Card</a></li>
+</ol>
+<hr />
+<h1>1. INTRODUCTION: What is this system?</h1>
+<p>Imagine you work in a bank and you have to check thousands of transactions every day to find the bad ones (fraud). This would be impossible to do manually!</p>
+<p><strong>This system is like having a super-smart assistant that:</strong></p>
+<p>🔍 <strong>AUTOMATICALLY FINDS SUSPICIOUS TRANSACTIONS</strong><br />
+(like someone stealing money)</p>
+<p>🏦 <strong>COMBINES DATA FROM MULTIPLE BANKS</strong><br />
+(so you can see everything in one place)</p>
+<p>📊 <strong>SHOWS YOU CLEAR REPORTS</strong><br />
+(so you can understand what's happening)</p>
+<p>⚙️ <strong>LETS YOU ADJUST THE RULES</strong><br />
+(so you can customize what to look for)</p>
+<hr />
+<h1>2. THE 4 MAIN PAGES (like 4 different rooms in your office)</h1>
+<p>🔍 <strong>PAGE 1: FRAUD DETECTION</strong> (The Security Guard Room)<br />
+└─ 6 different tools for finding and understanding fraud</p>
+<p>🏦 <strong>PAGE 2: MULTI-BANKING</strong> (The Central Hub)<br />
+└─ Upload and process bank statements from different banks</p>
+<p>📋 <strong>PAGE 3: TRANSACTIONS</strong> (The Search Engine)<br />
+└─ Search and filter through all your transactions</p>
+<p>📊 <strong>PAGE 4: REPORTS</strong> (The Analytics Center)<br />
+└─ Create charts and reports about banking activity</p>
+<hr />
+<h1>3. 🔍 FRAUD DETECTION PAGE - The Security Guard Room</h1>
+<p><strong>GOAL:</strong> This is like having a security guard who watches every transaction and says "This looks suspicious!" or "This looks normal."</p>
+<p>The page has 6 different tabs (like 6 different tools in your security kit):</p>
+<hr />
+<h2>📊 TAB 1: OVERVIEW (Vue d'ensemble) - The Dashboard</h2>
+<p><strong>GOAL:</strong> See everything important at a glance, like a car dashboard.</p>
+<h3>WHAT YOU SEE:</h3>
+<p><strong>Big Numbers at the top:</strong>
+- <strong>Total Analyzed:</strong> How many transactions we checked today
+- <strong>Fraud Rate:</strong> What percentage might be bad 
+- <strong>Total at Risk:</strong> How much money might be stolen<br />
+- <strong>Global Risk Score:</strong> Overall danger level (0-100)</p>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Imagine you have a store. At the end of the day, you look at:
+- 100 customers came in
+- 5 of them looked suspicious 
+- €2,000 worth of goods might have been stolen
+- Overall risk level: 15% (not too bad)</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Look at the big numbers to understand today's situation</li>
+<li>If you see red/high numbers, you know you need to investigate</li>
+<li>Click on other tabs to see details</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Quick health check of your banking system</li>
+<li>Helps you decide where to focus your attention  </li>
+<li>Shows if fraud is increasing or decreasing</li>
+</ul>
+<hr />
+<h2>🔍 TAB 2: HYBRID DETECTION (Détection Hybride) - The Investigation List</h2>
+<p><strong>GOAL:</strong> See each suspicious transaction and understand why it was flagged.</p>
+<h3>WHAT YOU SEE:</h3>
+<p><strong>A table of transactions with columns:</strong>
+- <strong>Date:</strong> When it happened
+- <strong>Description:</strong> What the transaction is
+- <strong>Amount:</strong> How much money (€15,000)
+- <strong>Score:</strong> How suspicious (0-100, higher = more dangerous)
+- <strong>Category:</strong> What type of problem
+- <strong>Status:</strong> What to do (needs investigation, cleared, etc.)</p>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Imagine you're checking receipts at a store:
+- Receipt #1: €45 for office supplies ✅ (normal)
+- Receipt #2: €15,000 to unknown person ⚠️ (suspicious!)
+- Receipt #3: €500 for cash withdrawal at 2 AM ⚠️ (suspicious!)</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Look at the list of flagged transactions</li>
+<li>Click on filters to see only certain types</li>
+<li>Search for specific transactions</li>
+<li>Click on a transaction to see detailed explanation</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Shows exactly which transactions need human review</li>
+<li>Helps you prioritize (check dangerous ones first)</li>
+<li>Provides evidence for why something was flagged</li>
+</ul>
+<hr />
+<h2>🕸️ TAB 3: NETWORKS &amp; GRAPH (Réseaux &amp; Graphe) - The Connection Map</h2>
+<p><strong>GOAL:</strong> See how accounts are connected to each other (like a family tree but for money).</p>
+<h3>WHAT YOU SEE:</h3>
+<p><strong>A visual map with dots and lines:</strong>
+- <strong>Dots</strong> = Bank accounts
+- <strong>Lines</strong> = Money transfers between accounts<br />
+- <strong>Red</strong> = Suspicious transfers
+- <strong>Blue</strong> = Normal transfers</p>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Imagine investigating a crime:
+- Person A sends money to Person B
+- Person B sends money to Person C<br />
+- Person C sends money back to Person A
+- This circle looks suspicious! 🔄</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Select a suspicious account from the list</li>
+<li>See who they send money to (their "friends")</li>
+<li>Look for patterns like:</li>
+<li>Money going in circles (circular payments)</li>
+<li>One account receiving from many people (might be a "mule" account)</li>
+<li>Accounts that only appear once (new accounts, might be fake)</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Finds organized fraud networks (not just single bad transactions)</li>
+<li>Identifies "money mule" accounts (people used to hide stolen money)</li>
+<li>Shows relationships between different banks and customers</li>
+</ul>
+<hr />
+<h2>📈 TAB 4: SHAP EXPLAINABILITY (Explicabilité SHAP) - The "Why" Detector</h2>
+<p><strong>GOAL:</strong> Understand EXACTLY why the computer thinks something is fraud.</p>
+<h3>WHAT YOU SEE:</h3>
+<p><strong>For each suspicious transaction, the system shows:</strong>
+- Which factors made it suspicious
+- How important each factor is (like "Amount: 65% important")
+- Positive vs Negative contributions</p>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Imagine a doctor explaining why you're sick:
+- "You have a fever" (major factor)
+- "You have a cough" (minor factor)<br />
+- "You're tired" (contributing factor)
+The doctor explains exactly what's wrong and why.</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Look at the chart showing which factors matter most</li>
+<li>See if the reasons make sense (sometimes the computer makes mistakes!)</li>
+<li>Use this to decide if you should block or allow the transaction</li>
+<li>Learn patterns to improve your fraud detection</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Builds trust in the system (you can see why decisions are made)</li>
+<li>Helps train staff to recognize fraud patterns</li>
+<li>Allows you to fine-tune the rules based on real examples</li>
+</ul>
+<hr />
+<h2>📋 TAB 5: BUSINESS RULES (Règles Métier) - The Rule Book</h2>
+<p><strong>GOAL:</strong> See which types of fraud are most common and their patterns.</p>
+<h3>WHAT YOU SEE:</h3>
+<p><strong>A breakdown of fraud categories:</strong>
+- <strong>SEUIL_REGLEMENTAIRE:</strong> Transactions over €10,000 (legal requirement)
+- <strong>RETRAIT_CASH_IMPORTANT:</strong> Large cash withdrawals (over €5,000)
+- <strong>MOTCLE_SENSIBLE:</strong> Transactions with suspicious words
+- <strong>FRACTIONNEMENT:</strong> Someone splitting big payments into small ones
+- <strong>NOUVEL_IBAN:</strong> First time sending money to this person</p>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Imagine a store security report:
+- 10 people tried to steal (shoplifting)
+- 5 people used fake credit cards
+- 3 people returned stolen items for refunds
+- 2 people worked together (one distracted, one stole)</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>See which types of fraud happen most often</li>
+<li>Focus your prevention efforts on the biggest problems</li>
+<li>Understand if your rules are working</li>
+<li>Adjust your security based on patterns</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Helps you understand your fraud landscape</li>
+<li>Shows if criminals are changing their tactics</li>
+<li>Guides where to put security resources</li>
+</ul>
+<hr />
+<h2>⚙️ TAB 6: CONFIG THRESHOLDS (Config Seuils) - The Control Panel</h2>
+<p><strong>GOAL:</strong> Adjust the sensitivity of fraud detection (like setting the sensitivity of a car alarm).</p>
+<h3>WHAT YOU SEE:</h3>
+<p><strong>Sliders and input fields to change:</strong>
+- <strong>SEUIL_REGLEMENTAIRE:</strong> At what amount to flag (€10,000, €15,000, etc.)
+- <strong>SEUIL_APPROCHE_RATIO:</strong> How close to the limit before warning (90%, 80%)
+- <strong>SEUIL_CASH_OUT:</strong> When to worry about cash withdrawals
+- <strong>MOTS_CLES_SENSIBLES:</strong> Which words to watch for (CASINO, PARIS, etc.)</p>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Imagine setting a house alarm:
+- How loud should it be? (sensitivity)
+- Which doors should it monitor? (coverage)
+- What should trigger it? (motion, sound, door opening?)
+- When should it call the police? (threshold)</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Adjust thresholds based on your business needs</li>
+<li>Add new suspicious words as you discover them</li>
+<li>Make it stricter if you're missing fraud</li>
+<li>Make it more lenient if you're getting too many false alarms</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Customizes the system for your specific bank</li>
+<li>Balances security vs. customer convenience</li>
+<li>Adapts to new fraud patterns as they emerge</li>
+</ul>
+<hr />
+<h1>4. 🏦 MULTI-BANKING PAGE - The Central Hub</h1>
+<p><strong>GOAL:</strong> This is like having a super assistant who can read bank statements from different banks and put them all in one place.</p>
+<hr />
+<h2>📤 FILE UPLOAD WIDGET - The Document Reader</h2>
+<p><strong>GOAL:</strong> Upload bank files from different banks to analyze them.</p>
+<h3>WHAT YOU SEE:</h3>
+<ul>
+<li>File selection button (to choose your file)</li>
+<li>Bank selection dropdown (which bank is this from?)</li>
+<li>Format selection (what type of file is this?)</li>
+<li>Upload button (send it for analysis)</li>
+</ul>
+<h3>SUPPORTED FILE TYPES:</h3>
+<ul>
+<li><strong>CSV:</strong> Like Excel files (most common)</li>
+<li><strong>CAMT053:</strong> Special banking format (European standard)</li>
+<li><strong>MT940:</strong> Another banking format (international standard)</li>
+<li><strong>PAIN001:</strong> Payment initiation format</li>
+</ul>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Imagine you have statements from:
+- Bank A: PDF file
+- Bank B: Excel file<br />
+- Bank C: Special banking file
+This system can read ALL of them and combine the information!</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Click "Choose File" and select your bank statement</li>
+<li>Select which bank it's from (BNP, Société Générale, etc.)</li>
+<li>Select the file format (CSV, CAMT053, etc.)</li>
+<li>Click "Upload" </li>
+<li>Wait for processing (usually a few seconds)</li>
+<li>See results showing how many transactions were found</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Centralizes data: No more switching between different bank systems</li>
+<li>Standardizes formats: Makes all banks look the same</li>
+<li>Automates processing: No more manual data entry</li>
+<li>Enables cross-bank analysis: Can spot patterns across different banks</li>
+</ul>
+<hr />
+<h2>📊 STATISTICS WIDGET - The Scoreboard</h2>
+<p><strong>GOAL:</strong> See how many files you've processed and how successful it was.</p>
+<h3>WHAT YOU SEE:</h3>
+<ul>
+<li><strong>Total Files:</strong> How many bank statements you've uploaded</li>
+<li><strong>Successful:</strong> How many were processed correctly</li>
+<li><strong>Failed:</strong> How many had errors</li>
+<li><strong>Total Transactions:</strong> Total number of transactions across all files</li>
+</ul>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Like a sports scoreboard:
+- Games played: 10 (files uploaded)
+- Games won: 8 (successful)
+- Games lost: 2 (failed)
+- Total points: 1,500 (transactions processed)</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Check the numbers to see your processing progress</li>
+<li>If you see many failures, check your file formats</li>
+<li>Monitor transaction counts to ensure data is being captured</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Tracks productivity: How much work you've done</li>
+<li>Identifies problems: High failure rate means something needs fixing</li>
+<li>Planning: Helps estimate processing capacity</li>
+</ul>
+<hr />
+<h2>📋 RECENT UPLOADS TABLE - The History Log</h2>
+<p><strong>GOAL:</strong> See your recent uploads and their status.</p>
+<h3>WHAT YOU SEE:</h3>
+<ul>
+<li><strong>Filename:</strong> What you uploaded</li>
+<li><strong>Bank:</strong> Which bank it was from</li>
+<li><strong>Format:</strong> What type of file</li>
+<li><strong>Status:</strong> Success or failure</li>
+<li><strong>Transaction Count:</strong> How many transactions were in the file</li>
+<li><strong>Upload Time:</strong> When you uploaded it</li>
+</ul>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Like a package delivery log:
+- Package 1: Delivered ✅ (successful)
+- Package 2: Failed ❌ (address wrong)
+- Package 3: Delivered ✅ (successful)</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Review recent uploads to see what worked and what didn't</li>
+<li>Click on failed uploads to see error messages</li>
+<li>Re-upload failed files after fixing problems</li>
+<li>Track your work history</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Audit trail: See what was processed and when</li>
+<li>Troubleshooting: Identify recurring problems</li>
+<li>Workflow management: Track team progress</li>
+</ul>
+<hr />
+<h1>5. 📋 TRANSACTIONS PAGE - The Search Engine</h1>
+<p><strong>GOAL:</strong> This is like Google but for bank transactions - you can search and filter through all your transactions.</p>
+<hr />
+<h2>🔍 FILTERS - The Search Tools</h2>
+<p><strong>GOAL:</strong> Find specific transactions quickly.</p>
+<h3>WHAT YOU CAN FILTER BY:</h3>
+<p><strong>Status:</strong>
+- <strong>MATCHED:</strong> Transactions that balanced out correctly
+- <strong>UNMATCHED:</strong> Transactions that don't have a matching pair
+- <strong>SUSPICIOUS:</strong> Transactions that might be fraud</p>
+<p><strong>Date Range:</strong> From/to specific dates<br />
+<strong>Search:</strong> Text search (description, amount, account numbers)</p>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Like searching through emails:
+- Show me only unread emails (status filter)
+- Show me emails from last week (date filter)<br />
+- Show me emails with "invoice" in the subject (search filter)</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Choose what you want to filter (status, dates, or search)</li>
+<li>Enter your criteria</li>
+<li>Wait a moment for results to appear</li>
+<li>Browse the filtered list</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Quick research: Find specific transactions instantly</li>
+<li>Investigation: Focus on problem areas</li>
+<li>Reconciliation: Find unmatched transactions that need attention</li>
+</ul>
+<hr />
+<h2>📊 TRANSACTIONS TABLE - The Master List</h2>
+<p><strong>GOAL:</strong> See all your transactions in one organized list.</p>
+<h3>WHAT YOU SEE:</h3>
+<ul>
+<li><strong>Transaction details:</strong> ID, date, description, amount</li>
+<li><strong>Status indicators:</strong> Color-coded (green for matched, red for suspicious)</li>
+<li><strong>Account information:</strong> Which accounts were involved</li>
+<li><strong>Reconciliation status:</strong> Whether the books balance</li>
+</ul>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Like a checkbook register:</p>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Description</th>
+<th>Amount</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01/01</td>
+<td>Salary deposit</td>
+<td>+€2,500</td>
+<td>✅ Matched</td>
+</tr>
+<tr>
+<td>01/02</td>
+<td>Rent payment</td>
+<td>-€900</td>
+<td>✅ Matched</td>
+</tr>
+<tr>
+<td>01/03</td>
+<td>Unknown transfer</td>
+<td>-€5,000</td>
+<td>⚠️ Suspicious</td>
+</tr>
+</tbody>
+</table>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Browse through all transactions</li>
+<li>Use filters to focus on specific ones</li>
+<li>Click on transactions for more details</li>
+<li>Export data if needed for reports</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Complete visibility: See all financial activity</li>
+<li>Reconciliation: Ensure accounts balance</li>
+<li>Audit: Complete record of all transactions</li>
+</ul>
+<hr />
+<h1>6. 📊 REPORTS PAGE - The Analytics Center</h1>
+<p><strong>GOAL:</strong> This is like having a business analyst who creates beautiful charts and reports about your banking activity.</p>
+<hr />
+<h2>📈 SUMMARY CARDS - The Big Picture</h2>
+<p><strong>GOAL:</strong> Quick overview of key metrics.</p>
+<h3>WHAT YOU SEE:</h3>
+<ul>
+<li><strong>Total Transactions:</strong> How many transactions in the period</li>
+<li><strong>Frauds Detected:</strong> How many were flagged as suspicious</li>
+<li><strong>Fraud Rate:</strong> Percentage of fraudulent transactions</li>
+<li><strong>Blocked Amount:</strong> How much money was prevented from being lost</li>
+</ul>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Like a monthly business summary:
+- Total sales: €100,000
+- Fraud attempts: 5
+- Fraud rate: 0.005% (very low!)
+- Money saved: €15,000 (potential losses prevented)</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Set your date range (last week, last month, etc.)</li>
+<li>Click "Generate Report"</li>
+<li>Review the summary cards</li>
+<li>Use this information for management reports</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Performance tracking: Are we getting better at catching fraud?</li>
+<li>Risk assessment: How much money are we risking?</li>
+<li>Management reporting: Easy metrics for executives</li>
+</ul>
+<hr />
+<h2>📊 CATEGORY BREAKDOWN - The Problem Analysis</h2>
+<p><strong>GOAL:</strong> Understand what types of fraud are happening.</p>
+<h3>WHAT YOU SEE:</h3>
+<p><strong>Bar chart showing different fraud categories:</strong>
+- Each bar shows: Category name + count + percentage
+- Visual comparison: Which problems are biggest</p>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Like a crime statistics chart:
+- Shoplifting: 40 cases (40%)
+- Credit card: 30 cases (30%)
+- Employee theft: 20 cases (20%)
+- Other: 10 cases (10%)</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Look at which categories are highest</li>
+<li>Focus your prevention efforts on the biggest problems</li>
+<li>Track if categories change over time</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Resource allocation: Put security where it's needed most</li>
+<li>Trend analysis: See if fraud patterns are changing</li>
+<li>Strategic planning: Long-term security planning</li>
+</ul>
+<hr />
+<h2>📉 TIME SERIES CHART - The Trend Analyzer</h2>
+<p><strong>GOAL:</strong> See how fraud changes over time.</p>
+<h3>WHAT YOU SEE:</h3>
+<p><strong>Line chart with dates on the bottom:</strong>
+- <strong>Blue line</strong> = Total transactions
+- <strong>Red line</strong> = Fraudulent transactions
+- <strong>Patterns:</strong> Spikes, trends, seasonal changes</p>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Like a weather chart:
+- January: 10 transactions, 1 fraud
+- February: 15 transactions, 2 frauds<br />
+- March: 20 transactions, 5 frauds (spike!)
+- April: 18 transactions, 1 fraud (back to normal)</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Look for spikes (sudden increases in fraud)</li>
+<li>Identify seasonal patterns (more fraud in certain months?)</li>
+<li>See if your security improvements are working (trends going down?)</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Early warning: Spot problems before they get worse</li>
+<li>Effectiveness measurement: See if security changes work</li>
+<li>Planning: Anticipate busy periods</li>
+</ul>
+<hr />
+<h2>📤 EXPORT FUNCTIONS - The Report Generator</h2>
+<p><strong>GOAL:</strong> Create professional reports to share with others.</p>
+<h3>WHAT YOU CAN EXPORT:</h3>
+<ul>
+<li><strong>PDF Report:</strong> Professional document with charts and tables</li>
+<li><strong>CSV Export:</strong> Spreadsheet format for further analysis</li>
+</ul>
+<h3>SIMPLE EXAMPLE:</h3>
+<p>Like creating a business report:
+- PDF: Professional document for the board meeting
+- CSV: Raw data for the accounting team to analyze further</p>
+<h3>HOW TO USE:</h3>
+<ol>
+<li>Set your date range</li>
+<li>Click "Export PDF" or "Export CSV"</li>
+<li>Wait for the file to download</li>
+<li>Share the report with stakeholders</li>
+</ol>
+<h3>WHY IT'S USEFUL FOR BANKMATCH:</h3>
+<ul>
+<li>Communication: Share results with management</li>
+<li>Compliance: Create audit trails</li>
+<li>Further analysis: Export data for other tools</li>
+</ul>
+<hr />
+<h1>7. WHY THESE MODULES ARE CRUCIAL FOR BANKMATCH/RAPPROCHEMENT BANCAIRE</h1>
+<h2>THE PROBLEM: What Banks Face</h2>
+<p>Banks have to handle millions of transactions every day while:
+- ⚠️ <strong>Preventing fraud</strong> (criminals trying to steal money)
+- 🏦 <strong>Following regulations</strong> (laws about reporting suspicious activity)
+- 🔗 <strong>Matching transactions</strong> (ensuring money goes to the right places)
+- 📊 <strong>Providing reports</strong> (showing regulators everything is legal)</p>
+<h2>HOW FRAUD DETECTION HELPS</h2>
+<h3>1. AUTOMATIC PROTECTION</h3>
+<ul>
+<li><strong>Before:</strong> Humans had to check every transaction manually (impossible!)</li>
+<li><strong>After:</strong> AI checks every transaction instantly (100% coverage)</li>
+</ul>
+<p><strong>Real Impact:</strong> 
+- A bank processes 1 million transactions per day
+- Humans could maybe check 1,000 (0.1% coverage)
+- AI checks all 1,000,000 (100% coverage)
+- <strong>Result:</strong> 999,000 more transactions get protected!</p>
+<h3>2. NETWORK DETECTION</h3>
+<ul>
+<li><strong>Before:</strong> Could only spot individual bad transactions</li>
+<li><strong>After:</strong> Can spot entire criminal networks working together</li>
+</ul>
+<p><strong>Real Impact:</strong>
+- Criminals use 50 fake accounts to hide money
+- Old system: Might catch 1-2 accounts
+- New system: Catches the entire network of 50 accounts
+- <strong>Result:</strong> Much more money saved!</p>
+<h3>3. EXPLAINABLE DECISIONS</h3>
+<ul>
+<li><strong>Before:</strong> Computer says "fraud" but doesn't explain why</li>
+<li><strong>After:</strong> Computer explains exactly why (amount too high, unusual time, etc.)</li>
+</ul>
+<p><strong>Real Impact:</strong>
+- Staff can make better decisions
+- Fewer false alarms (less inconvenience to honest customers)
+- Better training for new staff</p>
+<h3>4. ADJUSTABLE RULES</h3>
+<ul>
+<li><strong>Before:</strong> Fixed rules that couldn't adapt</li>
+<li><strong>After:</strong> Flexible rules that can be customized per bank</li>
+</ul>
+<p><strong>Real Impact:</strong>
+- Each bank has different customers and risk profiles
+- Can tune the system to your specific needs
+- Adapts quickly to new fraud techniques</p>
+<h2>HOW MULTI-BANKING HELPS</h2>
+<h3>1. CENTRALIZED DATA</h3>
+<ul>
+<li><strong>Before:</strong> Had to log into 10 different bank systems</li>
+<li><strong>After:</strong> All bank data in one place</li>
+</ul>
+<p><strong>Real Impact:</strong>
+- Time saved: Instead of 10 logins, just 1
+- Better analysis: Can see patterns across banks
+- Fewer errors: No manual data transfer between systems</p>
+<h3>2. STANDARDIZED FORMATS</h3>
+<ul>
+<li><strong>Before:</strong> Each bank uses different file formats</li>
+<li><strong>After:</strong> System reads all formats automatically</li>
+</ul>
+<p><strong>Real Impact:</strong>
+- No more manual data entry
+- Fewer mistakes from copying data
+- Faster processing (minutes instead of days)</p>
+<h3>3. CROSS-BANK ANALYSIS</h3>
+<ul>
+<li><strong>Before:</strong> Could only see one bank at a time</li>
+<li><strong>After:</strong> Can analyze across all banks simultaneously</li>
+</ul>
+<p><strong>Real Impact:</strong>
+- Criminals often use multiple banks
+- Can spot money moving between banks
+- Better compliance with anti-money-laundering laws</p>
+<h3>4. WORKFLOW MANAGEMENT</h3>
+<ul>
+<li><strong>Before:</strong> No tracking of what was processed</li>
+<li><strong>After:</strong> Complete history and status tracking</li>
+</ul>
+<p><strong>Real Impact:</strong>
+- Audit trail for regulators
+- Team coordination (who did what)
+- Problem identification (recurring issues)</p>
+<hr />
+<h1>8. A DAY IN THE LIFE - Practical Example</h1>
+<h2>SCENARIO: A Bank Accountant's Morning</h2>
+<h3>8:00 AM - Arrive at work, open the system</h3>
+<ul>
+<li>Check Fraud Detection Overview</li>
+<li>See 3 suspicious transactions overnight</li>
+<li>Priority: A €50,000 transfer to a new account looks dangerous</li>
+</ul>
+<h3>8:15 AM - Investigate the suspicious transfer</h3>
+<ul>
+<li>Go to Hybrid Detection tab</li>
+<li>See the transfer was flagged because:</li>
+<li>Amount over €10,000 limit</li>
+<li>First time sending to this beneficiary</li>
+<li>Unusual time (3 AM)</li>
+</ul>
+<h3>8:30 AM - Check connections</h3>
+<ul>
+<li>Go to Network Graph tab</li>
+<li>See the beneficiary account has received money from 20 other accounts</li>
+<li>This looks like a money laundering network!</li>
+</ul>
+<h3>8:45 AM - Take action</h3>
+<ul>
+<li>Flag the transaction for investigation</li>
+<li>Block the account temporarily</li>
+<li>Notify compliance team</li>
+</ul>
+<h3>9:00 AM - Process daily bank statements</h3>
+<ul>
+<li>Go to Multi-Banking page</li>
+<li>Upload statements from 5 different banks</li>
+<li>System processes 15,000 transactions automatically</li>
+<li>All transactions matched and balanced ✅</li>
+</ul>
+<h3>9:30 AM - Check weekly report</h3>
+<ul>
+<li>Go to Reports page</li>
+<li>Generate weekly fraud report</li>
+<li>See fraud rate decreased from 2% to 0.5% (system working!)</li>
+<li>Export PDF for management meeting</li>
+</ul>
+<h3>10:00 AM - Morning coffee ☕</h3>
+<ul>
+<li>System caught €200,000 in potential fraud</li>
+<li>Saved hours of manual work</li>
+<li>Bank is safer and more efficient</li>
+</ul>
+<hr />
+<h1>9. KEY BENEFITS SUMMARY</h1>
+<h2>1. EFFICIENCY (Time and Money Saved)</h2>
+<ul>
+<li><strong>Manual process:</strong> Days to process bank statements</li>
+<li><strong>Automated process:</strong> Minutes</li>
+<li><strong>Result:</strong> 95% time savings</li>
+</ul>
+<h2>2. ACCURACY (Fewer Mistakes)</h2>
+<ul>
+<li><strong>Manual process:</strong> Human errors in data entry</li>
+<li><strong>Automated process:</strong> Computer-perfect accuracy</li>
+<li><strong>Result:</strong> 99.9% accuracy improvement</li>
+</ul>
+<h2>3. COVERAGE (More Transactions Protected)</h2>
+<ul>
+<li><strong>Manual process:</strong> Check 1% of transactions</li>
+<li><strong>Automated process:</strong> Check 100% of transactions</li>
+<li><strong>Result:</strong> 100x more fraud caught</li>
+</ul>
+<h2>4. INTELLIGENCE (Better Decisions)</h2>
+<ul>
+<li><strong>Manual process:</strong> Simple rules (amount &gt; €10,000)</li>
+<li><strong>Automated process:</strong> AI + Rules + Network analysis</li>
+<li><strong>Result:</strong> Much smarter fraud detection</li>
+</ul>
+<h2>5. COMPLIANCE (Meeting Legal Requirements)</h2>
+<ul>
+<li><strong>Manual process:</strong> Difficult to prove everything was checked</li>
+<li><strong>Automated process:</strong> Complete audit trail</li>
+<li><strong>Result:</strong> Easy regulatory compliance</li>
+</ul>
+<h2>6. SCALABILITY (Growth Ready)</h2>
+<ul>
+<li><strong>Manual process:</strong> More transactions = more staff needed</li>
+<li><strong>Automated process:</strong> System handles growth automatically</li>
+<li><strong>Result:</strong> Business can grow without adding staff</li>
+</ul>
+<hr />
+<h1>10. QUICK REFERENCE CARD</h1>
+<h2>WHEN TO USE EACH PAGE</h2>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Go to Page</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Daily check</strong></td>
+<td>Fraud Detection → Overview</td>
+<td>See if anything suspicious happened overnight</td>
+</tr>
+<tr>
+<td><strong>Investigate fraud</strong></td>
+<td>Fraud Detection → Hybrid Detection</td>
+<td>Look at specific suspicious transactions</td>
+</tr>
+<tr>
+<td><strong>Find criminal networks</strong></td>
+<td>Fraud Detection → Network Graph</td>
+<td>See how accounts are connected</td>
+</tr>
+<tr>
+<td><strong>Understand why flagged</strong></td>
+<td>Fraud Detection → SHAP Explainability</td>
+<td>See exactly why computer flagged something</td>
+</tr>
+<tr>
+<td><strong>Adjust security rules</strong></td>
+<td>Fraud Detection → Config Thresholds</td>
+<td>Change what the system looks for</td>
+</tr>
+<tr>
+<td><strong>Process bank statements</strong></td>
+<td>Multi-Banking → Upload</td>
+<td>Upload files from different banks</td>
+</tr>
+<tr>
+<td><strong>Find specific transaction</strong></td>
+<td>Transactions → Search</td>
+<td>Search and filter through all transactions</td>
+</tr>
+<tr>
+<td><strong>Create management report</strong></td>
+<td>Reports → Generate</td>
+<td>Make PDF/CSV reports for meetings</td>
+</tr>
+<tr>
+<td><strong>See fraud trends</strong></td>
+<td>Reports → Time Series</td>
+<td>Check if fraud is increasing or decreasing</td>
+</tr>
+</tbody>
+</table>
+<h2>QUICK ACTIONS</h2>
+<table>
+<thead>
+<tr>
+<th>Need</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stop a suspicious transfer</strong></td>
+<td>Go to Hybrid Detection, click transaction, flag for review</td>
+</tr>
+<tr>
+<td><strong>Change fraud sensitivity</strong></td>
+<td>Go to Config Thresholds, adjust sliders</td>
+</tr>
+<tr>
+<td><strong>Add new suspicious word</strong></td>
+<td>Go to Config Thresholds, add to MOTS_CLES_SENSIBLES</td>
+</tr>
+<tr>
+<td><strong>Process daily statements</strong></td>
+<td>Go to Multi-Banking, upload all bank files</td>
+</tr>
+<tr>
+<td><strong>Check weekly performance</strong></td>
+<td>Go to Reports, set date range, generate report</td>
+</tr>
+<tr>
+<td><strong>Investigate a customer</strong></td>
+<td>Go to Network Graph, enter their account number</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1>CONCLUSION: WHY THIS MATTERS</h1>
+<h2>FOR THE BANK:</h2>
+<ul>
+<li>Less money lost to fraud (saves millions)</li>
+<li>Happier customers (fewer false alarms)</li>
+<li>Better compliance (avoids fines)</li>
+<li>Competitive advantage (better security than other banks)</li>
+</ul>
+<h2>FOR THE ACCOUNTANT:</h2>
+<ul>
+<li>Less boring manual work (focus on interesting investigations)</li>
+<li>Better tools (make decisions with confidence)</li>
+<li>Career growth (learn modern banking systems)</li>
+<li>Less stress (system helps, doesn't replace)</li>
+</ul>
+<h2>FOR THE CUSTOMERS:</h2>
+<ul>
+<li>Safer money (better fraud protection)</li>
+<li>Faster service (quicker problem resolution)</li>
+<li>Better experience (fewer unnecessary account freezes)</li>
+</ul>
+<h2>FOR SOCIETY:</h2>
+<ul>
+<li>Less crime (criminals have harder time)</li>
+<li>More trust (people trust banks more)</li>
+<li>Economic stability (banking system more secure)</li>
+</ul>
+<hr />
+<p><strong>This system transforms fraud detection from a manual, error-prone process into an automated, intelligent operation that protects the bank while making accountants' jobs more interesting and impactful!</strong></p>
+<p>For questions or support, please contact your system administrator.</p>
+<hr />
+<p><em>Document Version: 1.0</em><br />
+<em>Last Updated: August 19, 2026</em></p>
+    
+<div style="margin-top: 50px; padding: 20px; background-color: #f8f9fa; border-radius: 10px; text-align: center;">
+    <p style="margin: 0; color: #7f8c8d;">This system transforms fraud detection from a manual, error-prone process into an automated, intelligent operation that protects the bank while making accountants' jobs more interesting and impactful!</p>
+    <p style="margin: 15px 0 0 0; color: #95a5a6; font-size: 14px;">For questions or support, please contact your system administrator.</p>
+    <p style="margin: 10px 0 0 0; color: #95a5a6; font-size: 12px;">Document Version: 1.0 | Last Updated: August 19, 2026</p>
+</div>
+
+</body>
+</html>
