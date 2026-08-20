@@ -25,7 +25,7 @@ export class ReportsService {
         end_date: endDate
       }
     }).pipe(
-      map(response => response?.data || response as any),
+      map(response => response.data),
       catchError(error => {
         console.error('Error fetching reports:', error);
         return throwError(() => error);
@@ -70,7 +70,7 @@ export class ReportsService {
         end_date: endDate
       }
     }).pipe(
-      map(response => (response as any)?.data || (response as any) || []),
+      map(response => response.data || []),
       catchError(error => {
         console.error('Error fetching category breakdown:', error);
         return throwError(() => error);
@@ -85,7 +85,7 @@ export class ReportsService {
         end_date: endDate
       }
     }).pipe(
-      map(response => (response as any)?.data || (response as any) || []),
+      map(response => response.data || []),
       catchError(error => {
         console.error('Error fetching time series data:', error);
         return throwError(() => error);

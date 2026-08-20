@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
@@ -13,51 +13,47 @@ export interface Notification {
   icon?: string;
 }
 
+interface NotificationsApiResponse {
+  success: boolean;
+  data: Notification[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class NotificationsService {
   private notificationsSubject = new BehaviorSubject<Notification[]>([]);
   public notifications$ = this.notificationsSubject.asObservable();
-  
+
   private unreadCountSubject = new BehaviorSubject<number>(0);
   public unreadCount$ = this.unreadCountSubject.asObservable();
-  
+
   private apiUrl = '/api';
 
-  constructor(private http: HttpClient) {
-    // Removed automatic loading to reduce startup tasks
-    // Call loadNotificationsManual() when needed
-  }
+  constructor(private http: HttpClient) {}
 
-  loadNotifications() {
+  loadNotifications(): void {
     this.getNotificationsFromAPI().subscribe({
       next: (notifications) => {
         this.notificationsSubject.next(notifications);
         this.updateUnreadCount();
       },
-      error: (error) => {
+      error: (error: unknown) => {
         console.error('Error loading notifications:', error);
-        // Load mock notifications as fallback
         this.notificationsSubject.next(this.getMockNotifications());
         this.updateUnreadCount();
       }
     });
   }
 
-  // Prevent automatic loading on service initialization to reduce startup tasks
-  // Call this manually when needed
-  loadNotificationsManual() {
+  loadNotificationsManual(): void {
     this.loadNotifications();
   }
 
   getNotificationsFromAPI(): Observable<Notification[]> {
-    return this.http.get<{success: boolean, data: Notification[]}>(`${this.apiUrl}/notifications`).pipe(
+    return this.http.get<NotificationsApiResponse>(`${this.apiUrl}/notifications`).pipe(
       map(response => response.data || []),
-      catchError(error => {
-        console.error('Error fetching notifications from API:', error);
-        return of(this.getMockNotifications());
-      })
+      catchError(() => of(this.getMockNotifications()))
     );
   }
 
@@ -123,21 +119,15 @@ export class NotificationsService {
     this.markAllAsReadOnAPI().subscribe();
   }
 
-  private markAsReadOnAPI(notificationId: string): Observable<any> {
+  private markAsReadOnAPI(notificationId: string): Observable<unknown> {
     return this.http.patch(`${this.apiUrl}/notifications/${notificationId}/read`, {}).pipe(
-      catchError(error => {
-        console.error('Error marking notification as read:', error);
-        return of({});
-      })
+      catchError(() => of(null))
     );
   }
 
-  private markAllAsReadOnAPI(): Observable<any> {
+  private markAllAsReadOnAPI(): Observable<unknown> {
     return this.http.patch(`${this.apiUrl}/notifications/read-all`, {}).pipe(
-      catchError(error => {
-        console.error('Error marking all notifications as read:', error);
-        return of({});
-      })
+      catchError(() => of(null))
     );
   }
 
@@ -162,12 +152,9 @@ export class NotificationsService {
     this.deleteNotificationOnAPI(notificationId).subscribe();
   }
 
-  private deleteNotificationOnAPI(notificationId: string): Observable<any> {
+  private deleteNotificationOnAPI(notificationId: string): Observable<unknown> {
     return this.http.delete(`${this.apiUrl}/notifications/${notificationId}`).pipe(
-      catchError(error => {
-        console.error('Error deleting notification:', error);
-        return of({});
-      })
+      catchError(() => of(null))
     );
   }
 }

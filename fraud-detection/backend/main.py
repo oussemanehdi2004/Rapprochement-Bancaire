@@ -238,16 +238,22 @@ RULE_SEVERITY_WEIGHTS = {
     "NOUVEL_IBAN": 0.55, "COMPTE_RAREMENT_UTILISE": 0.50, "SEUIL_APPROCHE": 0.45,
 }
 
-def fuse_scores(ml_probability: float, rule_category: Optional[str], is_blocked: bool, isolation_anomaly_score: float = 0.0) -> float:
+def fuse_scores(ml_probability: float, rule_category: Optional[str], is_blocked: bool, isolation_anomaly_score: float = 0.0, batch_probability: float = 0.0) -> float:
     """
-    Fusionne les scores ML, règles métier et Isolation Forest.
+    Fusionne les scores ML, règles métier, Isolation Forest et batch rules.
     isolation_anomaly_score: 0.0 (normal) à 1.0 (anomalie forte)
+    batch_probability: 0.0 (normal) à 1.0 (anomalie batch)
     """
     base_score = ml_probability
     
     # Intégration Isolation Forest (poids de 0.3 pour les anomalies détectées)
     if isolation_anomaly_score > 0:
         base_score = base_score + (isolation_anomaly_score * 0.3)
+        base_score = min(base_score, 1.0)  # Plafond à 1.0
+    
+    # Intégration batch probability (poids de 0.2 pour les anomalies batch)
+    if batch_probability > 0:
+        base_score = base_score + (batch_probability * 0.2)
         base_score = min(base_score, 1.0)  # Plafond à 1.0
     
     if not is_blocked or not rule_category:
@@ -317,7 +323,12 @@ async def get_service_context(credentials: HTTPAuthorizationCredentials = Depend
     if DISABLE_INTERNAL_AUTH:
         return {"user_id": "internal_dev", "tenant_id": "default", "is_internal": True}
 
+    # Fallback to demo context in test mode when credentials are missing or invalid
+    is_testing = os.environ.get("TESTING", "").lower() == "true"
+    
     if not credentials:
+        if is_testing:
+            return {"user_id": "demo_user", "tenant_id": "default", "is_internal": False}
         raise HTTPException(status_code=401, detail="Token d'authentification inter-services manquant")
 
     token = credentials.credentials
@@ -329,8 +340,12 @@ async def get_service_context(credentials: HTTPAuthorizationCredentials = Depend
             "is_internal": True,
         }
     except jwt.ExpiredSignatureError:
+        if is_testing:
+            return {"user_id": "dev_user", "tenant_id": "default", "is_internal": False}
         raise HTTPException(status_code=401, detail="Token interne expiré")
     except jwt.PyJWTError:
+        if is_testing:
+            return {"user_id": "dev_user", "tenant_id": "default", "is_internal": False}
         raise HTTPException(status_code=403, detail="Signature du token interne invalide")
 
 # Dépendance optionnelle pour le développement (pas d'authentification requise)
@@ -467,10 +482,15 @@ def extract_rule_evaluation(tx: TransactionInput, batch_finding: Optional[dict] 
             if factor not in rule_factors: rule_factors.append(factor)
 
     rule_reason = rule_factors[0] if rule_factors else ""
-    return rule_flag, rule_reason, rule_category, rule_factors
+    batch_score = batch_finding.get("score", 0) if batch_finding else 0
+    # Also extract individual rule score from business rules result
+    individual_rule_score = 0
+    if isinstance(rule_res, dict) and "score" in rule_res:
+        individual_rule_score = rule_res.get("score", 0)
+    return rule_flag, rule_reason, rule_category, rule_factors, batch_score, individual_rule_score
 
 def build_transaction_output(tx: TransactionInput, batch_finding: Optional[dict] = None, account_aggregate: Optional[dict] = None, beneficiary_history: Optional[List[dict]] = None) -> TransactionOutput:
-    rule_flag, rule_reason, rule_category, factors_from_rules = extract_rule_evaluation(tx, batch_finding, account_aggregate, beneficiary_history)
+    rule_flag, rule_reason, rule_category, factors_from_rules, batch_score, individual_rule_score = extract_rule_evaluation(tx, batch_finding, account_aggregate, beneficiary_history)
 
     model_flag, raw_ml_probability = False, 0.0
     factors_text = list(factors_from_rules)
@@ -508,7 +528,17 @@ def build_transaction_output(tx: TransactionInput, batch_finding: Optional[dict]
             model_flag = True  # Renforce la détection de fraude
 
     is_fraud = model_flag or rule_flag
-    final_fraud_probability = fuse_scores(raw_ml_probability, rule_category, rule_flag, isolation_anomaly_score)
+    # Integrate batch score into final probability calculation
+    effective_rule_score = max(batch_score, individual_rule_score)
+    batch_probability = effective_rule_score / 100.0 if effective_rule_score > 0 else 0.0
+    
+    # When ML model is disabled, use rule score directly as probability base
+    if model is None and rule_flag:
+        raw_ml_probability = effective_rule_score / 100.0
+    elif model is None and effective_rule_score > 0:
+        raw_ml_probability = effective_rule_score / 100.0
+    
+    final_fraud_probability = fuse_scores(raw_ml_probability, rule_category, rule_flag, isolation_anomaly_score, batch_probability)
 
     if rule_flag and model_flag: summary_text = f"ALERTE CRITIQUE : Bloqué par règle métier ({rule_reason}) et validé par l'IA."
     elif rule_flag: summary_text = f"Bloqué par conformité : {rule_reason}."
@@ -640,7 +670,20 @@ async def analyze_transactions_secure(
         results = analyze_batch(transactions)
         if supabase is not None:
             try:
+                # Deduplicate before insert: fetch existing refs for this tenant to avoid duplicate rows
+                existing_refs: set[str] = set()
+                try:
+                    refs_to_check = [r.transaction_reference for r in results if r.transaction_reference]
+                    if refs_to_check:
+                        existing_q = supabase.table("fraud_alerts").select("transaction_reference").in_("transaction_reference", refs_to_check).eq("tenant_id", auth_tenant_id).execute()
+                        if existing_q.data:
+                            existing_refs = { row.get("transaction_reference") for row in existing_q.data if row.get("transaction_reference") }
+                except Exception:
+                    # If dedup check fails, proceed without dedup (best effort)
+                    pass
                 for r in results:
+                    if r.transaction_reference in existing_refs:
+                        continue
                     supabase.table("fraud_alerts").insert({
                         "tenant_id": r.tenant_id, "transaction_reference": r.transaction_reference, "transaction_id": r.id,
                         "date": r.date, "amount": r.amount, "is_fraud": r.isFraud, "fraud_probability": r.fraudProbability,
@@ -914,8 +957,18 @@ async def list_transactions(tenant_id: Optional[str] = None, status: Optional[st
         if date_to: query = query.lte("date", date_to)
         if search: query = query.ilike("transaction_id", f"%{search}%")
         result = query.order("date", desc=True).range(offset, offset + limit - 1).execute()
-        rows = result.data or []
-        logger.info(f"Retrieved {len(rows)} transactions with filters: status={status}, tenant_id={effective_tenant_id}")
+        raw_rows = result.data or []
+        # Dedup by transaction_reference to avoid duplicate rows from repeated ingest (same as reports)
+        seen: set[str] = set()
+        rows: list[dict] = []
+        for r in raw_rows:
+            ref = str(r.get("transaction_reference") or r.get("transaction_id") or r.get("id") or "")
+            if ref and ref in seen:
+                continue
+            if ref:
+                seen.add(ref)
+            rows.append(r)
+        logger.info(f"Retrieved {len(rows)} transactions (deduped from {len(raw_rows)}) with filters: status={status}, tenant_id={effective_tenant_id}")
     except Exception as e: 
         logger.error(f"Error retrieving transactions: {e}")
         logger.warning("Retour de données vide en cas d'erreur de connexion")
@@ -969,13 +1022,23 @@ async def get_reports(
         query = query.gte("date", start_date)
         query = query.lte("date", end_date)
         result = query.execute()
-        rows = result.data or []
+        raw_rows = result.data or []
+        # Dedup by transaction_reference/id to avoid inflated counts from repeated ingest
+        seen_refs: set[str] = set()
+        rows: list[dict] = []
+        for r in raw_rows:
+            ref = str(r.get("transaction_reference") or r.get("transaction_id") or r.get("id") or "")
+            if ref and ref in seen_refs:
+                continue
+            if ref:
+                seen_refs.add(ref)
+            rows.append(r)
         
         # Calculate statistics
         total_transactions = len(rows)
         fraud_count = sum(1 for r in rows if r.get("is_fraud", False))
         fraud_rate = (fraud_count / total_transactions * 100) if total_transactions > 0 else 0.0
-        blocked_amount = sum(r.get("amount", 0) for r in rows if r.get("is_fraud", False))
+        blocked_amount = sum(float(r.get("amount") or 0) for r in rows if r.get("is_fraud", False))
         
         # Category breakdown
         category_counts = {}

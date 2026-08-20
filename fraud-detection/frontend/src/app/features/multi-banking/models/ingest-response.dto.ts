@@ -15,7 +15,10 @@ export interface IngestResponseDTO {
   success: boolean;
   parsed_count: number;
   fraud_result: {
-    transactions: FraudAnalysisResultDTO[];
+    transactions?: FraudAnalysisResultDTO[];
+    data?: FraudAnalysisResultDTO[];
+    success?: boolean;
+    error?: string;
   };
   bankmatch_result: BankMatchResultDTO | null;
   metadata: IngestMetadataDTO;

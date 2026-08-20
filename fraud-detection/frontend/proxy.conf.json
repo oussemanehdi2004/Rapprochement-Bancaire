@@ -1,23 +1,45 @@
 {
+  "/api/analyze-demo": {
+    "target": "http://127.0.0.1:8006",
+    "secure": false,
+    "changeOrigin": true,
+    "timeout": 30000,
+    "proxyTimeout": 30000,
+    "logLevel": "debug",
+    "xfwd": true
+  },
   "/api/analyze": {
     "target": "http://127.0.0.1:8006",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "timeout": 30000,
+    "proxyTimeout": 30000,
+    "logLevel": "debug",
+    "xfwd": true
   },
   "/api/config": {
     "target": "http://127.0.0.1:8006",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "timeout": 10000,
+    "proxyTimeout": 10000,
+    "logLevel": "debug"
   },
   "/api/graph": {
     "target": "http://127.0.0.1:8006",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "timeout": 15000,
+    "proxyTimeout": 15000,
+    "logLevel": "debug"
   },
   "/api/fraud": {
     "target": "http://127.0.0.1:8006",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "timeout": 15000,
+    "proxyTimeout": 15000,
+    "logLevel": "debug"
   },
   "/api/banking": {
     "target": "http://127.0.0.1:8010",
@@ -25,11 +47,28 @@
     "changeOrigin": true,
     "pathRewrite": {
       "^/api/banking": "/banking"
-    }
+    },
+    "timeout": 30000,
+    "proxyTimeout": 30000,
+    "logLevel": "debug",
+    "xfwd": true
+  },
+  "/api/notifications/stream": {
+    "target": "http://127.0.0.1:8006",
+    "secure": false,
+    "changeOrigin": true,
+    "timeout": 0,
+    "proxyTimeout": 0,
+    "logLevel": "debug",
+    "ws": true
   },
   "/api": {
     "target": "http://127.0.0.1:8006",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "timeout": 15000,
+    "proxyTimeout": 15000,
+    "logLevel": "debug",
+    "xfwd": true
   }
 }

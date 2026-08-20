@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Subject } from 'rxjs';
 
 export interface Toast {
@@ -14,12 +15,13 @@ export interface Toast {
   providedIn: 'root'
 })
 export class ToastService {
+  private readonly platformId = inject(PLATFORM_ID);
   private toasts = signal<Toast[]>([]);
   private toastSubject = new Subject<Toast>();
-  
+
   toasts$ = this.toastSubject.asObservable();
 
-  show(toast: Omit<Toast, 'id'>) {
+  show(toast: Omit<Toast, 'id'>): string {
     const id = Date.now().toString();
     const newToast: Toast = {
       id,
@@ -27,14 +29,12 @@ export class ToastService {
       duration: toast.duration ?? 4000,
       persistent: toast.persistent ?? false
     };
-    
+
     this.toasts.update(current => [...current, newToast]);
     this.toastSubject.next(newToast);
 
-    if (!newToast.persistent) {
-      setTimeout(() => {
-        this.remove(id);
-      }, newToast.duration);
+    if (!newToast.persistent && isPlatformBrowser(this.platformId)) {
+      setTimeout(() => this.remove(id), newToast.duration);
     }
 
     return id;

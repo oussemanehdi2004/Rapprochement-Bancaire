@@ -8,6 +8,9 @@ sure both prerequisites are satisfied before any test module imports ``main``.
 import os
 os.environ["ENABLE_TEST_TOKEN_ENDPOINT"] = "true"
 os.environ["TESTING"] = "true"
+# Disable Supabase for tests to prevent database connection attempts
+os.environ["SUPABASE_URL"] = ""
+os.environ["SUPABASE_KEY"] = ""
 # The module directory (where this conftest lives) contains ``model_fraud.pkl``
 # and the source modules (``main.py``, ``rules_engine.py``).
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))

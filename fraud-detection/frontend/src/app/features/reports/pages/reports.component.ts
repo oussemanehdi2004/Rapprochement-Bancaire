@@ -1,6 +1,7 @@
-import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, NgZone } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, NgZone, inject, PLATFORM_ID, DestroyRef, ChangeDetectorRef } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReportsService } from '../services/reports.service';
 import { FraudSummaryDTO, CategoryBreakdownDTO, TimeSeriesDataDTO } from '../../fraud-detection/models';
 import { ToastService } from '../../../core/services/toast.service';
@@ -125,9 +126,17 @@ import { Chart } from 'chart.js/auto';
     </div>
   `
 })
-export class ReportsComponent implements OnInit, AfterViewInit {
+export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('timeSeriesChart', { static: false }) chartCanvas!: ElementRef<HTMLCanvasElement>;
   private timeSeriesChart: Chart | null = null;
+
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly reportsService = inject(ReportsService);
+  private readonly toastService = inject(ToastService);
+  private readonly ngZone = inject(NgZone);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   startDate = '';
   endDate = '';
   summary: FraudSummaryDTO | null = null;
@@ -138,13 +147,14 @@ export class ReportsComponent implements OnInit, AfterViewInit {
   exportingCSV = false;
   error: string | null = null;
 
-  constructor(
-    private reportsService: ReportsService,
-    private toastService: ToastService,
-    private ngZone: NgZone
-  ) {}
+  private reportTimeout: ReturnType<typeof setTimeout> | undefined;
+  private pdfTimeout: ReturnType<typeof setTimeout> | undefined;
+  private csvTimeout: ReturnType<typeof setTimeout> | undefined;
 
   ngOnInit() {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
     const today = new Date();
     const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
     this.endDate = today.toISOString().split('T')[0];
@@ -152,14 +162,25 @@ export class ReportsComponent implements OnInit, AfterViewInit {
     this.loadReports();
   }
 
+  ngOnDestroy(): void {
+    if (this.reportTimeout) clearTimeout(this.reportTimeout);
+    if (this.pdfTimeout) clearTimeout(this.pdfTimeout);
+    if (this.csvTimeout) clearTimeout(this.csvTimeout);
+    if (this.timeSeriesChart) this.timeSeriesChart.destroy();
+  }
+
   loadReports() {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     this.ngZone.run(() => {
       this.loading = true;
       this.error = '';
       this.toastService.info('Chargement', 'Génération du rapport en cours...');
     });
 
-    const timeout = setTimeout(() => {
+    this.reportTimeout = setTimeout(() => {
       this.ngZone.run(() => {
         if (this.loading) {
           this.loading = false;
@@ -172,64 +193,78 @@ export class ReportsComponent implements OnInit, AfterViewInit {
       });
     }, 8000);
 
-      this.reportsService.getReports(this.startDate, this.endDate).subscribe({
-        next: (data: any) => {
-          clearTimeout(timeout);
-          if (data && typeof data === 'object') {
-            const d = data.data || data;
-            this.summary = {
-              total_transactions: d.total_transactions ?? 0,
-              fraud_detected: d.fraud_count ?? 0,
-              fraud_rate: d.fraud_rate ?? 0,
-              total_amount: d.blocked_amount ?? 0,
-              blocked_amount: d.blocked_amount ?? 0,
-            };
-            this.categoryBreakdown = d.category_breakdown || d.categoryBreakdown || [];
-            this.timeSeriesData = (d.time_series_data || d.timeSeriesData || []).map((ts: any) => ({
-              date: ts.date,
-              fraud_count: ts.fraud_count ?? 0,
-              total_count: ts.total_transactions ?? ts.total_count ?? 0,
-            }));
-          } else {
+      this.reportsService.getReports(this.startDate, this.endDate)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+        next: (data: unknown) => {
+          this.ngZone.run(() => {
+            clearTimeout(this.reportTimeout);
+            if (data && typeof data === 'object') {
+              const d = (data as Record<string, unknown>)['data'] || data;
+              const dObj = d as Record<string, unknown>;
+              this.summary = {
+                total_transactions: (dObj['total_transactions'] as number) ?? 0,
+                fraud_detected: (dObj['fraud_count'] as number) ?? 0,
+                fraud_rate: (dObj['fraud_rate'] as number) ?? 0,
+                total_amount: (dObj['blocked_amount'] as number) ?? 0,
+                blocked_amount: (dObj['blocked_amount'] as number) ?? 0,
+              };
+              this.categoryBreakdown = (dObj['category_breakdown'] as CategoryBreakdownDTO[]) ||
+                (dObj['categoryBreakdown'] as CategoryBreakdownDTO[]) || [];
+              this.timeSeriesData = ((dObj['time_series_data'] as Array<Record<string, unknown>>) ||
+                (dObj['timeSeriesData'] as Array<Record<string, unknown>>) || []).map((ts) => ({
+                date: ts['date'] as string,
+                fraud_count: (ts['fraud_count'] as number) ?? 0,
+                total_count: (ts['total_transactions'] as number) ?? (ts['total_count'] as number) ?? 0,
+              }));
+            } else {
+              this.summary = null;
+              this.categoryBreakdown = [];
+              this.timeSeriesData = [];
+            }
+            this.loading = false;
+            this.cdr.detectChanges();
+
+            if (this.summary && this.summary.total_transactions > 0) {
+              this.toastService.success('Succès', 'Rapport chargé avec succès');
+              if (isPlatformBrowser(this.platformId)) {
+                setTimeout(() => this.renderTimeSeriesChart(), 100);
+              }
+            } else if (this.summary && this.summary.total_transactions === 0) {
+              this.toastService.warning('Attention', 'Aucune transaction trouvée pour la période sélectionnée');
+            } else {
+              this.toastService.error('Erreur', 'Impossible de charger les données du rapport');
+            }
+          });
+        },
+        error: (err: unknown) => {
+          this.ngZone.run(() => {
+            clearTimeout(this.reportTimeout);
+            console.error('Error loading reports:', err);
+            this.error = 'Erreur lors du chargement des rapports. Veuillez vérifier la connexion au service.';
+            this.loading = false;
+            this.cdr.detectChanges();
+            this.toastService.error('Erreur', 'Erreur lors du chargement des rapports');
             this.summary = null;
             this.categoryBreakdown = [];
             this.timeSeriesData = [];
-          }
-          this.loading = false;
-          
-          if (this.summary && this.summary.total_transactions > 0) {
-            this.toastService.success('Succès', 'Rapport chargé avec succès');
-            setTimeout(() => this.renderTimeSeriesChart(), 100);
-          } else if (this.summary && this.summary.total_transactions === 0) {
-            this.toastService.warning('Attention', 'Aucune transaction trouvée pour la période sélectionnée');
-          } else {
-            this.toastService.error('Erreur', 'Impossible de charger les données du rapport');
-          }
-        },
-        error: (err: any) => {
-          clearTimeout(timeout);
-          // Enhanced error handling
-          console.error('Error loading reports:', err);
-          this.error = 'Erreur lors du chargement des rapports. Veuillez vérifier la connexion au service.';
-          this.loading = false;
-          this.toastService.error('Erreur', 'Erreur lors du chargement des rapports');
-          
-          // Fallback to empty state
-          this.summary = null;
-          this.categoryBreakdown = [];
-          this.timeSeriesData = [];
+          });
         }
       });
   }
 
   exportPDF() {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     this.ngZone.run(() => {
       this.exportingPDF = true;
       this.error = null;
       this.toastService.info('Export', 'Génération du PDF en cours...');
     });
-    
-    const timeout = setTimeout(() => {
+
+    this.pdfTimeout = setTimeout(() => {
       this.ngZone.run(() => {
         if (this.exportingPDF) {
           this.exportingPDF = false;
@@ -238,46 +273,52 @@ export class ReportsComponent implements OnInit, AfterViewInit {
         }
       });
     }, 10000);
-    
-    this.reportsService.exportPDF(this.startDate, this.endDate).subscribe({
-      next: (blob: Blob) => {
-        clearTimeout(timeout);
-        this.ngZone.run(() => {
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          const contentType = blob.type || 'application/pdf';
-          const extension = contentType.includes('html') ? 'html' : 'pdf';
-          link.download = `fraud_report_${this.startDate}_to_${this.endDate}.${extension}`;
-          link.click();
-          this.exportingPDF = false;
-          
-          if (extension === 'html') {
-            this.toastService.success('Export réussi', 'Le rapport HTML a été téléchargé. Vous pouvez l\'ouvrir et l\'enregistrer en PDF via votre navigateur.');
-          } else {
-            this.toastService.success('Export réussi', 'Le rapport PDF a été téléchargé');
-          }
-        });
-      },
-      error: (err: any) => {
-        clearTimeout(timeout);
-        this.ngZone.run(() => {
-          console.error('Error exporting PDF:', err);
-          this.error = 'Erreur lors de l\'export PDF. Veuillez réessayer.';
-          this.exportingPDF = false;
-          this.toastService.error('Erreur d\'export', 'Erreur lors de l\'export PDF. Le service peut être indisponible.');
-        });
-      }
-    });
+
+    this.reportsService.exportPDF(this.startDate, this.endDate)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob: Blob) => {
+          clearTimeout(this.pdfTimeout);
+          this.ngZone.run(() => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            const contentType = blob.type || 'application/pdf';
+            const extension = contentType.includes('html') ? 'html' : 'pdf';
+            link.download = `fraud_report_${this.startDate}_to_${this.endDate}.${extension}`;
+            link.click();
+            this.exportingPDF = false;
+
+            if (extension === 'html') {
+              this.toastService.success('Export réussi', 'Le rapport HTML a été téléchargé. Vous pouvez l\'ouvrir et l\'enregistrer en PDF via votre navigateur.');
+            } else {
+              this.toastService.success('Export réussi', 'Le rapport PDF a été téléchargé');
+            }
+          });
+        },
+        error: (err: unknown) => {
+          clearTimeout(this.pdfTimeout);
+          this.ngZone.run(() => {
+            console.error('Error exporting PDF:', err);
+            this.error = 'Erreur lors de l\'export PDF. Veuillez réessayer.';
+            this.exportingPDF = false;
+            this.toastService.error('Erreur d\'export', 'Erreur lors de l\'export PDF. Le service peut être indisponible.');
+          });
+        }
+      });
   }
 
   exportCSV() {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     this.ngZone.run(() => {
       this.exportingCSV = true;
       this.error = null;
       this.toastService.info('Export', 'Génération du CSV en cours...');
     });
-    
-    const timeout = setTimeout(() => {
+
+    this.csvTimeout = setTimeout(() => {
       this.ngZone.run(() => {
         if (this.exportingCSV) {
           this.exportingCSV = false;
@@ -287,36 +328,38 @@ export class ReportsComponent implements OnInit, AfterViewInit {
         }
       });
     }, 8000);
-    
-    this.reportsService.exportCSV(this.startDate, this.endDate).subscribe({
-      next: (blob: Blob) => {
-        clearTimeout(timeout);
-        this.ngZone.run(() => {
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = `fraud_report_${this.startDate}_to_${this.endDate}.csv`;
-          link.click();
-          this.exportingCSV = false;
-          this.toastService.success('Export réussi', 'Le rapport CSV a été téléchargé');
-        });
-      },
-      error: (err: any) => {
-        clearTimeout(timeout);
-        this.ngZone.run(() => {
-          console.error('Error exporting CSV:', err);
-          this.error = 'Erreur lors de l\'export CSV. Génération côté client en cours...';
-          this.toastService.warning('Export CSV', 'Erreur serveur, génération côté client en cours...');
-          
-          if (this.timeSeriesData.length) {
-            this.generateClientSideCSV();
-            this.toastService.success('Export réussi', 'Le rapport CSV a été généré côté client');
-          } else {
-            this.toastService.error('Erreur', 'Aucune donnée disponible pour l\'export CSV');
-          }
-          this.exportingCSV = false;
-        });
-      }
-    });
+
+    this.reportsService.exportCSV(this.startDate, this.endDate)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob: Blob) => {
+          clearTimeout(this.csvTimeout);
+          this.ngZone.run(() => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `fraud_report_${this.startDate}_to_${this.endDate}.csv`;
+            link.click();
+            this.exportingCSV = false;
+            this.toastService.success('Export réussi', 'Le rapport CSV a été téléchargé');
+          });
+        },
+        error: (err: unknown) => {
+          clearTimeout(this.csvTimeout);
+          this.ngZone.run(() => {
+            console.error('Error exporting CSV:', err);
+            this.error = 'Erreur lors de l\'export CSV. Génération côté client en cours...';
+            this.toastService.warning('Export CSV', 'Erreur serveur, génération côté client en cours...');
+
+            if (this.timeSeriesData.length) {
+              this.generateClientSideCSV();
+              this.toastService.success('Export réussi', 'Le rapport CSV a été généré côté client');
+            } else {
+              this.toastService.error('Erreur', 'Aucune donnée disponible pour l\'export CSV');
+            }
+            this.exportingCSV = false;
+          });
+        }
+      });
   }
 
   private generateClientSideCSV() {
@@ -363,8 +406,7 @@ export class ReportsComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    // Initialize chart if data is already loaded
-    if (this.timeSeriesData.length > 0) {
+    if (isPlatformBrowser(this.platformId) && this.timeSeriesData.length > 0) {
       this.renderTimeSeriesChart();
     }
   }

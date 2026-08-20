@@ -1,6 +1,5 @@
-import { Component, signal, inject, Input, output, HostListener, AfterViewInit, DestroyRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { DOCUMENT } from '@angular/common';
+import { Component, signal, inject, Input, output, HostListener, AfterViewInit, OnDestroy, OnInit, PLATFORM_ID, DOCUMENT, DestroyRef } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
 import { NotificationsService, Notification } from '../../services/notifications.service';
@@ -12,8 +11,9 @@ import { NotificationsService, Notification } from '../../services/notifications
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.css']
 })
-export class HeaderComponent implements AfterViewInit {
-  private document = inject(DOCUMENT);
+export class HeaderComponent implements OnInit, AfterViewInit {
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly document = inject<Document>(DOCUMENT);
   private destroyRef = inject(DestroyRef);
   private authService = inject(AuthService);
   private notificationsService = inject(NotificationsService);
@@ -31,13 +31,16 @@ export class HeaderComponent implements AfterViewInit {
   unreadCount = signal(0);
   showNotifications = signal(false);
   darkMode = signal(false);
-  
+
   currentTime = signal('');
   currentDate = signal('');
-  private timeUpdateInterval: any;
+  private timeUpdateInterval: ReturnType<typeof setInterval> | undefined;
 
-  constructor() {
-    // Load user from auth service manually to reduce startup tasks
+  ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     this.authService.loadUserFromSessionManual();
     const user = this.authService.getCurrentUser();
     if (user) {
@@ -47,7 +50,6 @@ export class HeaderComponent implements AfterViewInit {
         avatar: user.avatar || '👤'
       });
     } else {
-      // Set default user to avoid API call during startup
       this.currentUser.set({
         name: 'Utilisateur Démo',
         role: 'ACCOUNTANT',
@@ -55,43 +57,47 @@ export class HeaderComponent implements AfterViewInit {
       });
     }
 
-    // Load notifications manually to reduce startup tasks
     this.notificationsService.loadNotificationsManual();
 
-    // Load notifications from service
-    this.notificationsService.notifications$.subscribe({
-      next: (notifications) => {
-        this.notifications.set(notifications);
-      }
-    });
+    this.notificationsService.notifications$
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (notifications) => this.notifications.set(notifications)
+      });
 
-    this.notificationsService.unreadCount$.subscribe({
-      next: (count) => {
-        this.unreadCount.set(count);
-      }
-    });
+    this.notificationsService.unreadCount$
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (count) => this.unreadCount.set(count)
+      });
 
-    // Check for saved preference or system preference
-    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-      const savedMode = localStorage.getItem('darkMode');
-      if (savedMode !== null) {
-        this.darkMode.set(savedMode === 'true');
-      } else {
-        // Check system preference
-        this.darkMode.set(window.matchMedia('(prefers-color-scheme: dark)').matches);
-      }
-      this.applyDarkMode();
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode !== null) {
+      this.darkMode.set(savedMode === 'true');
+    } else {
+      this.darkMode.set(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    this.applyDarkMode();
+  }
+
+  ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
     }
 
-    // Initialize time only on client side to avoid SSR hydration mismatch
-    if (typeof window !== 'undefined') {
-      this.updateTime();
-    }
+    this.updateTime();
+    this.timeUpdateInterval = setInterval(() => this.updateTime(), 1000);
+
+    this.destroyRef.onDestroy(() => {
+      if (this.timeUpdateInterval) {
+        clearInterval(this.timeUpdateInterval);
+      }
+    });
   }
 
   toggleDarkMode() {
     this.darkMode.update(mode => !mode);
-    if (typeof localStorage !== 'undefined') {
+    if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('darkMode', this.darkMode().toString());
     }
     this.applyDarkMode();
@@ -102,22 +108,6 @@ export class HeaderComponent implements AfterViewInit {
       this.document.documentElement.classList.add('dark');
     } else {
       this.document.documentElement.classList.remove('dark');
-    }
-  }
-
-  ngAfterViewInit() {
-    // Start time updates only after component is initialized on client
-    if (typeof window !== 'undefined') {
-      this.timeUpdateInterval = setInterval(() => {
-        this.updateTime();
-      }, 1000);
-      
-      // Cleanup on destroy
-      this.destroyRef.onDestroy(() => {
-        if (this.timeUpdateInterval) {
-          clearInterval(this.timeUpdateInterval);
-        }
-      });
     }
   }
 

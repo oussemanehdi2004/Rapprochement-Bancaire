@@ -10,6 +10,8 @@ services:
       - NEO4J_AUTH=neo4j/password_super_securise
     volumes:
       - neo4j_data:/data
+    networks:
+      - banking_net
     deploy:
       resources:
         limits:

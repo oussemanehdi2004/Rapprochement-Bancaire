@@ -55,7 +55,7 @@ export class MultiBankingService {
     );
   }
 
-  validateFile(file: File, format: BankFileFormat, tenantId: string, bankId: string): Observable<any> {
+  validateFile(file: File, format: BankFileFormat, tenantId: string, bankId: string): Observable<unknown> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('format', format);
@@ -85,7 +85,7 @@ export class MultiBankingService {
     );
   }
 
-  checkHealth(): Observable<any> {
+  checkHealth(): Observable<unknown> {
     return this.http.get(`${this.apiUrl}/health`).pipe(
       catchError(error => {
         console.error('Health check failed:', error);

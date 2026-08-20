@@ -213,6 +213,15 @@ async def health():
     }
 
 
+@app.get("/health")
+async def health_alias():
+    return {
+        "status": "ok",
+        "service": "multi-banking",
+        "environment": ENVIRONMENT,
+    }
+
+
 # In-memory storage for upload statistics (in production, use a database)
 upload_stats = {
     "total_files": 0,

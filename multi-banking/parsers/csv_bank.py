@@ -18,6 +18,8 @@ def parse_csv(content: bytes, tenant_id: str, bank_id: str) -> list[PivotTransac
             counterparty_iban=row.get("counterparty_iban") or None,
             reference=row.get("reference") or None,
             source_format="csv",
+            balance_before=float(row["balance_before"]) if row.get("balance_before") else None,
+            balance_after=float(row["balance_after"]) if row.get("balance_after") else None,
         )
         tx.source_line_hash = tx.compute_hash()
         results.append(tx)

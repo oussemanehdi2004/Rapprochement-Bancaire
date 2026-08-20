@@ -1,21 +1,21 @@
-import { Component, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FraudAlertsService, TransactionOutputExtended } from '../services/fraud-alerts.service';
 import { DefaultService, TransactionInput, TransactionOutput } from '../../../api';
 import { GraphService, GraphAccountNode, GraphNetworkResponse } from '../services/graph.service';
-import { FraudAlert } from '../models/fraud-alert.model';
+import { FraudAlert, FraudCategory, FraudSeverity } from '../models/fraud-alert.model';
 import { ConfigService, ThresholdsConfig } from '../services/config.service';
 import { PdfExportService } from '../services/pdf-export.service';
 
-// --- IMPORTS DES COMPOSANTS RÉUTILISABLES ---
-import { ThresholdSimulatorComponent, SimulationThresholds } from '../components/threshold-simulator/threshold-simulator.component';
 import { SeverityBadgeComponent } from '../components/severity-badge/severity-badge.component';
 import { CategoryBadgeComponent } from '../components/category-badge/category-badge.component';
+import { SkeletonLoaderComponent } from '../components/skeleton-loader/skeleton-loader.component';
+import { ThresholdSimulatorComponent, SimulationThresholds } from '../components/threshold-simulator/threshold-simulator.component';
 import { FraudChartsComponent } from '../components/fraud-charts/fraud-charts.component';
 import { InteractiveGraphComponent } from '../components/interactive-graph/interactive-graph.component';
-import { SkeletonLoaderComponent } from '../components/skeleton-loader/skeleton-loader.component';
 
 export interface SeverityCounts {
   critical: number;
@@ -40,7 +40,7 @@ export interface CsvTransaction {
   transaction_type?: string;
   account_iban?: string;
   beneficiary_iban?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface GraphNodePosition {
@@ -66,10 +66,10 @@ export interface GraphNodePosition {
   templateUrl: './fraud-dashboard.component.html',
   styleUrls: ['./fraud-dashboard.component.css']
 })
-export class FraudDashboardComponent implements OnInit {
+export class FraudDashboardComponent implements OnInit, OnDestroy {
   // Services injectés
   private readonly platformId = inject(PLATFORM_ID);
-  private http = inject(HttpClient);
+  private readonly destroyRef = inject(DestroyRef);
   public alertsService = inject(FraudAlertsService);
   private graphService = inject(GraphService);
   private apiService = inject(DefaultService);
@@ -95,25 +95,37 @@ export class FraudDashboardComponent implements OnInit {
 
   // Time signal that updates every minute to avoid ExpressionChangedAfterItHasBeenCheckedError
   private currentTime = signal('');
+  private timeUpdateInterval: ReturnType<typeof setInterval> | undefined;
 
   public ngOnInit(): void {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
 
-    // Update time every minute
     this.updateTime();
-    setInterval(() => this.updateTime(), 60000);
+    this.timeUpdateInterval = setInterval(() => this.updateTime(), 60000);
 
-    // Automatically run demo analysis on page load for impressive first impression
-    // Use requestAnimationFrame to ensure SSR stabilization is not affected
+    this.destroyRef.onDestroy(() => {
+      if (this.timeUpdateInterval) {
+        clearInterval(this.timeUpdateInterval);
+      }
+    });
+
+    // Defer initial demo load to after hydration to avoid SSR/client race and ensure
+    // vite proxy is ready. Use afterNextRender would be ideal but setTimeout is robust.
     if (this.filteredAlerts().length === 0 && !this.supabaseResults()?.length) {
-      // Use requestAnimationFrame to avoid blocking SSR stabilization
-      requestAnimationFrame(() => {
-        setTimeout(() => {
+      // Small delay ensures HTTP goes through browser proxy, not SSR fetch
+      setTimeout(() => {
+        if (this.filteredAlerts().length === 0 && !this.supabaseResults()?.length) {
           this.useDemoData();
-        }, 500);
-      });
+        }
+      }, 300);
+    }
+  }
+
+  public ngOnDestroy(): void {
+    if (this.timeUpdateInterval) {
+      clearInterval(this.timeUpdateInterval);
     }
   }
 
@@ -236,8 +248,8 @@ export class FraudDashboardComponent implements OnInit {
   // Helper method to map TransactionOutput to TransactionOutputExtended
   private mapTransactionData(items: TransactionOutput[]): TransactionOutputExtended[] {
     return items.map(tx => {
-      const score = (tx as any).score ?? (tx.fraudProbability ? Math.round(tx.fraudProbability * 100) : 0);
-      
+      const score = tx.fraudProbability ? Math.round(tx.fraudProbability * 100) : 0;
+
       let derivedConfidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
       if (score >= 85) derivedConfidence = 'HIGH';
       else if (score >= 70) derivedConfidence = 'MEDIUM';
@@ -250,7 +262,7 @@ export class FraudDashboardComponent implements OnInit {
       else if (fraudProb >= 0.5) derivedSeverity = 'medium';
       else derivedSeverity = 'low';
 
-      let derivedCategory = (tx as any).ruleCategory || 'NON_CATEGORISE';
+      let derivedCategory = (tx as unknown as { ruleCategory?: string }).ruleCategory || 'NON_CATEGORISE';
       if (derivedCategory === 'NON_CATEGORISE' && tx.explainability?.factors) {
         const factorsStr = tx.explainability.factors.join(' ').toLowerCase();
         if (factorsStr.includes('montant') && (factorsStr.includes('inhabituel') || factorsStr.includes('exceptionnel'))) {
@@ -270,7 +282,7 @@ export class FraudDashboardComponent implements OnInit {
         status: tx.isFraud ? 'new' : 'dismissed',
         isFraud: tx.isFraud ?? false,
         fraudProbability: tx.fraudProbability ?? 0,
-        reconciliationStatus: tx.reconciliationStatus ?? 'PENDING' as any,
+        reconciliationStatus: tx.reconciliationStatus ?? 'PENDING',
         explainability: {
           summary: tx.explainability?.summary ?? 'No explanation available',
           factors: tx.explainability?.factors ?? [],
@@ -343,15 +355,13 @@ export class FraudDashboardComponent implements OnInit {
       this.alertsService.updateStats(this.alertsService.alerts());
     }
     this.configSaved.set(true);
-    setTimeout(() => this.configSaved.set(false), 3000);
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => this.configSaved.set(false), 3000);
+    }
   }
 
   private resetLocalAlerts(): void {
-    if (typeof (this.alertsService as any).clearAlerts === 'function') {
-      (this.alertsService as any).clearAlerts();
-    } else if ((this.alertsService as any).alerts?.set) {
-      (this.alertsService as any).alerts.set([]);
-    }
+    this.alertsService.clearAlerts();
   }
 
   // ===== ONGLET RÈGLES MÉTIER =====
@@ -531,7 +541,7 @@ export class FraudDashboardComponent implements OnInit {
 
     const counts: SeverityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
     for (const item of list) {
-      const score = (item as any).fraudScore ?? (item as any).fraud_score ?? (item as any).score ?? 0;
+      const score = item.fraudScore ?? item.score ?? 0;
       if (score >= 85) counts.critical++;
       else if (score >= threshold && score >= 70) counts.high++;
       else if (score >= threshold) counts.medium++;
@@ -545,7 +555,7 @@ export class FraudDashboardComponent implements OnInit {
     const groups = new Map<string, { positive: number; negative: number }>();
 
     for (const alert of this.filteredAlerts()) {
-      const contributions = (alert as any).explainability?.shap_contributions ?? [];
+      const contributions = alert.explainability?.shap_contributions ?? [];
 
       for (const c of contributions) {
         const entry = groups.get(c.feature) ?? { positive: 0, negative: 0 };
@@ -564,19 +574,19 @@ export class FraudDashboardComponent implements OnInit {
   });
 
   public alertsWithMlFactors = computed(() =>
-    this.filteredAlerts().filter(a => ((a.explainability as any)?.shap_contributions?.length ?? 0) > 0)
+    this.filteredAlerts().filter(a => (a.explainability?.shap_contributions?.length ?? 0) > 0)
   );
 
   public mlFactorsOf(alert: FraudAlert): string[] {
-    const contributions = (alert as any).explainability?.shap_contributions ?? [];
+    const contributions = alert.explainability?.shap_contributions ?? [];
     if (contributions.length > 0) {
-      return contributions.map((c: any) => `${c.feature} (${c.direction === 'positive' ? '+' : '-'}${c.value})`);
+      return contributions.map(c => `${c.feature} (${c.direction === 'positive' ? '+' : '-'}${c.value})`);
     }
-    return (alert as any).explainability?.factors?.filter((f: string) => / a contribué (positivement|négativement)$/.test(f)) ?? [];
+    return alert.explainability?.factors?.filter(f => / a contribué (positivement|négativement)$/.test(f)) ?? [];
   }
 
   public ruleFactorsOf(alert: FraudAlert): string[] {
-    return (alert as any).explainability?.factors?.filter((f: string) => !/ a contribué (positivement|négativement)$/.test(f)) ?? [];
+    return alert.explainability?.factors?.filter(f => !/ a contribué (positivement|négativement)$/.test(f)) ?? [];
   }
 
   // ===== CONFIG API SERVICE =====
@@ -721,8 +731,9 @@ export class FraudDashboardComponent implements OnInit {
           return;
         }
         this.runAnalysis(transactions);
-      } catch (e: any) {
-        this.importError.set(e.message || 'Erreur de lecture du CSV.');
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Erreur de lecture du CSV.';
+        this.importError.set(message);
         console.error('Erreur Import CSV:', e);
       }
     };
@@ -747,7 +758,7 @@ export class FraudDashboardComponent implements OnInit {
     return rows
       .map((line, index) => {
         const values = this.splitCsvLine(line, separator);
-        const record: Record<string, any> = {};
+        const record: Record<string, string | number> = {};
 
         header.forEach((col, i) => {
           let val = values[i] ?? '';
@@ -759,9 +770,9 @@ export class FraudDashboardComponent implements OnInit {
           }
         });
 
-        const amount = record['amount'] || 0;
-        const senderBefore = record['sender_balance_before'] ?? 10000.0;
-        const senderAfter = record['sender_balance_after'] ?? Math.max(0, senderBefore - amount);
+        const amount = Number(record['amount']) || 0;
+        const senderBefore = Number(record['sender_balance_before']) || 10000.0;
+        const senderAfter = Number(record['sender_balance_after']) || Math.max(0, senderBefore - amount);
 
         return {
           tenant_id: record['tenant_id'] || 'tenant_demo',
@@ -795,15 +806,16 @@ export class FraudDashboardComponent implements OnInit {
     this.analyze();
   }
 
-  private runAnalysis(transactions: any[]): void {
+  private runAnalysis(transactions: CsvTransaction[]): void {
     this.errorMessage.set(null);
     this.supabaseResults.set(null);
     this.resetLocalAlerts();
 
     this.alertsService.analyzeTransactions(transactions).subscribe({
       next: () => console.log('Import CSV analysé avec succès'),
-      error: (err: any) => {
-        this.errorMessage.set(`Erreur: ${err.message || 'Échec de l\'analyse du fichier importé'}`);
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Échec de l\'analyse du fichier importé';
+        this.errorMessage.set(`Erreur: ${message}`);
       }
     });
   }
@@ -822,7 +834,7 @@ export class FraudDashboardComponent implements OnInit {
     const threshold = this.appliedMlThreshold();
 
     const fraudCount = list.filter(item => {
-      const score = (item as any).fraudScore ?? (item as any).fraud_score ?? (item as any).score ?? 0;
+      const score = item.fraudScore ?? item.score ?? 0;
       return score >= threshold;
     }).length;
 
@@ -834,7 +846,7 @@ export class FraudDashboardComponent implements OnInit {
     const threshold = this.appliedMlThreshold();
 
     const suspiciousItems = list.filter(item => {
-      const score = (item as any).fraudScore ?? (item as any).fraud_score ?? (item as any).score ?? 0;
+      const score = item.fraudScore ?? item.score ?? 0;
       return score >= threshold;
     });
 
@@ -846,7 +858,7 @@ export class FraudDashboardComponent implements OnInit {
     if (list.length === 0) return 0;
 
     const sumScore = list.reduce((acc, item) => {
-      const score = (item as any).fraudScore ?? (item as any).fraud_score ?? (item as any).score ?? 0;
+      const score = item.fraudScore ?? item.score ?? 0;
       return acc + score;
     }, 0);
 
@@ -920,62 +932,66 @@ export class FraudDashboardComponent implements OnInit {
     this.importError.set(null);
     this.supabaseResults.set(null);
     this.analysisMode.set('local');
-    
-    // Save current data as previous for trend calculation
+
     this.saveCurrentAsPrevious();
-    
     this.resetLocalAlerts();
 
     this.alertsService.analyzeTransactions(this.mockTransactionsToAnalyze).subscribe({
-      next: (resultats: any) => {
+      next: (resultats: TransactionOutputExtended[]) => {
         console.log('Analyse démo terminée avec succès', resultats);
       },
-      error: (erreur: any) => {
+      error: (erreur: unknown) => {
         console.error('Erreur lors de l\'analyse démo', erreur);
-        
-        // Fallback local pour garder la demo exploitable sans API active.
+
         if (this.shouldUseLocalDemoFallback(erreur)) {
           console.log('Utilisation des donnees mockees en mode demo local');
           this.useMockDataForDemo();
         } else {
-          this.errorMessage.set(`Erreur: ${erreur.message || 'Impossible de se connecter au backend'}`);
+          const message = erreur instanceof Error ? erreur.message : 'Impossible de se connecter au backend';
+          this.errorMessage.set(`Erreur: ${message}`);
         }
       }
     });
   }
 
-  private shouldUseLocalDemoFallback(error: any): boolean {
-    const status = Number(error?.status ?? 0);
-    const message = String(error?.message ?? '');
+  private shouldUseLocalDemoFallback(error: unknown): boolean {
+    if (error && typeof error === 'object' && 'status' in error) {
+      const status = Number((error as { status: unknown }).status ?? 0);
+      const message = String((error as { message?: unknown }).message ?? '');
 
-    return (
-      status === 0 ||
-      status === 401 ||
-      status === 404 ||
-      status === 502 ||
-      status === 503 ||
-      status === 504 ||
-      message.includes('401') ||
-      message.includes('Failed to fetch') ||
-      message.includes('Http failure response')
-    );
+      return (
+        status === 0 ||
+        status === 401 ||
+        status === 404 ||
+        status === 502 ||
+        status === 503 ||
+        status === 504 ||
+        message.includes('401') ||
+        message.includes('Failed to fetch') ||
+        message.includes('Http failure response')
+      );
+    }
+    return true;
   }
 
   private useMockDataForDemo(): void {
-    // Données mockées pour la démo sans authentification - SPREAD ACROSS DATES
-    const mockAlerts: any[] = [
+    const mockAlerts: TransactionOutputExtended[] = [
       {
+        tenant_id: "tenant-123",
+        transaction_reference: "mongo_001",
         id: 'tx_seuil',
         transactionId: 'mongo_001',
         date: '2026-08-13T10:00:00Z',
         description: 'Virement fournisseur externe',
         amount: 15000.0,
         isFraud: true,
+        fraudProbability: 0.925,
         fraudScore: 92.5,
         confidence: 'HIGH',
         severity: 'CRITICAL',
         category: 'SEUIL_REGLEMENTAIRE',
         beneficiary: 'FR7698765432109876543210987',
+        reconciliationStatus: 'SUSPICIOUS',
         status: 'under_investigation',
         explainability: {
           summary: 'Montant supérieur au seuil réglementaire TRACFIN',
@@ -988,17 +1004,21 @@ export class FraudDashboardComponent implements OnInit {
         }
       },
       {
+        tenant_id: "tenant-123",
+        transaction_reference: "mongo_002",
         id: 'tx_approche',
         transactionId: 'mongo_002',
         date: '2026-08-14T10:02:00Z',
         description: 'Virement fournisseur B',
         amount: 9500.0,
         isFraud: true,
+        fraudProbability: 0.783,
         fraudScore: 78.3,
         confidence: 'MEDIUM',
         severity: 'HIGH',
         category: 'SEUIL_APPROCHE',
         beneficiary: 'FR7612345678901234567890123',
+        reconciliationStatus: 'SUSPICIOUS',
         status: 'under_investigation',
         explainability: {
           summary: 'Approche du seuil réglementaire',
@@ -1011,17 +1031,21 @@ export class FraudDashboardComponent implements OnInit {
         }
       },
       {
+        tenant_id: "tenant-123",
+        transaction_reference: "mongo_003",
         id: 'tx_cash',
         transactionId: 'mongo_003',
         date: '2026-08-15T10:05:00Z',
         description: 'Retrait exceptionnel PARIS',
         amount: 6000.0,
         isFraud: true,
+        fraudProbability: 0.652,
         fraudScore: 65.2,
         confidence: 'MEDIUM',
         severity: 'HIGH',
         category: 'RETRAIT_CASH_IMPORTANT',
         beneficiary: '—',
+        reconciliationStatus: 'SUSPICIOUS',
         status: 'under_investigation',
         explainability: {
           summary: 'Retrait cash important détecté',
@@ -1034,17 +1058,21 @@ export class FraudDashboardComponent implements OnInit {
         }
       },
       {
+        tenant_id: "tenant-123",
+        transaction_reference: "mongo_005",
         id: 'tx_dup_1',
         transactionId: 'mongo_005',
         date: '2026-08-16T11:00:00Z',
         description: 'Paiement Fournisseur ABC',
         amount: 2500.0,
         isFraud: true,
+        fraudProbability: 0.558,
         fraudScore: 55.8,
         confidence: 'MEDIUM',
         severity: 'MEDIUM',
         category: 'PAIEMENT_DUPLIQUE',
         beneficiary: 'FR7611111111111111111111111',
+        reconciliationStatus: 'SUSPICIOUS',
         status: 'under_investigation',
         explainability: {
           summary: 'Paiement dupliqué détecté',
@@ -1057,17 +1085,21 @@ export class FraudDashboardComponent implements OnInit {
         }
       },
       {
+        tenant_id: "tenant-123",
+        transaction_reference: "mongo_013",
         id: 'tx_clean',
         transactionId: 'mongo_013',
         date: '2026-08-17T14:00:00Z',
         description: 'Achat fournitures de bureau',
         amount: 45.0,
         isFraud: false,
+        fraudProbability: 0.123,
         fraudScore: 12.3,
         confidence: 'LOW',
         severity: 'LOW',
         category: 'NON_CATEGORISE',
         beneficiary: 'FR7622222222222222222222222',
+        reconciliationStatus: 'MATCHED',
         status: 'cleared',
         explainability: {
           summary: 'Transaction normale',
@@ -1094,7 +1126,7 @@ export class FraudDashboardComponent implements OnInit {
     // Save current data as previous for trend calculation
     this.saveCurrentAsPrevious();
 
-    const transactionsSupabase: TransactionInput[] = [
+    const transactionsSupabase = [
       {
         tenant_id: "tenant-123",
         transaction_reference: "mongo_supa_001",
@@ -1107,7 +1139,6 @@ export class FraudDashboardComponent implements OnInit {
         receiver_balance_before: 0.0,
         receiver_balance_after: 900.0,
         transaction_type: "TRANSFER",
-        // @ts-ignore
         account_iban: "FR76-COMPTE-A",
         beneficiary_iban: "FR76-BENEF-A1"
       },
@@ -1123,7 +1154,6 @@ export class FraudDashboardComponent implements OnInit {
         receiver_balance_before: 0.0,
         receiver_balance_after: 500.0,
         transaction_type: "TRANSFER",
-        // @ts-ignore
         account_iban: "FR76-COMPTE-B",
         beneficiary_iban: "FR76-BENEF-B1"
       },
@@ -1139,53 +1169,46 @@ export class FraudDashboardComponent implements OnInit {
         receiver_balance_before: 0.0,
         receiver_balance_after: 800.0,
         transaction_type: "TRANSFER",
-        // @ts-ignore
         account_iban: "FR76-COMPTE-C",
         beneficiary_iban: "FR76-BENEF-C-NEW"
       }
-    ];
+    ] as unknown as TransactionInput[];
 
     this.apiService.analyzeTransactions(transactionsSupabase).subscribe({
       next: (resultats: TransactionOutput[]) => {
-        // Store in supabaseResults for reference
         this.supabaseResults.set(resultats);
-        
-        // Also put in main alerts service for consistent UI
+
         const mappedResults = this.mapTransactionData(resultats);
         this.alertsService.alerts.set(mappedResults);
         this.alertsService.updateStats(mappedResults);
-        
+
         this.loading.set(false);
       },
-      error: (erreur: any) => {
+      error: (erreur: unknown) => {
         this.loading.set(false);
-        
-        // Fallback local pour garder la demo exploitable sans API active.
+
         if (this.shouldUseLocalDemoFallback(erreur)) {
           console.log('Utilisation des donnees mockees en mode demo local');
           this.useMockSupabaseData();
         } else {
-          this.errorMessage.set(`Erreur Supabase: ${erreur.message || 'Échec de connexion'}`);
+          const message = erreur instanceof Error ? erreur.message : 'Échec de connexion';
+          this.errorMessage.set(`Erreur Supabase: ${message}`);
         }
       }
     });
   }
 
   private useMockSupabaseData(): void {
-    // Données mockées pour Supabase avec SHAP contributions
-    const mockSupabaseResults: any[] = [
+    const mockSupabaseResults: TransactionOutput[] = [
       {
+        tenant_id: "tenant-123",
+        transaction_reference: "mongo_supa_001",
         id: 'tx_montant_except',
         date: '2026-08-13T09:00:00Z',
         description: 'Virement urgent fournisseur',
         amount: 900.0,
         isFraud: true,
-        fraudScore: 72.5,
-        confidence: 'MEDIUM',
-        severity: 'HIGH',
-        category: 'MONTANT_EXCEPTIONNEL',
-        beneficiary: 'FR76-BENEF-A1',
-        status: 'under_investigation',
+        fraudProbability: 0.725,
         explainability: {
           summary: 'Montant exceptionnel par rapport à l\'historique',
           factors: ['Montant exceptionnel vs historique', 'Compte rarement utilisé'],
@@ -1197,19 +1220,14 @@ export class FraudDashboardComponent implements OnInit {
         }
       },
       {
-        id: 'tx_compte_dormant',
+        tenant_id: "tenant-123",
         transaction_reference: 'mongo_supa_002',
-        transactionId: 'mongo_supa_002',
+        id: 'tx_compte_dormant',
         date: '2026-08-14T09:05:00Z',
         description: 'Virement réactivation compte',
         amount: 500.0,
         isFraud: true,
-        fraudScore: 68.2,
-        confidence: 'MEDIUM',
-        severity: 'HIGH',
-        category: 'COMPTE_RAREMENT_UTILISE',
-        beneficiary: 'FR76-BENEF-B1',
-        status: 'under_investigation',
+        fraudProbability: 0.682,
         explainability: {
           summary: 'Réactivation d\'un compte dormant',
           factors: ['Compte rarement utilisé', 'Nouveau bénéficiaire'],
@@ -1221,19 +1239,14 @@ export class FraudDashboardComponent implements OnInit {
         }
       },
       {
-        id: 'tx_nouvel_iban',
+        tenant_id: "tenant-123",
         transaction_reference: 'mongo_supa_003',
-        transactionId: 'mongo_supa_003',
+        id: 'tx_nouvel_iban',
         date: '2026-08-15T09:10:00Z',
         description: 'Virement nouveau bénéficiaire',
         amount: 800.0,
         isFraud: true,
-        fraudScore: 58.7,
-        confidence: 'MEDIUM',
-        severity: 'MEDIUM',
-        category: 'NOUVEL_IBAN',
-        beneficiary: 'FR76-BENEF-C-NEW',
-        status: 'under_investigation',
+        fraudProbability: 0.587,
         explainability: {
           summary: 'Premier virement vers ce bénéficiaire',
           factors: ['Nouvel IBAN bénéficiaire'],
@@ -1271,16 +1284,16 @@ export class FraudDashboardComponent implements OnInit {
       'Catégorie', 'Statut', 'Bénéficiaire', 'Est une fraude'
     ];
 
-    const rows = source.map((item: any) => [
-      item.id ?? (item as any).transactionId ?? '',
+    const rows = source.map((item: TransactionOutputExtended) => [
+      item.id ?? item.transactionId ?? '',
       item.date ?? '',
       (item.description ?? '').replace(/"/g, '""'),
       item.amount ?? 0,
-      (item as any).fraudScore ?? (item as any).score ?? 0,
-      (item as any).severity ?? '',
-      (item as any).category ?? (item as any).ruleCategory ?? 'NON_CATEGORISE',
-      (item as any).status ?? (item as any).reconciliationStatus ?? '',
-      (item as any).beneficiary ?? '',
+      item.fraudScore ?? 0,
+      item.severity ?? '',
+      item.category ?? 'NON_CATEGORISE',
+      item.status ?? '',
+      item.beneficiary ?? '',
       item.isFraud ? 'OUI' : 'NON'
     ]);
 
@@ -1311,18 +1324,18 @@ export class FraudDashboardComponent implements OnInit {
     }
 
     // Convertir en format FraudAlert attendu par le service
-    const alerts: FraudAlert[] = source.map((item: any) => ({
-      id: item.id ?? (item as any).transactionId ?? '',
-      tenantId: (item as any).tenantId ?? item.tenant_id ?? 'unknown',
-      transactionId: item.id ?? (item as any).transactionId ?? '',
+    const alerts: FraudAlert[] = source.map((item: TransactionOutputExtended) => ({
+      id: item.id ?? item.transactionId ?? '',
+      tenantId: item.tenantId ?? 'unknown',
+      transactionId: item.id ?? item.transactionId ?? '',
       date: item.date ?? '',
       description: item.description ?? '',
       amount: item.amount ?? 0,
-      beneficiary: (item as any).beneficiary ?? '',
-      category: (item as any).category ?? (item as any).ruleCategory ?? 'NON_CATEGORISE',
-      severity: (item as any).severity ?? 'low',
-      fraudScore: (item as any).fraudScore ?? (item as any).score ?? 0,
-      status: (item as any).status ?? 'new',
+      beneficiary: item.beneficiary ?? '',
+      category: (item.category ?? 'NON_CATEGORISE') as FraudCategory,
+      severity: (item.severity ?? 'low') as FraudSeverity,
+      fraudScore: item.fraudScore ?? 0,
+      status: (item.status ?? 'new') as 'new' | 'investigating' | 'confirmed' | 'dismissed',
       explainability: item.explainability ?? { summary: '', factors: [] }
     }));
 

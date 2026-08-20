@@ -11,5 +11,6 @@ export interface ValidationErrorDTO {
 export interface ValidationResultDTO {
   valid_count: number;
   invalid_count: number;
+  error_count?: number;
   errors: ValidationErrorDTO[];
 }

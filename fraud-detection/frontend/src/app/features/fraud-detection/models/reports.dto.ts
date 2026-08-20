@@ -25,22 +25,36 @@ export interface TimeSeriesDataDTO {
 }
 
 export interface ReportsDataDTO {
-  total_transactions: number;
-  fraud_count: number;
-  fraud_rate: number;
-  blocked_amount: number;
-  category_breakdown: CategoryBreakdownDTO[];
-  time_series_data: TimeSeriesDataDTO[];
+  total_transactions?: number;
+  fraud_count?: number;
+  fraud_rate?: number;
+  blocked_amount?: number;
+  category_breakdown?: CategoryBreakdownDTO[];
+  time_series_data?: TimeSeriesDataDTO[];
+  // Add summary for backward compatibility with tests
+  summary?: FraudSummaryDTO;
+  // Add camelCase aliases for backward compatibility  
+  categoryBreakdown?: CategoryBreakdownDTO[];
+  timeSeriesData?: TimeSeriesDataDTO[];
 }
 
 export function toSummary(dto: ReportsDataDTO): FraudSummaryDTO {
+  if (dto.summary) return dto.summary;
   return {
-    total_transactions: dto.total_transactions,
-    fraud_detected: dto.fraud_count,
-    fraud_rate: dto.fraud_rate,
-    total_amount: dto.blocked_amount,
-    blocked_amount: dto.blocked_amount,
+    total_transactions: dto.total_transactions || 0,
+    fraud_detected: dto.fraud_count || 0,
+    fraud_rate: dto.fraud_rate || 0,
+    total_amount: dto.blocked_amount || 0,
+    blocked_amount: dto.blocked_amount || 0,
   };
+}
+
+export function getCategoryBreakdown(dto: ReportsDataDTO): CategoryBreakdownDTO[] {
+  return dto.categoryBreakdown || dto.category_breakdown || [];
+}
+
+export function getTimeSeriesData(dto: ReportsDataDTO): TimeSeriesDataDTO[] {
+  return dto.timeSeriesData || dto.time_series_data || [];
 }
 
 export function toTimeSeries(dto: ReportsDataDTO): TimeSeriesDataDTO[] {

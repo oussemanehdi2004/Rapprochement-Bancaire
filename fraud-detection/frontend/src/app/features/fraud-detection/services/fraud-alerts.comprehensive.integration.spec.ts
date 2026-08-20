@@ -428,8 +428,8 @@ describe('FraudAlertsService - Comprehensive Integration Suite', () => {
       });
 
       const alert = service.alerts()[0];
-      expect(alert.explainability.shap_contributions).toHaveLength(2);
-      expect(alert.explainability.shap_contributions[0].feature).toBe('amount');
+      expect(alert.explainability!.shap_contributions).toHaveLength(2);
+      expect(alert.explainability!.shap_contributions[0].feature).toBe('amount');
     });
 
     it('should default shap_contributions to empty array', () => {

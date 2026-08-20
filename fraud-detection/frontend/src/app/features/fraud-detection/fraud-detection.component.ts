@@ -32,7 +32,7 @@ export class FraudDetectionComponent implements OnInit {
   selectedTxDetails: TransactionOutput | null = null;
   selectedAccountIban: string | null = null;
   loadingGraph: boolean = false;
-  networkData: any = null;
+  networkData: GraphNetworkResponse | null = null;
   // --- Filtres & UI ---
   isLoading = false;
   errorMessage: string | null = null;
@@ -79,7 +79,7 @@ export class FraudDetectionComponent implements OnInit {
         this.isLoading = false;
       },
       error: (err) => {
-        this.errorMessage = err.message;
+        this.errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
         this.isLoading = false;
       }
     });
@@ -147,7 +147,7 @@ export class FraudDetectionComponent implements OnInit {
     const samplePayload = [
       {
         tenant_id: 'tenant_demo',
-        mongo_transaction_id: '60d5ecb8b5c9c22234567890',
+        transaction_reference: 'REF_SIM_DEMO',
         id: `TX_SIM_${Date.now().toString().slice(-4)}`,
         date: new Date().toISOString(),
         description: 'Virement suspect entrant',
@@ -163,12 +163,12 @@ export class FraudDetectionComponent implements OnInit {
     ];
 
     this.fraudAlertsService.analyzeTransactions(samplePayload).subscribe({
-      next: (results: any) => {
+      next: (results) => {
         this.transactions = [...results, ...this.transactions];
         this.isLoading = false;
       },
-      error: (err : any) => {
-        this.errorMessage = err.message;
+      error: (err: unknown) => {
+        this.errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
         this.isLoading = false;
       }
     });

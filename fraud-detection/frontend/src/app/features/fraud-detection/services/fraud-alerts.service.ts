@@ -1,10 +1,12 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpParams, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
 import {
   ShapContributionDTO,
   ExplainabilityDTO,
+  TransactionInputDTO,
   TransactionOutputDTO,
   AnalyzeResponseDTO
 } from '../models';
@@ -31,8 +33,7 @@ export type TransactionOutput = TransactionOutputExtended;
   providedIn: 'root'
 })
 export class FraudAlertsService {
-  
-  // L'URL pointe désormais vers la route standardisée sécurisée
+  private readonly platformId = inject(PLATFORM_ID);
   private apiUrl = '/api';
 
   public alerts = signal<TransactionOutputExtended[]>([]);
@@ -47,15 +48,18 @@ export class FraudAlertsService {
 
   constructor(private http: HttpClient) {}
 
-  // Injection du Token pour la validation Node.js demandée par Dhirar
   private getHeaders(): HttpHeaders {
-    const token = localStorage.getItem('token'); 
+    let token: string | null = null;
+    if (isPlatformBrowser(this.platformId)) {
+      token = localStorage.getItem('token');
+    }
     return new HttpHeaders({
       'Authorization': `Bearer ${token || ''}`
     });
   }
 
   private mapTransactionData(items: TransactionOutputDTO[]): TransactionOutputExtended[] {
+    if (!items) return [];
     return items.map(tx => {
       const score = tx.score ?? (tx.fraudProbability ? Math.round(tx.fraudProbability * 100) : 0);
       
@@ -99,33 +103,28 @@ export class FraudAlertsService {
     });
   }
 
-  // Utilise le endpoint de démonstration sans authentification pour le développement
-  analyzeTransactions(transactions?: any[]): Observable<any> {
-  this.loading.set(true);
+  analyzeTransactions(transactions?: unknown[]): Observable<TransactionOutputExtended[]> {
+    this.loading.set(true);
 
-  // Utilise les transactions reçues en paramètre (ou un tableau vide par défaut)
-  const payload = transactions || [];
+    const payload = transactions || [];
+    const endpoint = `${this.apiUrl}/analyze-demo`;
 
-  // En développement, utilise le endpoint demo sans authentification
-  const endpoint = `${this.apiUrl}/analyze-demo`;
+    return this.http.post<APIResponse>(endpoint, payload).pipe(
+      map((res) => this.mapTransactionData(res.data)),
+      tap((data) => {
+        const newAlerts = Array.isArray(data) ? data : [data];
+        this.alerts.set([...newAlerts, ...this.alerts()]);
+        this.updateStats(this.alerts());
+        this.loading.set(false);
+      }),
+      catchError((err: unknown) => {
+        this.loading.set(false);
+        return throwError(() => err);
+      })
+    );
+  }
 
-  return this.http.post<APIResponse>(endpoint, payload).pipe(
-    map((res) => this.mapTransactionData(res.data)),
-    tap((data) => {
-      const newAlerts = Array.isArray(data) ? data : [data];
-      this.alerts.set([...newAlerts, ...this.alerts()]);
-      this.updateStats(this.alerts());
-      this.loading.set(false);
-    }),
-    catchError((err: any) => {
-      this.loading.set(false);
-      return throwError(() => err);
-    })
-  );
-}
-
-  // Alias pour conserver la compatibilité
-  analyze(transactions?: any[]): Observable<any> {
+  analyze(transactions?: unknown[]): Observable<TransactionOutputExtended[]> {
     return this.analyzeTransactions(transactions);
   }
 

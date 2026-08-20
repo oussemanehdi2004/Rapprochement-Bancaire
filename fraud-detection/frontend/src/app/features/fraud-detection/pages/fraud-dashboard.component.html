@@ -170,14 +170,21 @@
       </button>
     </div>
 
-    <!-- Graphiques globaux -->
-    <app-fraud-charts
-      [severityCounts]="severityCounts()"
-      [categoryStats]="categoryChartStats()"
-      [timeSeriesData]="timeSeriesData()"
-      [hourlyData]="hourlyData()"
-      [analysisMode]="analysisMode()"
-    ></app-fraud-charts>
+    <!-- Graphiques globaux (lazy: chart.js ~200KB) -->
+    @defer (when activeTab() === 'overview' || activeTab() === 'hybrid') {
+      <app-fraud-charts
+        [severityCounts]="severityCounts()"
+        [categoryStats]="categoryChartStats()"
+        [timeSeriesData]="timeSeriesData()"
+        [hourlyData]="hourlyData()"
+        [analysisMode]="analysisMode()"
+      ></app-fraud-charts>
+    } @placeholder {
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm mb-6">
+        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4 animate-pulse"></div>
+        <div class="h-56 bg-gray-100 dark:bg-gray-700/50 rounded-lg animate-pulse"></div>
+      </div>
+    }
 
     <!-- Fraud Detection Stats -->
     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm mb-6">
@@ -454,14 +461,20 @@
               Réseau de : <span class="font-bold text-slate-900 dark:text-slate-100">{{ networkData()?.center_iban }}</span>
             </div>
 
-            <!-- Graphe interactif -->
-            <app-interactive-graph
-              [nodes]="graphNodes()"
-              [edges]="graphEdges()"
-              [loading]="graphLoading()"
-              [centerNode]="selectedIban() || undefined"
-              class="w-full h-full"
-            ></app-interactive-graph>
+            <!-- Graphe interactif (lazy: vis-network ~159KB) -->
+            @defer (when activeTab() === 'graph' && networkData()) {
+              <app-interactive-graph
+                [nodes]="graphNodes()"
+                [edges]="graphEdges()"
+                [loading]="graphLoading()"
+                [centerNode]="selectedIban() || undefined"
+                class="w-full h-full"
+              ></app-interactive-graph>
+            } @placeholder {
+              <div class="absolute inset-0 flex items-center justify-center">
+                <div class="h-8 w-8 rounded-full border-3 border-slate-300 border-r-slate-700 animate-spin"></div>
+              </div>
+            }
           } @else {
             <p class="text-slate-400 dark:text-slate-500 text-sm">Sélectionnez un compte pour afficher son réseau d'interactions.</p>
           }

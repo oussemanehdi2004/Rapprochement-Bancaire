@@ -1,6 +1,7 @@
-import { Component, signal, inject, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, inject, effect, PLATFORM_ID, DestroyRef } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TransactionsService, TransactionListItem } from './transactions.service';
 
 @Component({
@@ -11,7 +12,9 @@ import { TransactionsService, TransactionListItem } from './transactions.service
   styleUrls: ['./transactions-list.component.css']
 })
 export class TransactionsListComponent {
-  private transactionsService = inject(TransactionsService);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly transactionsService = inject(TransactionsService);
 
   statusFilter = signal('tous');
   dateFrom = signal('');
@@ -23,19 +26,20 @@ export class TransactionsListComponent {
   errorMessage = signal<string | null>(null);
 
   constructor() {
-    // Cette fonction s'exécute à chaque fois qu'un signal (filtre/recherche) change
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     effect((onCleanup) => {
       const status = this.statusFilter();
       const from = this.dateFrom();
       const to = this.dateTo();
       const search = this.searchQuery();
 
-      // On crée un délai de 300ms avant de lancer l'appel (Debounce)
       const timer = setTimeout(() => {
         this.fetchTransactions({ status, from, to, search });
       }, 300);
 
-      // Si l'utilisateur tape une autre lettre avant les 300ms, on annule le timer précédent
       onCleanup(() => clearTimeout(timer));
     });
   }
@@ -52,20 +56,20 @@ export class TransactionsListComponent {
         date_from: f.from || undefined,
         date_to: f.to || undefined,
         search: f.search || undefined,
-        limit: 500, // Increase limit to show more transactions
+        limit: 500,
       })
+      .pipe(takeUntilDestroyed())
       .subscribe({
         next: (response: TransactionListItem[]) => {
-          // The service already returns the extracted array
           const dataList = Array.isArray(response) ? response : [];
           this.transactions.set(dataList);
           this.loading.set(false);
         },
-        error: (err: any) => {
-          // En cas d'erreur, on remet un tableau vide pour éviter de faire planter le composant
+        error: (err: unknown) => {
           this.transactions.set([]);
           this.loading.set(false);
-          this.errorMessage.set(`Erreur: ${err.message || 'Impossible de charger les transactions'}`);
+          const message = err instanceof Error ? err.message : 'Impossible de charger les transactions';
+          this.errorMessage.set(`Erreur: ${message}`);
         }
       });
   }

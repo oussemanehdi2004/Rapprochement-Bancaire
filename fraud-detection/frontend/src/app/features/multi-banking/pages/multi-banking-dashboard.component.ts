@@ -1,12 +1,12 @@
-import { Component, OnInit, AfterViewInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, AfterViewInit, signal, inject, PLATFORM_ID, ChangeDetectorRef, DestroyRef } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
 import { MultiBankingService } from '../services/multi-banking.service';
 import { IngestionStatsDTO, FileUploadDTO, IngestResponseDTO } from '../models';
-import { firstValueFrom } from 'rxjs';
 import { ToastService } from '../../../core/services/toast.service';
 import type { BankFileFormat } from '../../../core/types/index';
-import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-multi-banking-dashboard',
@@ -16,11 +16,17 @@ import { ChangeDetectorRef } from '@angular/core';
   styleUrls: ['./multi-banking-dashboard.component.css']
 })
 export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly multiBankingService = inject(MultiBankingService);
+  private readonly toastService = inject(ToastService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   darkMode = signal(false);
   loading = false;
   uploading = false;
   error: string | null = null;
-  
+
   stats: IngestionStatsDTO = {
     total_files: 0,
     successful: 0,
@@ -28,74 +34,86 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
     pending: 0,
     total_transactions: 0
   };
-  
+
   recentUploads: FileUploadDTO[] = [];
-  
+
   selectedFile: File | null = null;
   selectedBank = '';
   selectedFormat: BankFileFormat = 'csv';
   tenantId = 'default';
 
-  constructor(
-    private multiBankingService: MultiBankingService,
-    private toastService: ToastService,
-    private cdr: ChangeDetectorRef
-  ) {}
-
   ngOnInit() {
-    // Use setTimeout to ensure SSR stabilization is not affected
-    setTimeout(() => {
-      this.loadStats();
-      this.loadRecentUploads();
-    }, 100);
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    this.loadStats();
+    this.loadRecentUploads();
   }
 
   ngAfterViewInit() {
-    // Force UI refresh after component is fully loaded
-    setTimeout(() => {
-      this.cdr.detectChanges();
-    }, 50);
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    setTimeout(() => this.cdr.detectChanges(), 50);
   }
 
+  // Separate loading flags: stats loading should not block uploads table
+  statsLoading = false;
+  uploadsLoading = false;
+
   loadStats() {
+    this.statsLoading = true;
     this.loading = true;
     this.error = null;
-    
-    this.multiBankingService.getStats().subscribe({
-      next: (data: IngestionStatsDTO) => {
-        this.stats = data;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Error loading stats:', err);
-        this.error = 'Impossible de charger les statistiques. Veuillez vérifier la connexion au service.';
-        this.loading = false;
-        this.toastService.warning('Attention', 'Impossible de charger les statistiques');
-        this.stats = {
-          total_files: 0,
-          successful: 0,
-          failed: 0,
-          pending: 0,
-          total_transactions: 0
-        };
-        this.cdr.detectChanges();
-      }
-    });
+
+    this.multiBankingService.getStats()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data: IngestionStatsDTO) => {
+          this.stats = data;
+          this.statsLoading = false;
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+        error: (err: unknown) => {
+          console.error('Error loading stats:', err);
+          this.error = 'Impossible de charger les statistiques. Veuillez vérifier la connexion au service.';
+          this.statsLoading = false;
+          this.loading = false;
+          this.toastService.warning('Attention', 'Impossible de charger les statistiques');
+          this.stats = {
+            total_files: 0,
+            successful: 0,
+            failed: 0,
+            pending: 0,
+            total_transactions: 0
+          };
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   loadRecentUploads() {
-    this.multiBankingService.getRecentUploads().subscribe({
-      next: (data: FileUploadDTO[]) => {
-        this.recentUploads = data;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Error loading recent uploads:', err);
-        this.recentUploads = [];
-        this.cdr.detectChanges();
-      }
-    });
+    this.uploadsLoading = true;
+    this.multiBankingService.getRecentUploads()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data: FileUploadDTO[]) => {
+          this.recentUploads = data;
+          this.uploadsLoading = false;
+          // Keep legacy loading flag in sync for template compatibility
+          if (!this.statsLoading) this.loading = false;
+          this.cdr.detectChanges();
+        },
+        error: (err: unknown) => {
+          console.error('Error loading recent uploads:', err);
+          this.recentUploads = [];
+          this.uploadsLoading = false;
+          if (!this.statsLoading) this.loading = false;
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   onFileSelected(event: Event) {
@@ -151,11 +169,12 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
       } else {
         throw new Error('Échec du traitement du fichier');
       }
-    } catch (error: any) {
-      this.error = `Erreur lors du téléchargement: ${error.message || 'Erreur inconnue'}`;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      this.error = `Erreur lors du téléchargement: ${message}`;
       this.stats.failed++;
-      
-      this.toastService.error('Erreur', `Échec du téléchargement: ${error.message || 'Erreur inconnue'}`);
+
+      this.toastService.error('Erreur', `Échec du téléchargement: ${message}`);
       
       this.recentUploads.unshift({
         id: Date.now().toString(),
@@ -165,7 +184,7 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
         status: 'failed',
         transaction_count: 0,
         uploaded_at: new Date().toISOString(),
-        error_message: error.message || 'Erreur inconnue'
+        error_message: message
       });
       this.cdr.detectChanges();
     } finally {

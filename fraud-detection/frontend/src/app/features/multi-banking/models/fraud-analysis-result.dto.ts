@@ -8,4 +8,16 @@ export interface FraudAnalysisResultDTO {
   fraudProbability: number;
   reconciliationStatus: string;
   ruleCategory?: string | null;
+  id?: string;
+  date?: string;
+  description?: string;
+  amount?: number;
+  score?: number;
+  confidence?: string;
+  explainability?: {
+    summary?: string;
+    factors?: string[];
+    shap_contributions?: any[];
+  };
+  shap_contributions?: any[];
 }

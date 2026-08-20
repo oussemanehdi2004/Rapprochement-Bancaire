@@ -36,16 +36,16 @@ class TransactionInput(BaseModel):
 # CONSTANTES & POIDS DU SCORE COMPOSITE
 # =====================================================================
 # Configuration conservée[cite: 1]
-SEUIL_REGLEMENTAIRE = 10_000.0             
-SEUIL_APPROCHE_RATIO = 0.90                
-SEUIL_CASH_OUT = 5_000.0                   
-SEUIL_MONTANT_ABERRANT = 1_000_000_000.0   
+SEUIL_REGLEMENTAIRE = 10_000.0
+SEUIL_APPROCHE_RATIO = 0.90
+SEUIL_CASH_OUT = 5_000.0
+SEUIL_MONTANT_ABERRANT = 1_000_000_000.0
 
 PATTERNS_MOTS_CLES_SENSIBLES = [
     r"\bCASINO\b", r"\bPARIS\b", r"\bPOKER\b", r"\bBET\b", r"\bPARI\b",
 ]
 
-RATIO_MONTANT_INHABITUEL = 8.0             
+RATIO_MONTANT_INHABITUEL = 8.0
 SEUIL_JOURS_COMPTE_DORMANT = 90            
 
 # Nouveaux poids pour le calcul du score de risque (0-100)
@@ -149,7 +149,7 @@ def validate_transaction_sanity(amount: float, seuil_montant_aberrant: float) ->
     return None
 
 def _build_keyword_patterns(mots_cles: list[str]) -> list[str]:
-    return [rf"\b{re.escape(m)}\b" for m in mots_cles]
+    return [rf"(?i){re.escape(m)}" for m in mots_cles]
 
 # =====================================================================
 # MOTEUR PRINCIPAL : APPLICATION DES RÈGLES

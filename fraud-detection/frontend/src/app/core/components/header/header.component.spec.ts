@@ -87,7 +87,7 @@ describe('HeaderComponent', () => {
       value: (query: string) => ({
         matches: false,
         media: query,
-        onchange: null,
+        onchange: null as any,
         addListener: () => {},
         removeListener: () => {},
         addEventListener: () => {},

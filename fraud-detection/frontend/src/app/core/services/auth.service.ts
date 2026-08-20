@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
@@ -11,55 +12,76 @@ export interface User {
   avatar?: string;
 }
 
+interface SupabaseSessionData {
+  access_token?: string;
+  user?: {
+    id: string;
+    email?: string;
+    user_metadata?: {
+      name?: string;
+      role?: string;
+      avatar?: string;
+    };
+  };
+}
+
+interface ApiUserResponse {
+  id: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  avatar?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private readonly platformId = inject(PLATFORM_ID);
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
-  
+
   private apiUrl = '/api';
 
-  constructor(private http: HttpClient) {
-    // Removed automatic loading to reduce startup tasks
-    // Call loadUserFromSession() when needed
-  }
+  constructor(private http: HttpClient) {}
 
-  private loadUserFromSession() {
-    if (typeof window !== 'undefined') {
-      // Try to get user data from Supabase session
-      const supabaseStorageKey = Object.keys(localStorage).find(
-        key => key.startsWith('sb-') && key.endsWith('-auth-token')
-      );
+  private loadUserFromSession(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
 
-      if (supabaseStorageKey) {
-        try {
-          const sessionData = JSON.parse(localStorage.getItem(supabaseStorageKey) || '{}');
-          if (sessionData.user) {
-            const user: User = {
-              id: sessionData.user.id,
-              name: sessionData.user.user_metadata?.name || sessionData.user.email?.split('@')[0] || 'Utilisateur',
-              email: sessionData.user.email || '',
-              role: sessionData.user.user_metadata?.role || 'USER',
-              avatar: sessionData.user.user_metadata?.avatar || '👤'
-            };
-            this.currentUserSubject.next(user);
-            return;
-          }
-        } catch (e) {
-          console.error("Erreur lors de la lecture du token Supabase:", e);
-        }
-      }
+    const supabaseStorageKey = Object.keys(localStorage).find(
+      key => key.startsWith('sb-') && key.endsWith('-auth-token')
+    );
 
-      // Fallback: Try to get user from localStorage
-      const storedUser = localStorage.getItem('current_user');
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser);
+    if (supabaseStorageKey) {
+      try {
+        const sessionData: SupabaseSessionData = JSON.parse(
+          localStorage.getItem(supabaseStorageKey) || '{}'
+        );
+        if (sessionData.user) {
+          const user: User = {
+            id: sessionData.user.id,
+            name: sessionData.user.user_metadata?.name || sessionData.user.email?.split('@')[0] || 'Utilisateur',
+            email: sessionData.user.email || '',
+            role: sessionData.user.user_metadata?.role || 'USER',
+            avatar: sessionData.user.user_metadata?.avatar
+          };
           this.currentUserSubject.next(user);
-        } catch (e) {
-          console.error("Erreur lors de la lecture de l'utilisateur:", e);
+          return;
         }
+      } catch {
+        // Silently handle parse errors
+      }
+    }
+
+    const storedUser = localStorage.getItem('current_user');
+    if (storedUser) {
+      try {
+        const user: User = JSON.parse(storedUser);
+        this.currentUserSubject.next(user);
+      } catch {
+        // Silently handle parse errors
       }
     }
   }
@@ -78,22 +100,22 @@ export class AuthService {
   }
 
   getUserFromAPI(): Observable<User> {
-    return this.http.get<any>(`${this.apiUrl}/user/me`).pipe(
+    return this.http.get<ApiUserResponse>(`${this.apiUrl}/user/me`).pipe(
       map(response => {
         const user: User = {
           id: response.id,
           name: response.name || response.email?.split('@')[0] || 'Utilisateur',
           email: response.email || '',
           role: response.role || 'USER',
-          avatar: response.avatar || '👤'
+          avatar: response.avatar
         };
         this.currentUserSubject.next(user);
-        localStorage.setItem('current_user', JSON.stringify(user));
+        if (isPlatformBrowser(this.platformId)) {
+          localStorage.setItem('current_user', JSON.stringify(user));
+        }
         return user;
       }),
-      catchError(error => {
-        console.error('Error fetching user from API:', error);
-        // Return a default user for demo purposes
+      catchError(() => {
         const defaultUser: User = {
           id: 'demo',
           name: 'Utilisateur Démo',
@@ -107,11 +129,10 @@ export class AuthService {
     );
   }
 
-  logout() {
+  logout(): void {
     this.currentUserSubject.next(null);
-    if (typeof window !== 'undefined') {
+    if (isPlatformBrowser(this.platformId)) {
       localStorage.removeItem('current_user');
-      // Clear Supabase session
       const supabaseStorageKey = Object.keys(localStorage).find(
         key => key.startsWith('sb-') && key.endsWith('-auth-token')
       );
