@@ -1,4 +1,4 @@
-import { Component, signal, inject, Input, output, HostListener, AfterViewInit, OnDestroy, OnInit, PLATFORM_ID, DOCUMENT, DestroyRef } from '@angular/core';
+import { Component, signal, inject, Input, output, HostListener, AfterViewInit, OnDestroy, OnInit, PLATFORM_ID, DestroyRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
@@ -13,7 +13,6 @@ import { NotificationsService, Notification } from '../../services/notifications
 })
 export class HeaderComponent implements OnInit, AfterViewInit {
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly document = inject<Document>(DOCUMENT);
   private destroyRef = inject(DestroyRef);
   private authService = inject(AuthService);
   private notificationsService = inject(NotificationsService);
@@ -30,7 +29,6 @@ export class HeaderComponent implements OnInit, AfterViewInit {
   notifications = signal<Notification[]>([]);
   unreadCount = signal(0);
   showNotifications = signal(false);
-  darkMode = signal(false);
 
   currentTime = signal('');
   currentDate = signal('');
@@ -70,14 +68,6 @@ export class HeaderComponent implements OnInit, AfterViewInit {
       .subscribe({
         next: (count) => this.unreadCount.set(count)
       });
-
-    const savedMode = localStorage.getItem('darkMode');
-    if (savedMode !== null) {
-      this.darkMode.set(savedMode === 'true');
-    } else {
-      this.darkMode.set(window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    this.applyDarkMode();
   }
 
   ngAfterViewInit(): void {
@@ -93,22 +83,6 @@ export class HeaderComponent implements OnInit, AfterViewInit {
         clearInterval(this.timeUpdateInterval);
       }
     });
-  }
-
-  toggleDarkMode() {
-    this.darkMode.update(mode => !mode);
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('darkMode', this.darkMode().toString());
-    }
-    this.applyDarkMode();
-  }
-
-  private applyDarkMode() {
-    if (this.darkMode()) {
-      this.document.documentElement.classList.add('dark');
-    } else {
-      this.document.documentElement.classList.remove('dark');
-    }
   }
 
   private updateTime() {

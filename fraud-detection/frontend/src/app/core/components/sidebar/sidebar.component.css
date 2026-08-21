@@ -1,12 +1,8 @@
-.sidebar-link:hover {
-  background-color: #f9fafb;
-}
-
-.sidebar-link.active-link {
-  background-color: #eff6ff;
-  color: #1d4ed8;
-}
-
-.sidebar-toggle:hover {
-  background-color: #f9fafb;
-}
+.sidebar-link { transition: all 0.16s ease; }
+.sidebar-link:hover { background-color: #f8fafc; border-color: #e2e8f0; }
+.sidebar-link.active-link { background-color: #0f172a; color: #ffffff; border-color: #0f172a; box-shadow: 0 1px 3px rgba(15,23,42,0.12); }
+.sidebar-toggle { transition: all 0.16s ease; }
+.sidebar-toggle:hover { background-color: #f8fafc; border-color: #cbd5e1; }
+nav::-webkit-scrollbar { width: 4px; }
+nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+a:focus-visible, button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(79,70,229,0.14); border-color: #4f46e5; }

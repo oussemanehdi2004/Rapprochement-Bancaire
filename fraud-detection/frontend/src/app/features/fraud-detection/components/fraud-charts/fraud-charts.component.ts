@@ -44,11 +44,11 @@ export interface HourlyData {
   template: `
     <div class="grid grid-cols-1 gap-4 w-full">
       <!-- Evolution temporelle -->
-      <div [ngClass]="analysisMode === 'supabase' ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-300 dark:border-slate-700' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'" class="rounded-xl border p-4 shadow-sm">
+      <div [ngClass]="analysisMode === 'supabase' ? 'bg-slate-50 border-slate-300' : 'bg-white border-gray-200'" class="rounded-xl border p-4 shadow-sm">
         <div class="flex items-center justify-between mb-1">
-          <h3 [ngClass]="analysisMode === 'supabase' ? 'text-slate-800 dark:text-slate-200' : 'text-gray-700 dark:text-gray-300'" class="text-sm font-semibold">Évolution du taux de fraude</h3>
+          <h3 [ngClass]="analysisMode === 'supabase' ? 'text-slate-800' : 'text-gray-700'" class="text-sm font-semibold">Évolution du taux de fraude</h3>
           @if (analysisMode === 'supabase') {
-            <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">Supabase</span>
+            <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">Supabase</span>
           }
         </div>
         <p class="text-xs text-gray-400 mb-3">Tendance basée sur les données analysées</p>
@@ -62,11 +62,11 @@ export interface HourlyData {
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Répartition par sévérité -->
-        <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.dark:bg-slate-900/20]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.dark:bg-gray-800]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.dark:border-slate-700]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.dark:border-gray-700]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
+        <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
           <div class="flex items-center justify-between mb-1">
-            <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.dark:text-slate-200]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.dark:text-gray-300]="analysisMode !== 'supabase'" class="text-sm font-semibold">Répartition par sévérité</h3>
+            <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="text-sm font-semibold">Répartition par sévérité</h3>
             @if (analysisMode === 'supabase') {
-              <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">Supabase</span>
+              <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">Supabase</span>
             }
           </div>
           <p class="text-xs text-gray-400 mb-3">{{ totalAlerts() }} alerte(s) au total</p>
@@ -79,11 +79,11 @@ export interface HourlyData {
         </div>
 
         <!-- Règles les plus déclenchées -->
-        <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.dark:bg-slate-900/20]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.dark:bg-gray-800]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.dark:border-slate-700]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.dark:border-gray-700]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
+        <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
           <div class="flex items-center justify-between mb-1">
-            <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.dark:text-slate-200]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.dark:text-gray-300]="analysisMode !== 'supabase'" class="text-sm font-semibold">Règles les plus déclenchées</h3>
+            <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="text-sm font-semibold">Règles les plus déclenchées</h3>
             @if (analysisMode === 'supabase') {
-              <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">Supabase</span>
+              <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">Supabase</span>
             }
           </div>
           <p class="text-xs text-gray-400 mb-3">Top {{ Math.min(categoryStats.length, 6) }} catégorie(s)</p>
@@ -97,11 +97,11 @@ export interface HourlyData {
       </div>
 
       <!-- Heatmap horaire -->
-      <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.dark:bg-slate-900/20]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.dark:bg-gray-800]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.dark:border-slate-700]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.dark:border-gray-700]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
+      <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
         <div class="flex items-center justify-between mb-1">
-          <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.dark:text-slate-200]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.dark:text-gray-300]="analysisMode !== 'supabase'" class="text-sm font-semibold">Heatmap horaire des alertes</h3>
+          <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="text-sm font-semibold">Heatmap horaire des alertes</h3>
           @if (analysisMode === 'supabase') {
-            <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">Supabase</span>
+            <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">Supabase</span>
           }
         </div>
         <p class="text-xs text-gray-400 mb-3">Distribution par heure de la journée</p>
@@ -193,18 +193,21 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
         datasets: [
           {
             data,
-            backgroundColor: ['#dc2626', '#ea580c', '#d97706', '#16a34a'],
-            borderWidth: 0,
-            hoverOffset: 6,
+            backgroundColor: ['#dc2626', '#ea580c', '#d97706', '#10b981'],
+            borderWidth: 2,
+            borderColor: '#ffffff',
+            hoverOffset: 8,
+            hoverBorderWidth: 2,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '65%',
+        cutout: '66%',
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+          legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11, weight: 500 }, color: '#64748b' } },
+          tooltip: { backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, displayColors: true, boxPadding: 3 }
         },
       },
     };
@@ -231,8 +234,10 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
           {
             data: top.map((t) => t.count),
             backgroundColor: '#4f46e5',
-            borderRadius: 4,
-            maxBarThickness: 24,
+            hoverBackgroundColor: '#4338ca',
+            borderRadius: 6,
+            borderSkipped: false,
+            maxBarThickness: 26,
           },
         ],
       },
@@ -240,10 +245,13 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, displayColors: false }
+        },
         scales: {
-          x: { beginAtZero: true, ticks: { precision: 0 } },
-          y: { ticks: { font: { size: 11 } } },
+          x: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 }, color: '#64748b' }, grid: { color: '#f1f5f9' }, border: { display: false } },
+          y: { ticks: { font: { size: 11, weight: 500 }, color: '#334155' }, grid: { display: false }, border: { display: false } },
         },
       },
     };
@@ -290,21 +298,34 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
           {
             label: 'Taux de fraude (%)',
             data: fraudRates,
-            borderColor: '#dc2626',
-            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+            borderColor: '#e11d48',
+            backgroundColor: 'rgba(225, 29, 72, 0.08)',
             fill: true,
-            tension: 0.4,
-            pointRadius: data.length === 1 ? 6 : 4, // Larger points for single data point
+            tension: 0.38,
+            pointRadius: data.length === 1 ? 6 : 3.5,
             pointHoverRadius: 6,
+            pointBackgroundColor: '#e11d48',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            borderWidth: 2.2,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#f8fafc',
+            bodyColor: '#e2e8f0',
+            borderColor: '#1e293b',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 10,
+            displayColors: false,
             callbacks: {
               title: (context) => {
                 const index = context[0]?.dataIndex;
@@ -331,16 +352,25 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
             beginAtZero: true,
             max: 100,
             ticks: {
-              callback: (value) => value + '%'
-            }
+              callback: (value) => value + '%',
+              color: '#64748b',
+              font: { size: 11 },
+              padding: 8
+            },
+            grid: { color: '#f1f5f9' },
+            border: { display: false }
           },
           x: {
             ticks: {
-              maxRotation: 45,
-              minRotation: 45,
-              autoSkip: false,
-              maxTicksLimit: 10
-            }
+              maxRotation: 0,
+              minRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 8,
+              color: '#64748b',
+              font: { size: 10.5 }
+            },
+            grid: { display: false },
+            border: { display: false }
           }
         }
       }
@@ -378,7 +408,10 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
             label: 'Alertes par heure',
             data: counts,
             backgroundColor: colors,
-            borderRadius: 4,
+            hoverBackgroundColor: colors.map(c => c.replace(/0\.\d+\)$/, '0.95)')),
+            borderRadius: 6,
+            borderSkipped: false,
+            maxBarThickness: 18,
           },
         ],
       },
@@ -387,14 +420,19 @@ export class FraudChartsComponent implements AfterViewInit, OnChanges, OnDestroy
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
+          tooltip: { backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, displayColors: false }
         },
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { precision: 0 }
+            ticks: { precision: 0, color: '#64748b', font: { size: 11 } },
+            grid: { color: '#f1f5f9' },
+            border: { display: false }
           },
           x: {
-            ticks: { font: { size: 10 } }
+            ticks: { font: { size: 10 }, color: '#64748b' },
+            grid: { display: false },
+            border: { display: false }
           }
         }
       }

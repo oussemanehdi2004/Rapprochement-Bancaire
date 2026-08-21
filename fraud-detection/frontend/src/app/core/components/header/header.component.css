@@ -1,13 +1,7 @@
-.notification-btn:hover {
-  background-color: #f3f4f6;
-}
-
-.desktop-only {
-  display: block;
-}
-
-@media (max-width: 768px) {
-  .desktop-only {
-    display: none;
-  }
-}
+.notification-btn:hover { background-color: #f8fafc; }
+.desktop-only { display: block; }
+@media (max-width: 1024px) { .desktop-only { display: none; } }
+.notification-panel div::-webkit-scrollbar { width: 6px; }
+.notification-panel div::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+header { -webkit-backdrop-filter: blur(8px); }
+button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(79,70,229,0.14); border-color: #6366f1; }

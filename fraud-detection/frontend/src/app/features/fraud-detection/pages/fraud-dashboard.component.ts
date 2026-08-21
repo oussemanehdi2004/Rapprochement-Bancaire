@@ -75,19 +75,25 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   private apiService = inject(DefaultService);
   private pdfExportService = inject(PdfExportService);
 
-  // Dark mode
+  // Theme — single light theme (dark mode removed, kept for child component inputs)
   public darkMode = signal(false);
+  public isBrowser = signal(false);
+  public hasLoadError = signal(false);
 
   // Safe stats access with default values
   public safeStats = computed(() => {
-    const stats = this.alertsService.stats();
-    return stats || {
-      totalAlerts: 0,
-      critical: 0,
-      high: 0,
-      underInvestigation: 0,
-      totalAmountAtRisk: 0
-    };
+    try {
+      const stats = this.alertsService.stats();
+      return stats || {
+        totalAlerts: 0,
+        critical: 0,
+        high: 0,
+        underInvestigation: 0,
+        totalAmountAtRisk: 0
+      };
+    } catch {
+      return { totalAlerts: 0, critical: 0, high: 0, underInvestigation: 0, totalAmountAtRisk: 0 };
+    }
   });
 
   // Exposition de Math pour le template HTML
@@ -98,28 +104,41 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   private timeUpdateInterval: ReturnType<typeof setInterval> | undefined;
 
   public ngOnInit(): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    this.updateTime();
-    this.timeUpdateInterval = setInterval(() => this.updateTime(), 60000);
-
-    this.destroyRef.onDestroy(() => {
-      if (this.timeUpdateInterval) {
-        clearInterval(this.timeUpdateInterval);
+    try {
+      const isBrowser = isPlatformBrowser(this.platformId);
+      this.isBrowser.set(isBrowser);
+      if (!isBrowser) {
+        return;
       }
-    });
-
-    // Defer initial demo load to after hydration to avoid SSR/client race and ensure
-    // vite proxy is ready. Use afterNextRender would be ideal but setTimeout is robust.
-    if (this.filteredAlerts().length === 0 && !this.supabaseResults()?.length) {
-      // Small delay ensures HTTP goes through browser proxy, not SSR fetch
-      setTimeout(() => {
-        if (this.filteredAlerts().length === 0 && !this.supabaseResults()?.length) {
-          this.useDemoData();
+      this.updateTime();
+      this.timeUpdateInterval = setInterval(() => this.updateTime(), 60000);
+      this.destroyRef.onDestroy(() => {
+        if (this.timeUpdateInterval) {
+          clearInterval(this.timeUpdateInterval);
         }
-      }, 300);
+      });
+      // Defer initial demo load to after hydration to avoid SSR/client race and ensure vite proxy is ready
+      const hasData = (() => {
+        try { return (this.filteredAlerts()?.length ?? 0) > 0 || !!this.supabaseResults()?.length; } catch { return false; }
+      })();
+      if (!hasData) {
+        setTimeout(() => {
+          try {
+            const stillEmpty = (() => {
+              try { return (this.filteredAlerts()?.length ?? 0) === 0 && !this.supabaseResults()?.length; } catch { return true; }
+            })();
+            if (stillEmpty) {
+              this.useDemoData();
+            }
+          } catch (e) {
+            this.hasLoadError.set(true);
+            this.errorMessage.set('Erreur d\'initialisation: ' + (e instanceof Error ? e.message : String(e)));
+          }
+        }, 300);
+      }
+    } catch (e) {
+      this.hasLoadError.set(true);
+      this.errorMessage.set('Erreur critique: ' + (e instanceof Error ? e.message : String(e)));
     }
   }
 
@@ -230,13 +249,18 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   // Analysis mode to track data source
   public analysisMode = signal<'local' | 'supabase'>('local');
 
-  // Exposition des signaux du service
+  // Exposition des signaux du service — defensive for SSR/white-screen
   public filteredAlerts = computed(() => {
-    if (this.analysisMode() === 'supabase') {
-      const supa = this.supabaseResults();
-      return supa ? this.mapTransactionData(supa) : [];
+    try {
+      if (this.analysisMode() === 'supabase') {
+        const supa = this.supabaseResults();
+        return supa ? this.mapTransactionData(supa) : [];
+      }
+      const alerts = this.alertsService.alerts();
+      return Array.isArray(alerts) ? alerts : [];
+    } catch {
+      return [];
     }
-    return this.alertsService.alerts();
   });
   
   public loading = this.alertsService.loading;
@@ -820,49 +844,47 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ===== KPIS CALCULÉS STRICTEMENT SELON LE SEUIL DÉFINI =====
-
+  // ===== KPIS CALCULÉS STRICTEMENT SELON LE SEUIL DÉFINI — defensive null-checks ====
   public totalAnalyzed = computed(() => {
-    return this.filteredAlerts().length;
+    try { return this.filteredAlerts()?.length ?? 0; } catch { return 0; }
   });
 
   public fraudRate = computed(() => {
-    const list = this.filteredAlerts();
-    const total = list.length;
-    if (total === 0) return 0;
-
-    const threshold = this.appliedMlThreshold();
-
-    const fraudCount = list.filter(item => {
-      const score = item.fraudScore ?? item.score ?? 0;
-      return score >= threshold;
-    }).length;
-
-    return Math.round((fraudCount / total) * 100);
+    try {
+      const list = this.filteredAlerts() ?? [];
+      const total = list.length;
+      if (total === 0) return 0;
+      const threshold = this.appliedMlThreshold();
+      const fraudCount = list.filter(item => {
+        const score = (item as any)?.fraudScore ?? (item as any)?.score ?? 0;
+        return score >= threshold;
+      }).length;
+      return Math.round((fraudCount / total) * 100);
+    } catch { return 0; }
   });
 
   public totalAtRisk = computed(() => {
-    const list = this.filteredAlerts();
-    const threshold = this.appliedMlThreshold();
-
-    const suspiciousItems = list.filter(item => {
-      const score = item.fraudScore ?? item.score ?? 0;
-      return score >= threshold;
-    });
-
-    return suspiciousItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    try {
+      const list = this.filteredAlerts() ?? [];
+      const threshold = this.appliedMlThreshold();
+      const suspiciousItems = list.filter(item => {
+        const score = (item as any)?.fraudScore ?? (item as any)?.score ?? 0;
+        return score >= threshold;
+      });
+      return suspiciousItems.reduce((sum, item) => sum + (Number((item as any)?.amount) || 0), 0);
+    } catch { return 0; }
   });
 
   public globalRiskScore = computed(() => {
-    const list = this.filteredAlerts();
-    if (list.length === 0) return 0;
-
-    const sumScore = list.reduce((acc, item) => {
-      const score = item.fraudScore ?? item.score ?? 0;
-      return acc + score;
-    }, 0);
-
-    return Math.round((sumScore / list.length) * 100) / 100;
+    try {
+      const list = this.filteredAlerts() ?? [];
+      if (list.length === 0) return 0;
+      const sumScore = list.reduce((acc, item) => {
+        const score = (item as any)?.fraudScore ?? (item as any)?.score ?? 0;
+        return acc + score;
+      }, 0);
+      return Math.round((sumScore / list.length) * 100) / 100;
+    } catch { return 0; }
   });
 
   // Store previous period data for real trend calculations

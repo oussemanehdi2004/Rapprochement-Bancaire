@@ -22,7 +22,6 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
   private readonly toastService = inject(ToastService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  darkMode = signal(false);
   loading = false;
   uploading = false;
   error: string | null = null;
@@ -196,13 +195,13 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
   getStatusClass(status: string): string {
     switch (status) {
       case 'completed':
-        return 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400';
+        return 'bg-green-50 text-green-600';
       case 'failed':
-        return 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+        return 'bg-red-50 text-red-600';
       case 'pending':
-        return 'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400';
+        return 'bg-yellow-50 text-yellow-600';
       default:
-        return 'bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
+        return 'bg-gray-50 text-gray-600';
     }
   }
 

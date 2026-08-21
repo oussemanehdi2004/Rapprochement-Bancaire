@@ -28,8 +28,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   template: `
     <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium
       bg-blue-50 text-blue-700 border border-blue-100
-      dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
-      <span class="mr-1.5 h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-400"></span>
+     ">
+      <span class="mr-1.5 h-2 w-2 rounded-full bg-blue-500"></span>
       {{ label }}
     </span>
   `

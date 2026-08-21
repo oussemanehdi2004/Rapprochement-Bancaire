@@ -1,22 +1,11 @@
-<div [class.dark]="darkMode()" class="p-6 max-w-[90rem] mx-auto transition-colors duration-300 min-w-0">
+<div class="p-6 max-w-[90rem] mx-auto transition-colors duration-300 min-w-0">
 
   <!-- ===== EN-TÊTE ===== -->
   <div class="flex items-center justify-between mb-4">
     <div>
-      <h1 class="text-2xl font-bold dark:text-white text-gray-800">🛡️ AI Fraud Detection</h1>
-      <p class="text-gray-500 dark:text-gray-400 text-sm">Plateforme de détection de fraude bancaire hybride (Règles + ML + Graphe)</p>
+      <h1 class="text-2xl font-bold text-gray-800">🛡️ AI Fraud Detection</h1>
+      <p class="text-gray-500 text-sm">Plateforme de détection de fraude bancaire hybride (Règles + ML + Graphe)</p>
     </div>
-    <button 
-      (click)="darkMode.set(!darkMode())"
-      class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-      title="Basculer mode sombre/clair"
-    >
-      @if (darkMode()) {
-        ☀️
-      } @else {
-        🌙
-      }
-    </button>
   </div>
 
   <!-- ===== BARRE D'ONGLETS ===== -->
@@ -43,34 +32,34 @@
   @if (activeTab() === 'overview') {
 
     <!-- Import / Démo (minimized since auto-analysis runs) -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm mb-6">
+    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-6">
       <div class="flex items-center justify-between flex-wrap gap-4">
         <div class="flex items-center gap-3">
-          <span class="h-10 w-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl">📁</span>
+          <span class="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xl">📁</span>
           <div>
-            <h3 class="font-semibold text-gray-800 dark:text-white text-sm">Importer des transactions</h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400">CSV: tenant_id, mongo_transaction_id, id, date, description, amount, balances...</p>
+            <h3 class="font-semibold text-gray-800 text-sm">Importer des transactions</h3>
+            <p class="text-xs text-gray-500">CSV: tenant_id, mongo_transaction_id, id, date, description, amount, balances...</p>
           </div>
         </div>
         <div class="flex gap-2 items-center">
-          <label class="px-3 py-2 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 rounded-lg cursor-pointer text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+          <label class="px-3 py-2 border border-blue-200 text-blue-600 rounded-lg cursor-pointer text-sm font-medium hover:bg-blue-50 transition-colors">
             Choisir CSV
             <input type="file" accept=".csv" class="hidden" (change)="onFileSelected($event)" />
           </label>
           <button
             (click)="useDemoData()"
             [disabled]="loading()"
-            class="px-3 py-2 bg-blue-600 text-white border-none rounded-lg cursor-pointer text-sm font-semibold hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+            class="px-3 py-2 bg-blue-600 text-white border-none rounded-lg cursor-pointer text-sm font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
             {{ loading() ? 'Analyse…' : 'Relancer Démo' }}
           </button>
         </div>
       </div>
       @if (importedFileName()) {
-        <p class="text-xs text-green-600 dark:text-green-400 mt-2 ml-12">✅ Fichier chargé : {{ importedFileName() }}</p>
+        <p class="text-xs text-green-600 mt-2 ml-12">✅ Fichier chargé : {{ importedFileName() }}</p>
       }
       @if (importError()) {
-        <p class="text-xs text-red-600 dark:text-red-400 mt-2 ml-12">⚠️ {{ importError() }}</p>
+        <p class="text-xs text-red-600 mt-2 ml-12">⚠️ {{ importError() }}</p>
       }
     </div>
 
@@ -87,64 +76,64 @@
 
     <!-- KPI Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Transactions analysées</p>
-          <span class="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">📊</span>
+          <p class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Transactions analysées</p>
+          <span class="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">📊</span>
         </div>
-        <p class="text-3xl font-bold text-gray-800 dark:text-white mt-2">{{ totalAnalyzed() }}</p>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">total des transactions</p>
+        <p class="text-3xl font-bold text-gray-800 mt-2">{{ totalAnalyzed() }}</p>
+        <p class="text-xs text-gray-400 mt-1">total des transactions</p>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Taux de fraude détecté</p>
-          <span class="h-8 w-8 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400">⚠️</span>
+          <p class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Taux de fraude détecté</p>
+          <span class="h-8 w-8 rounded-lg bg-red-50 flex items-center justify-center text-red-600">⚠️</span>
         </div>
         <div class="flex items-baseline gap-2 mt-2">
-          <p class="text-3xl font-bold text-red-600 dark:text-red-400">{{ fraudRate() }}%</p>
+          <p class="text-3xl font-bold text-red-600">{{ fraudRate() }}%</p>
           @if (fraudRateTrend()) {
             <span class="text-xs font-medium" [class.text-green-600]="fraudRateTrend().isPositive" [class.text-red-600]="!fraudRateTrend().isPositive">
               {{ fraudRateTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(fraudRateTrend().value) }}%
             </span>
           }
         </div>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">sur {{ totalAnalyzed() }} transactions</p>
+        <p class="text-xs text-gray-400 mt-1">sur {{ totalAnalyzed() }} transactions</p>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Montant total à risque</p>
-          <span class="h-8 w-8 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">💰</span>
+          <p class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Montant total à risque</p>
+          <span class="h-8 w-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">💰</span>
         </div>
         <div class="flex items-baseline gap-2 mt-2">
-          <p class="text-3xl font-bold text-gray-800 dark:text-white">{{ totalAtRisk() | number: '1.0-0' }} €</p>
+          <p class="text-3xl font-bold text-gray-800">{{ totalAtRisk() | number: '1.0-0' }} €</p>
           @if (amountAtRiskTrend()) {
             <span class="text-xs font-medium" [class.text-green-600]="amountAtRiskTrend().isPositive" [class.text-red-600]="!amountAtRiskTrend().isPositive">
               {{ amountAtRiskTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(amountAtRiskTrend().value) }}%
             </span>
           }
         </div>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">montant suspect détecté</p>
+        <p class="text-xs text-gray-400 mt-1">montant suspect détecté</p>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Score de risque global</p>
-          <span class="h-8 w-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">🎯</span>
+          <p class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Score de risque global</p>
+          <span class="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">🎯</span>
         </div>
         <div class="flex items-baseline gap-2 mt-2">
-          <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ globalRiskScore() }}</p>
+          <p class="text-3xl font-bold text-purple-600">{{ globalRiskScore() }}</p>
           @if (riskScoreTrend()) {
             <span class="text-xs font-medium" [class.text-green-600]="riskScoreTrend().isPositive" [class.text-red-600]="!riskScoreTrend().isPositive">
               {{ riskScoreTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(riskScoreTrend().value) }}%
             </span>
           }
         </div>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">score moyen de risque</p>
+        <p class="text-xs text-gray-400 mt-1">score moyen de risque</p>
       </div>
     </div>
 
     <!-- Boutons d'analyse -->
     <div class="button-group">
-      <button (click)="analyze()" [disabled]="loading()" class="px-4 py-2.5 bg-white dark:bg-gray-800 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg cursor-pointer font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
+      <button (click)="analyze()" [disabled]="loading()" class="px-4 py-2.5 bg-white text-blue-900 border border-blue-200 rounded-lg cursor-pointer font-semibold hover:bg-blue-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
         Relancer l'analyse locale
       </button>
       <button (click)="analyzeSupabaseCases()" [disabled]="loading()" class="px-4 py-2.5 bg-slate-900 text-white border border-slate-700 rounded-lg cursor-pointer font-semibold hover:bg-slate-800 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors analyze-btn-supa text-sm whitespace-nowrap">
@@ -153,19 +142,19 @@
       <button
         (click)="exportToCsv()"
         [disabled]="filteredAlerts().length === 0 && !supabaseResults()?.length"
-        class="px-4 py-2.5 bg-white dark:bg-gray-800 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg cursor-pointer font-semibold hover:bg-green-50 dark:hover:bg-green-900/20 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
+        class="px-4 py-2.5 bg-white text-green-800 border border-green-200 rounded-lg cursor-pointer font-semibold hover:bg-green-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
         📥 Exporter en CSV
       </button>
       <button
         (click)="exportToPdf()"
         [disabled]="filteredAlerts().length === 0 && !supabaseResults()?.length"
-        class="px-4 py-2.5 bg-white dark:bg-gray-800 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg cursor-pointer font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
+        class="px-4 py-2.5 bg-white text-red-800 border border-red-200 rounded-lg cursor-pointer font-semibold hover:bg-red-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
         📄 Exporter en PDF
       </button>
       <button
         (click)="exportSummaryToPdf()"
         [disabled]="safeStats().totalAlerts === 0"
-        class="px-4 py-2.5 bg-white dark:bg-gray-800 text-purple-800 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg cursor-pointer font-semibold hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
+        class="px-4 py-2.5 bg-white text-purple-800 border border-purple-200 rounded-lg cursor-pointer font-semibold hover:bg-purple-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
         📊 Synthèse PDF
       </button>
     </div>
@@ -180,42 +169,42 @@
         [analysisMode]="analysisMode()"
       ></app-fraud-charts>
     } @placeholder {
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm mb-6">
-        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4 animate-pulse"></div>
-        <div class="h-56 bg-gray-100 dark:bg-gray-700/50 rounded-lg animate-pulse"></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
+        <div class="h-4 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+        <div class="h-56 bg-gray-100 rounded-lg animate-pulse"></div>
       </div>
     }
 
     <!-- Fraud Detection Stats -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm mb-6">
+    <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Statistiques de Détection de Fraude</h2>
+        <h2 class="text-lg font-semibold text-gray-800">Statistiques de Détection de Fraude</h2>
         <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-500 dark:text-gray-400">Mise à jour:</span>
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getCurrentTime() }}</span>
+          <span class="text-sm text-gray-500">Mise à jour:</span>
+          <span class="text-sm font-medium text-gray-700">{{ getCurrentTime() }}</span>
         </div>
       </div>
       
       <div class="stats-grid">
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-          <p class="text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400 font-semibold">Total alertes</p>
-          <p class="text-3xl font-bold text-blue-800 dark:text-blue-300 mt-2">{{ safeStats().totalAlerts }}</p>
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+          <p class="text-xs uppercase tracking-wider text-blue-600 font-semibold">Total alertes</p>
+          <p class="text-3xl font-bold text-blue-800 mt-2">{{ safeStats().totalAlerts }}</p>
         </div>
-        <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-xl p-4 border border-red-200 dark:border-red-800">
-          <p class="text-xs uppercase tracking-wider text-red-600 dark:text-red-400 font-semibold">Critiques</p>
-          <p class="text-3xl font-bold text-red-800 dark:text-red-300 mt-2">{{ safeStats().critical }}</p>
+        <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200">
+          <p class="text-xs uppercase tracking-wider text-red-600 font-semibold">Critiques</p>
+          <p class="text-3xl font-bold text-red-800 mt-2">{{ safeStats().critical }}</p>
         </div>
-        <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
-          <p class="text-xs uppercase tracking-wider text-orange-600 dark:text-orange-400 font-semibold">Élevées</p>
-          <p class="text-3xl font-bold text-orange-800 dark:text-orange-300 mt-2">{{ safeStats().high }}</p>
+        <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+          <p class="text-xs uppercase tracking-wider text-orange-600 font-semibold">Élevées</p>
+          <p class="text-3xl font-bold text-orange-800 mt-2">{{ safeStats().high }}</p>
         </div>
-        <div class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
-          <p class="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 font-semibold">En investigation</p>
-          <p class="text-3xl font-bold text-amber-800 dark:text-amber-300 mt-2">{{ safeStats().underInvestigation }}</p>
+        <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
+          <p class="text-xs uppercase tracking-wider text-amber-600 font-semibold">En investigation</p>
+          <p class="text-3xl font-bold text-amber-800 mt-2">{{ safeStats().underInvestigation }}</p>
         </div>
-        <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
-          <p class="text-xs uppercase tracking-wider text-green-600 dark:text-green-400 font-semibold">Résolues</p>
-          <p class="text-3xl font-bold text-green-800 dark:text-green-300 mt-2">{{ safeStats().totalAlerts - safeStats().underInvestigation }}</p>
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+          <p class="text-xs uppercase tracking-wider text-green-600 font-semibold">Résolues</p>
+          <p class="text-3xl font-bold text-green-800 mt-2">{{ safeStats().totalAlerts - safeStats().underInvestigation }}</p>
         </div>
       </div>
     </div>
@@ -235,12 +224,12 @@
 
     <!-- Loading State -->
     @if (loading()) {
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm mb-6">
+      <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
         <div class="space-y-4">
           <!-- Skeleton KPI Cards -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             @for (i of [1, 2, 3, 4]; track i) {
-              <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-xl">
+              <div class="p-5 border border-gray-200 rounded-xl">
                 <app-skeleton-loader height="0.75rem" width="50%" [darkMode]="darkMode()"></app-skeleton-loader>
                 <app-skeleton-loader height="2.25rem" width="30%" [darkMode]="darkMode()"></app-skeleton-loader>
               </div>
@@ -250,14 +239,14 @@
           <!-- Skeleton Stats -->
           <div class="grid grid-cols-2 gap-4">
             @for (i of [1, 2, 3, 4, 5]; track i) {
-              <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-xl">
+              <div class="p-4 border border-gray-200 rounded-xl">
                 <app-skeleton-loader height="0.75rem" width="40%" [darkMode]="darkMode()"></app-skeleton-loader>
                 <app-skeleton-loader height="2.25rem" width="25%" [darkMode]="darkMode()"></app-skeleton-loader>
               </div>
             }
           </div>
         </div>
-        <p class="text-center text-gray-500 dark:text-gray-400 mt-4">Analyse des transactions en cours...</p>
+        <p class="text-center text-gray-500 mt-4">Analyse des transactions en cours...</p>
       </div>
     }
 
@@ -273,14 +262,14 @@
 
     <!-- Alerts Table (Analyse Locale) -->
     @if (!loading() && filteredAlerts().length > 0) {
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6 min-w-0">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 class="font-semibold text-gray-800 dark:text-white">Alertes de Fraude (Règles Locales)</h3>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6 min-w-0">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="font-semibold text-gray-800">Alertes de Fraude (Règles Locales)</h3>
         </div>
 
         <div class="overflow-x-auto min-w-0">
           <table class="w-full text-sm min-w-[900px]">
-            <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
+            <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
               <tr>
                 <th class="text-left px-4 py-3 w-[120px]">Score</th>
                 <th class="text-left px-4 py-3 w-[100px]">Criticité</th>
@@ -293,31 +282,31 @@
             </thead>
             <tbody>
               @for (alert of filteredAlerts(); track alert.id) {
-                <tr class="border-t border-gray-100 dark:border-gray-700">
+                <tr class="border-t border-gray-100">
                   <td class="px-4 py-3 whitespace-nowrap">
                     <div class="flex items-center gap-2">
-                      <div class="h-2 w-16 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
+                      <div class="h-2 w-16 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
                         <div
                           class="h-full bg-red-500"
                           [style.width.%]="$any(alert).fraudScore"
                         ></div>
                       </div>
-                      <span class="font-semibold text-gray-700 dark:text-gray-300">{{ $any(alert).fraudScore }}%</span>
+                      <span class="font-semibold text-gray-700">{{ $any(alert).fraudScore }}%</span>
                     </div>
                   </td>
                   <td class="px-4 py-3 whitespace-nowrap">
                     <app-severity-badge [severity]="$any(alert).severity || 'LOW'"></app-severity-badge>
                   </td>
-                  <td class="px-4 py-3 text-gray-700 dark:text-gray-300 truncate max-w-[250px]">{{ alert.description }}</td>
+                  <td class="px-4 py-3 text-gray-700 truncate max-w-[250px]">{{ alert.description }}</td>
                   <td class="px-4 py-3 whitespace-nowrap">
                     <app-category-badge [category]="$any(alert).category || 'NON_CATEGORISE'"></app-category-badge>
                   </td>
-                  <td class="px-4 py-3 text-gray-500 dark:text-gray-400 truncate max-w-[180px]">{{ $any(alert).beneficiary || '—' }}</td>
-                  <td class="px-4 py-3 text-right font-semibold text-gray-800 dark:text-white whitespace-nowrap">
+                  <td class="px-4 py-3 text-gray-500 truncate max-w-[180px]">{{ $any(alert).beneficiary || '—' }}</td>
+                  <td class="px-4 py-3 text-right font-semibold text-gray-800 whitespace-nowrap">
                     {{ alert.amount | number: '1.2-2' }} €
                   </td>
                   <td class="px-4 py-3 whitespace-nowrap">
-                    <span class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 inline-block">
+                    <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 inline-block">
                       {{ $any(alert).status || 'analyse' }}
                     </span>
                   </td>
@@ -331,14 +320,14 @@
 
     <!-- Résultats Supabase -->
     @if (!loading() && supabaseResults() && supabaseResults()!.length > 0) {
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-w-0">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/30">
-          <h3 class="font-semibold text-slate-800 dark:text-slate-200">Résultats — Cas Supabase (Stateful)</h3>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-w-0">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-slate-50">
+          <h3 class="font-semibold text-slate-800">Résultats — Cas Supabase (Stateful)</h3>
         </div>
 
         <div class="overflow-x-auto min-w-0">
           <table class="w-full text-sm min-w-[700px]">
-            <thead class="bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 text-xs uppercase font-semibold">
+            <thead class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold">
               <tr>
                 <th class="text-left px-4 py-3 w-[180px]">ID Transaction</th>
                 <th class="text-left px-4 py-3 w-[150px]">Catégorie</th>
@@ -348,9 +337,9 @@
             </thead>
             <tbody>
               @for (r of (supabaseResults() ?? []); track r.id) {
-                <tr class="border-t border-slate-200 dark:border-slate-700">
-                  <td class="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">{{ r.id }}</td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ $any(r).ruleCategory || $any(r).rule_category || 'Analyse IA' }}</td>
+                <tr class="border-t border-slate-200">
+                  <td class="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">{{ r.id }}</td>
+                  <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ $any(r).ruleCategory || $any(r).rule_category || 'Analyse IA' }}</td>
                   <td class="px-4 py-3 text-center whitespace-nowrap">
                     <span
                       class="text-xs font-semibold px-3 py-1 rounded-full border inline-block"
@@ -360,17 +349,17 @@
                       [class.bg-green-50]="!r.isFraud"
                       [class.border-red-200]="r.isFraud"
                       [class.border-green-200]="!r.isFraud"
-                      [class.dark:text-red-400]="r.isFraud"
-                      [class.dark:text-green-400]="!r.isFraud"
-                      [class.dark:bg-red-900/30]="r.isFraud"
-                      [class.dark:bg-green-900/30]="!r.isFraud"
-                      [class.dark:border-red-800]="r.isFraud"
-                      [class.dark:border-green-800]="!r.isFraud"
+                      [class.]="r.isFraud"
+                      [class.]="!r.isFraud"
+                      [class.]="r.isFraud"
+                      [class.]="!r.isFraud"
+                      [class.]="r.isFraud"
+                      [class.]="!r.isFraud"
                     >
                       {{ r.isFraud ? 'FRAUDE' : 'CLEAN' }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[300px]">{{ r.explainability?.summary || 'Aucune explication fournie' }}</td>
+                  <td class="px-4 py-3 text-slate-600 truncate max-w-[300px]">{{ r.explainability?.summary || 'Aucune explication fournie' }}</td>
                 </tr>
               }
             </tbody>
@@ -382,18 +371,18 @@
 
   <!-- ===== ONGLET : RÉSEAUX & GRAPHE ===== -->
   @if (activeTab() === 'graph') {
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       
       <!-- Contrôles du Graphe -->
       <div class="flex items-center gap-4 mb-6 flex-wrap">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tenant ID (Identifiant client)</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tenant ID (Identifiant client)</label>
           <input 
             type="text" 
             [ngModel]="graphTenantId()"
             (ngModelChange)="graphTenantId.set($event)"
             placeholder="Ex: tenant-123" 
-            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg w-64 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            class="px-3 py-2 border border-gray-300 rounded-lg w-64 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         <button 
@@ -407,19 +396,19 @@
 
       <!-- Erreurs Graphe -->
       @if (graphError()) {
-        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 p-4 rounded-lg mb-6 text-sm">
+        <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-6 text-sm">
           {{ graphError() }}
         </div>
       }
 
-      <div class="flex gap-6 min-h-[500px] border-t border-gray-200 dark:border-gray-700 pt-6">
+      <div class="flex gap-6 min-h-[500px] border-t border-gray-200 pt-6">
         
         <!-- Colonne de gauche : Liste des comptes -->
-        <div class="w-[300px] border-r border-gray-200 dark:border-gray-700 pr-6">
-          <h3 class="text-base font-semibold text-gray-800 dark:text-white mb-4">Comptes suspects</h3>
+        <div class="w-[300px] border-r border-gray-200 pr-6">
+          <h3 class="text-base font-semibold text-gray-800 mb-4">Comptes suspects</h3>
           
           @if (!graphLoading() && topAccounts().length === 0) {
-            <p class="text-sm text-gray-500 dark:text-gray-400 italic">Aucun compte chargé. Lancez une recherche.</p>
+            <p class="text-sm text-gray-500 italic">Aucun compte chargé. Lancez une recherche.</p>
           }
 
           <div class="flex flex-col gap-2">
@@ -429,36 +418,36 @@
                 class="p-3 rounded-lg cursor-pointer border transition-colors"
                 [class.bg-blue-50]="selectedIban() === acc.iban"
                 [class.bg-gray-50]="selectedIban() !== acc.iban"
-                [class.dark:bg-blue-900/30]="selectedIban() === acc.iban"
-                [class.dark:bg-gray-700/30]="selectedIban() !== acc.iban"
+                [class.]="selectedIban() === acc.iban"
+                [class.]="selectedIban() !== acc.iban"
                 [class.border-blue-300]="selectedIban() === acc.iban"
-                [class.dark:border-blue-600]="selectedIban() === acc.iban"
+                [class.]="selectedIban() === acc.iban"
                 [class.border-gray-200]="selectedIban() !== acc.iban"
-                [class.dark:border-gray-600]="selectedIban() !== acc.iban"
+                [class.]="selectedIban() !== acc.iban"
                 [class.hover:bg-blue-100]="selectedIban() === acc.iban"
-                [class.dark:hover:bg-blue-900/40]="selectedIban() === acc.iban"
+                [class.]="selectedIban() === acc.iban"
                 [class.hover:bg-gray-100]="selectedIban() !== acc.iban"
-                [class.dark:hover:bg-gray-700/40]="selectedIban() !== acc.iban"
+                [class.]="selectedIban() !== acc.iban"
               >
                 <div class="flex justify-between items-center mb-1">
-                  <span class="font-semibold text-sm text-gray-800 dark:text-white">{{ shortIban(acc.iban) }}</span>
-                  <span class="text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 px-1.5 py-0.5 rounded-full">
+                  <span class="font-semibold text-sm text-gray-800">{{ shortIban(acc.iban) }}</span>
+                  <span class="text-xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">
                     Score: {{ ($any(acc).fraud_score || $any(acc).fraudScore) | number:'1.1-1' }}
                   </span>
                 </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 m-0">{{ $any(acc).transaction_count || $any(acc).transactionCount }} transaction(s)</p>
+                <p class="text-xs text-gray-500 m-0">{{ $any(acc).transaction_count || $any(acc).transactionCount }} transaction(s)</p>
               </div>
             }
           </div>
         </div>
 
         <!-- Colonne de droite : Visualisation interactive -->
-        <div class="flex-1 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-700 relative overflow-hidden min-h-[500px]">
+        <div class="flex-1 flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 relative overflow-hidden min-h-[500px]">
           
           @if (networkData()) {
             <!-- Titre du réseau -->
-            <div class="absolute top-4 left-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 shadow-sm z-10">
-              Réseau de : <span class="font-bold text-slate-900 dark:text-slate-100">{{ networkData()?.center_iban }}</span>
+            <div class="absolute top-4 left-4 bg-white px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 shadow-sm z-10">
+              Réseau de : <span class="font-bold text-slate-900">{{ networkData()?.center_iban }}</span>
             </div>
 
             <!-- Graphe interactif (lazy: vis-network ~159KB) -->
@@ -476,7 +465,7 @@
               </div>
             }
           } @else {
-            <p class="text-slate-400 dark:text-slate-500 text-sm">Sélectionnez un compte pour afficher son réseau d'interactions.</p>
+            <p class="text-slate-400 text-sm">Sélectionnez un compte pour afficher son réseau d'interactions.</p>
           }
         </div>
 
@@ -486,17 +475,17 @@
 
   <!-- ===== ONGLET : DÉTECTION HYBRIDE ===== -->
   @if (activeTab() === 'hybrid') {
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-w-0">
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-        <h3 class="font-semibold text-gray-800 dark:text-white">Détail Règles + ML par transaction</h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Score consolidé = max(règle métier, probabilité IA)</p>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-w-0">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="font-semibold text-gray-800">Détail Règles + ML par transaction</h3>
+        <p class="text-xs text-gray-500 mt-1">Score consolidé = max(règle métier, probabilité IA)</p>
       </div>
       @if (filteredAlerts().length === 0) {
-        <div class="p-10 text-center text-gray-400 dark:text-gray-500">Lancez une analyse pour voir le détail.</div>
+        <div class="p-10 text-center text-gray-400">Lancez une analyse pour voir le détail.</div>
       } @else {
         <div class="overflow-x-auto min-w-0">
-          <table class="w-full text-sm min-w-[800px]">
-            <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
+          <table class="w-full text-sm min-w-[900px]">
+            <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
               <tr>
                 <th class="text-left px-4 py-3 w-[180px]">Transaction</th>
                 <th class="text-left px-4 py-3 w-[140px]">Règle</th>
@@ -507,18 +496,18 @@
             </thead>
             <tbody>
               @for (alert of filteredAlerts(); track alert.id) {
-                <tr class="border-t border-gray-100 dark:border-gray-700">
-                  <td class="px-4 py-3 font-medium text-gray-800 dark:text-white whitespace-nowrap">{{ $any(alert).transactionId || alert.id }}</td>
-                  <td class="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                <tr class="border-t border-gray-100">
+                  <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{{ $any(alert).transactionId || alert.id }}</td>
+                  <td class="px-4 py-3 text-gray-700 whitespace-nowrap">
                     <app-category-badge [category]="$any(alert).category || 'NON_CATEGORISE'"></app-category-badge>
                   </td>
-                  <td class="px-4 py-3 text-center font-semibold whitespace-nowrap" [class.text-red-600]="($any(alert).fraudScore ?? 0) >= 50" [class.text-green-600]="($any(alert).fraudScore ?? 0) < 50" [class.dark:text-red-400]="($any(alert).fraudScore ?? 0) >= 50" [class.dark:text-green-400]="($any(alert).fraudScore ?? 0) < 50">
+                  <td class="px-4 py-3 text-center font-semibold whitespace-nowrap" [class.text-red-600]="($any(alert).fraudScore ?? 0) >= 50" [class.text-green-600]="($any(alert).fraudScore ?? 0) < 50" [class.]="($any(alert).fraudScore ?? 0) >= 50" [class.]="($any(alert).fraudScore ?? 0) < 50">
                     {{ $any(alert).fraudScore ?? 0 }}%
                   </td>
                   <td class="px-4 py-3 text-center whitespace-nowrap">
                     <app-severity-badge [severity]="$any(alert).severity || ((($any(alert).fraudScore ?? 0) >= 70) ? 'HIGH' : 'LOW')"></app-severity-badge>
                   </td>
-                  <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs truncate max-w-[320px]">
+                  <td class="px-4 py-3 text-gray-500 text-xs truncate max-w-[320px]">
                     {{ $any(alert).explainability?.factors?.join(' · ') || '—' }}
                   </td>
                 </tr>
@@ -533,45 +522,45 @@
   <!-- ===== ONGLET : EXPLICABILITÉ SHAP ===== -->
   @if (activeTab() === 'shap') {
     <div class="flex flex-col gap-6">
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
-        <h3 class="font-semibold text-gray-800 dark:text-white mb-4">Features les plus contributives (agrégat SHAP)</h3>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h3 class="font-semibold text-gray-800 mb-4">Features les plus contributives (agrégat SHAP)</h3>
         @if (shapFactorStats().length === 0) {
-          <p class="text-gray-400 dark:text-gray-500 text-sm">Aucune contribution SHAP disponible (modèle ML désactivé ou pas encore lancé).</p>
+          <p class="text-gray-400 text-sm">Aucune contribution SHAP disponible (modèle ML désactivé ou pas encore lancé).</p>
         } @else {
           <div class="flex flex-col gap-3">
             @for (f of shapFactorStats(); track f.feature) {
               <div>
                 <div class="flex justify-between text-xs mb-1">
-                  <span class="font-medium text-gray-700 dark:text-gray-300">{{ f.feature }}</span>
-                  <span class="text-gray-500 dark:text-gray-400">{{ f.total }} occurrence(s)</span>
+                  <span class="font-medium text-gray-700">{{ f.feature }}</span>
+                  <span class="text-gray-500">{{ f.total }} occurrence(s)</span>
                 </div>
-                <div class="flex h-2.5 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+                <div class="flex h-2.5 rounded-full overflow-hidden bg-gray-100">
                   <div class="bg-red-500" [style.width.%]="(f.positive / f.total) * 100"></div>
                   <div class="bg-green-500" [style.width.%]="(f.negative / f.total) * 100"></div>
                 </div>
               </div>
             }
           </div>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-4">
+          <p class="text-xs text-gray-400 mt-4">
             <span class="text-red-500">■</span> contribue à la fraude &nbsp;
             <span class="text-green-500">■</span> réduit le risque
           </p>
         }
       </div>
 
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
-        <h3 class="font-semibold text-gray-800 dark:text-white mb-4">Explication par transaction</h3>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h3 class="font-semibold text-gray-800 mb-4">Explication par transaction</h3>
         @if (alertsWithMlFactors().length === 0) {
-          <p class="text-gray-400 dark:text-gray-500 text-sm">Aucune transaction analysée par le modèle ML pour l'instant.</p>
+          <p class="text-gray-400 text-sm">Aucune transaction analysée par le modèle ML pour l'instant.</p>
         }
         <div class="flex flex-col gap-4">
           @for (alert of alertsWithMlFactors(); track alert.id) {
-            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div class="border border-gray-200 rounded-lg p-4">
               <div class="flex justify-between mb-2">
-                <span class="font-semibold text-gray-800 dark:text-white">{{ alert.transactionId }}</span>
-                <span class="text-xs text-gray-500 dark:text-gray-400">Score IA : {{ alert.fraudScore }}%</span>
+                <span class="font-semibold text-gray-800">{{ alert.transactionId }}</span>
+                <span class="text-xs text-gray-500">Score IA : {{ alert.fraudScore }}%</span>
               </div>
-              <ul class="m-0 pl-5 text-xs text-gray-600 dark:text-gray-300">
+              <ul class="m-0 pl-5 text-xs text-gray-600">
                 @for (factor of mlFactorsOf($any(alert)); track factor) {
                   <li>{{ factor }}</li>
                 }
@@ -588,21 +577,21 @@
     <div class="flex flex-col gap-6">
 
       <!-- Jauge globale de risque -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-gray-800 dark:text-white">Score de risque composite global</h3>
+          <h3 class="font-semibold text-gray-800">Score de risque composite global</h3>
           <span class="font-bold text-xl" [style.color]="gaugeColor(globalRiskScore())">
             {{ globalRiskScore() }} / 100
           </span>
         </div>
-        <div class="h-3.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div class="h-3.5 w-full bg-gray-100 rounded-full overflow-hidden">
           <div
             class="h-full rounded-full transition-all duration-400 ease-in-out"
             [style.width.%]="globalRiskScore()"
             [style.background-color]="gaugeColor(globalRiskScore())"
           ></div>
         </div>
-        <div class="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+        <div class="flex justify-between text-xs text-gray-400 mt-1.5">
           <span>Faible</span>
           <span>Moyen (40)</span>
           <span>Élevé (70)</span>
@@ -611,17 +600,17 @@
       </div>
 
       <!-- Tableau des règles avec jauge par catégorie -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-w-0">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 class="font-semibold text-gray-800 dark:text-white">Règles déclenchées sur le lot analysé</h3>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Triées par score de risque moyen décroissant</p>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-w-0">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="font-semibold text-gray-800">Règles déclenchées sur le lot analysé</h3>
+          <p class="text-xs text-gray-400 mt-1">Triées par score de risque moyen décroissant</p>
         </div>
         @if (ruleCategoryStats().length === 0) {
-          <div class="p-10 text-center text-gray-400 dark:text-gray-500">Aucune règle déclenchée sur ce lot (ou aucune analyse lancée).</div>
+          <div class="p-10 text-center text-gray-400">Aucune règle déclenchée sur ce lot (ou aucune analyse lancée).</div>
         } @else {
           <div class="overflow-x-auto min-w-0">
-            <table class="w-full text-sm min-w-[800px]">
-              <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
+            <table class="w-full text-sm min-w-[900px]">
+              <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
                 <tr>
                   <th class="text-left px-4 py-3 w-[180px]">Règle</th>
                   <th class="text-left px-4 py-3 w-[160px]">Score moyen</th>
@@ -632,11 +621,11 @@
               </thead>
               <tbody>
               @for (stat of ruleCategoryStats(); track stat.category) {
-                <tr class="border-t border-gray-100 dark:border-gray-700">
-                  <td class="px-4 py-3 font-medium text-gray-800 dark:text-white whitespace-nowrap">{{ ruleCategoryLabel(stat.category) }}</td>
+                <tr class="border-t border-gray-100">
+                  <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{{ ruleCategoryLabel(stat.category) }}</td>
                   <td class="px-4 py-3 whitespace-nowrap">
                     <div class="flex items-center gap-2">
-                      <div class="h-2 w-24 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
+                      <div class="h-2 w-24 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
                         <div
                           class="h-full rounded-full"
                           [style.width.%]="stat.avgScore"
@@ -647,10 +636,10 @@
                     </div>
                   </td>
                   <td class="px-4 py-3 text-center whitespace-nowrap">
-                    <span class="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-semibold px-1.5 py-0.5 rounded-full text-xs inline-block">{{ stat.count }}</span>
+                    <span class="bg-red-50 text-red-600 font-semibold px-1.5 py-0.5 rounded-full text-xs inline-block">{{ stat.count }}</span>
                   </td>
-                  <td class="px-4 py-3 text-right font-semibold text-gray-800 dark:text-white whitespace-nowrap">{{ stat.amount | number: '1.2-2' }} €</td>
-                  <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs truncate max-w-[200px]">{{ stat.sampleFactor || '—' }}</td>
+                  <td class="px-4 py-3 text-right font-semibold text-gray-800 whitespace-nowrap">{{ stat.amount | number: '1.2-2' }} €</td>
+                  <td class="px-4 py-3 text-gray-500 text-xs truncate max-w-[200px]">{{ stat.sampleFactor || '—' }}</td>
                 </tr>
               }
             </tbody>
@@ -662,11 +651,11 @@
   }
   <!-- ===== ONGLET : CONFIG SEUILS ===== -->
   @if (activeTab() === 'config') {
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h3 class="font-semibold text-gray-800 dark:text-white mb-1">Configuration des Seuils de Détection</h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Ajustez la sensibilité du moteur de règles et des modèles de Machine Learning.</p>
+          <h3 class="font-semibold text-gray-800 mb-1">Configuration des Seuils de Détection</h3>
+          <p class="text-xs text-gray-500">Ajustez la sensibilité du moteur de règles et des modèles de Machine Learning.</p>
         </div>
         <button 
           (click)="saveConfig()" 

@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
       <div 
         class="rounded-lg"
         [class.bg-gray-200]="!darkMode"
-        [class.dark:bg-gray-700]="darkMode"
+        [class.]="darkMode"
         [style.height]="height"
         [style.width]="width"
       ></div>

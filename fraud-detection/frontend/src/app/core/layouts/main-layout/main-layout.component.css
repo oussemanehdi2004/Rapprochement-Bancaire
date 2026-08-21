@@ -1,1 +1,2 @@
-/* Main layout styles are handled by Tailwind CSS */
+:host { display: block; background: #F8FAFC; }
+main { transition: background-color 0.2s ease; }

@@ -1,55 +1,90 @@
-<div class="p-6 max-w-5xl mx-auto">
-  <div class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Cas d'usage du projet BankMatch</h1>
-    <p class="text-gray-600 dark:text-gray-400 mt-1">
-      Vue d'ensemble des cas d'usage couverts par le module AI Fraud Detection (implémenté) et par le module
-      AI Accounting Intelligence (en collaboration avec le binôme dédié).
-    </p>
-  </div>
-
-  <!-- Filtres -->
-  <div class="flex gap-2 mb-6 flex-wrap">
-    <button (click)="filtre.set('all')"
-      [ngClass]="filtre() === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-      class="border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-lg cursor-pointer text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
-      Tous ({{ compte('all') }})
-    </button>
-    <button (click)="filtre.set('fraud')"
-      [ngClass]="filtre() === 'fraud' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-      class="border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-lg cursor-pointer text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
-      🛡️ AI Fraud Detection ({{ compte('fraud') }})
-    </button>
-    <button (click)="filtre.set('accounting')"
-      [ngClass]="filtre() === 'accounting' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-      class="border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-lg cursor-pointer text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
-      📊 AI Accounting Intelligence ({{ compte('accounting') }})
-    </button>
-  </div>
-
-  <!-- Grille des cas d'usage -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    @for (uc of filtered(); track uc.titre) {
-      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
-        <div class="flex justify-between items-start gap-2 mb-2">
-          <h3 class="font-semibold text-gray-900 dark:text-white text-sm">{{ uc.titre }}</h3>
-          <span
-            [style.background-color]="badgeColor(uc.statut).bg"
-            [style.color]="badgeColor(uc.statut).text"
-            [style.border-color]="badgeColor(uc.statut).border"
-            class="dark:hidden text-xs font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap">
-            {{ badgeColor(uc.statut).label }}
-          </span>
-          <span
-            [style.background-color]="badgeColor(uc.statut).darkBg"
-            [style.color]="badgeColor(uc.statut).darkText"
-            [style.border-color]="badgeColor(uc.statut).darkBorder"
-            class="hidden dark:inline-block text-xs font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap">
-            {{ badgeColor(uc.statut).label }}
-          </span>
+<div class="min-h-screen bg-[#F8FAFC] p-6">
+  <div class="max-w-[90rem] mx-auto">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div class="flex items-start gap-3">
+        <span class="hidden sm:flex h-10 w-10 rounded-xl bg-slate-900 items-center justify-center text-white border border-slate-800 shadow-sm text-sm leading-none">📋</span>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-[22px] font-bold tracking-tight text-slate-900 leading-none">Cas d'usage — BankMatch</h1>
+            <span class="hidden sm:inline-flex items-center rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase text-indigo-700">Vitrine</span>
+          </div>
+          <p class="text-[12.5px] text-slate-500 mt-1">Couverture fonctionnelle · <span class="font-medium text-slate-700">AI Fraud Detection</span> (implémenté) + <span class="font-medium text-slate-700">AI Accounting Intelligence</span> (collab. binôme)</p>
         </div>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ uc.description }}</p>
-        <p class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ uc.source }}</p>
       </div>
-    }
+      <span class="hidden md:inline-flex items-center gap-2 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> {{ useCases.length }} cas documentés
+      </span>
+    </div>
+
+    <!-- Filters — pill toolbar -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-1.5 mb-6 flex flex-wrap gap-1.5">
+      <button (click)="filtre.set('all')"
+        [class.bg-slate-900]="filtre() === 'all'"
+        [class.text-white]="filtre() === 'all'"
+        [class.border-slate-900]="filtre() === 'all'"
+        [class.shadow-sm]="filtre() === 'all'"
+        [class.bg-white]="filtre() !== 'all'"
+        [class.text-slate-700]="filtre() !== 'all'"
+        [class.border-slate-200]="filtre() !== 'all'"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-sm font-medium transition-colors">
+        Tous <span class="ml-1 rounded-full bg-slate-100 border border-slate-200 px-1.5 py-0.5 text-xs font-bold">{{ compte('all') }}</span>
+      </button>
+      <button (click)="filtre.set('fraud')"
+        [class.bg-slate-900]="filtre() === 'fraud'"
+        [class.text-white]="filtre() === 'fraud'"
+        [class.border-slate-900]="filtre() === 'fraud'"
+        [class.shadow-sm]="filtre() === 'fraud'"
+        [class.bg-white]="filtre() !== 'fraud'"
+        [class.text-slate-700]="filtre() !== 'fraud'"
+        [class.border-slate-200]="filtre() !== 'fraud'"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-sm font-medium transition-colors">
+        🛡️ <span class="leading-none">AI Fraud Detection</span> <span class="ml-1 rounded-full bg-slate-100 border border-slate-200 px-1.5 py-0.5 text-xs font-bold">{{ compte('fraud') }}</span>
+      </button>
+      <button (click)="filtre.set('accounting')"
+        [class.bg-slate-900]="filtre() === 'accounting'"
+        [class.text-white]="filtre() === 'accounting'"
+        [class.border-slate-900]="filtre() === 'accounting'"
+        [class.shadow-sm]="filtre() === 'accounting'"
+        [class.bg-white]="filtre() !== 'accounting'"
+        [class.text-slate-700]="filtre() !== 'accounting'"
+        [class.border-slate-200]="filtre() !== 'accounting'"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-sm font-medium transition-colors">
+        📊 <span class="leading-none">AI Accounting Intelligence</span> <span class="ml-1 rounded-full bg-slate-100 border border-slate-200 px-1.5 py-0.5 text-xs font-bold">{{ compte('accounting') }}</span>
+      </button>
+    </div>
+
+    <!-- Grid — elevated cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      @for (uc of filtered(); track uc.titre) {
+        <div class="group bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col">
+          <div class="h-1 w-full bg-gradient-to-r from-slate-900 via-indigo-600 to-blue-500 rounded-full -mt-5 mb-4 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="flex justify-between items-start gap-2 mb-2.5">
+            <h3 class="font-semibold text-slate-900 text-[13.5px] leading-snug">{{ uc.titre }}</h3>
+            <span
+              [style.background-color]="badgeColor(uc.statut).bg"
+              [style.color]="badgeColor(uc.statut).text"
+              [style.border-color]="badgeColor(uc.statut).border"
+              class="text-xs font-semibold px-2.5 py-1 rounded-full border whitespace-nowrap leading-none shrink-0">
+              {{ badgeColor(uc.statut).label }}
+            </span>
+          </div>
+          <p class="text-[13px] leading-relaxed text-slate-600 mb-3 flex-1">{{ uc.description }}</p>
+          <div class="flex items-center gap-2 mt-auto pt-3 border-t border-slate-100">
+            <span class="h-6 w-6 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 text-[10px] leading-none">⚙️</span>
+            <p class="text-xs text-slate-500 font-mono truncate">{{ uc.source }}</p>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-6 rounded-2xl bg-slate-900 border border-slate-800 p-4 flex items-center gap-3 shadow-sm">
+      <span class="h-8 w-8 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-white text-sm leading-none">💡</span>
+      <div>
+        <p class="text-sm font-semibold text-white leading-none">Design System BankMatch</p>
+        <p class="text-xs text-slate-400 mt-1">Cartes élevées 1px, slate #F8FAFC, navy #0F172A — cohérent avec Fraud & Multi-Banking</p>
+      </div>
+    </div>
   </div>
 </div>
