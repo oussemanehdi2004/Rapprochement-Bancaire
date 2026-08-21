@@ -299,6 +299,8 @@ class TransactionOutput(BaseModel):
     confidence: str
     reconciliationStatus: str
     ruleCategory: Optional[str] = "NON_CATEGORISE"
+    beneficiary: Optional[str] = None
+    beneficiary_iban: Optional[str] = None
     explainability: ExplainabilityOutput
 
 def probability_to_confidence(probability: float) -> dict:
@@ -549,10 +551,12 @@ def build_transaction_output(tx: TransactionInput, batch_finding: Optional[dict]
     elif tx.amount > 5000: rec_status = "UNMATCHED"
     else: rec_status = "MATCHED"
 
+    beneficiary_val = tx.beneficiary_iban or tx.receiver_account or None
     return TransactionOutput(
         tenant_id=tx.tenant_id, transaction_reference=tx.transaction_reference, id=tx.id, date=tx.date, description=tx.description, amount=tx.amount,
         isFraud=is_fraud, fraudProbability=final_fraud_probability, score=probability_to_confidence(final_fraud_probability)["score"],
         confidence=probability_to_confidence(final_fraud_probability)["confidence"], reconciliationStatus=rec_status, ruleCategory=rule_category,
+        beneficiary=beneficiary_val, beneficiary_iban=beneficiary_val,
         explainability=ExplainabilityOutput(summary=summary_text, factors=factors_text, shap_contributions=shap_contributions_list)
     )
 
@@ -662,9 +666,17 @@ async def analyze_transactions_secure(
     logger.info("Accès API sécurisé via S2S (token interne).")
     start_time = time.perf_counter()
     auth_tenant_id = internal_ctx.get("tenant_id", "default")
-
+    # En dev (DISABLE_INTERNAL_AUTH=true) on respecte le tenant_id du payload pour permettre les tests multi-tenant
+    # En prod on écrase par le tenant du token
+    use_payload_tenant = DISABLE_INTERNAL_AUTH and auth_tenant_id == "default"
     for tx in transactions:
-        tx.tenant_id = auth_tenant_id
+        if use_payload_tenant and tx.tenant_id and tx.tenant_id != "default":
+            # garde le tenant du fichier/CSV pour tests
+            pass
+        else:
+            tx.tenant_id = auth_tenant_id
+    # Tenant effectif pour la déduplication/insert
+    effective_insert_tenant = auth_tenant_id if not use_payload_tenant else None  # None = par-lot
 
     try:
         results = analyze_batch(transactions)
@@ -675,9 +687,17 @@ async def analyze_transactions_secure(
                 try:
                     refs_to_check = [r.transaction_reference for r in results if r.transaction_reference]
                     if refs_to_check:
-                        existing_q = supabase.table("fraud_alerts").select("transaction_reference").in_("transaction_reference", refs_to_check).eq("tenant_id", auth_tenant_id).execute()
-                        if existing_q.data:
-                            existing_refs = { row.get("transaction_reference") for row in existing_q.data if row.get("transaction_reference") }
+                        if use_payload_tenant:
+                            # Multi-tenant test : vérifie sans filtre tenant, ou par lot de tenants du payload
+                            existing_q = supabase.table("fraud_alerts").select("transaction_reference,tenant_id").in_("transaction_reference", refs_to_check).execute()
+                            if existing_q.data:
+                                existing_refs = { (row.get("tenant_id"), row.get("transaction_reference")) for row in existing_q.data if row.get("transaction_reference") }
+                                # Pour compatibilité avec la boucle dessous qui attendait un set de refs seules en mode prod
+                                # On garde un set de refs globales pour le cas mono-tenant, mais on filtrera par tuple en mode multi
+                        else:
+                            existing_q = supabase.table("fraud_alerts").select("transaction_reference").in_("transaction_reference", refs_to_check).eq("tenant_id", auth_tenant_id).execute()
+                            if existing_q.data:
+                                existing_refs = { row.get("transaction_reference") for row in existing_q.data if row.get("transaction_reference") }
                 except Exception:
                     # If dedup check fails, proceed without dedup (best effort)
                     pass
@@ -688,6 +708,7 @@ async def analyze_transactions_secure(
                         "tenant_id": r.tenant_id, "transaction_reference": r.transaction_reference, "transaction_id": r.id,
                         "date": r.date, "amount": r.amount, "is_fraud": r.isFraud, "fraud_probability": r.fraudProbability,
                         "score": r.score, "reconciliation_status": r.reconciliationStatus, "rule_category": r.ruleCategory, "explainability": r.explainability.model_dump(),
+                        "beneficiary": r.beneficiary, "beneficiary_iban": r.beneficiary_iban, "description": r.description,
                     }).execute()
             except Exception as database_error:
                 raise HTTPException(status_code=502, detail="Échec de la sauvegarde des résultats.") from database_error
@@ -940,7 +961,7 @@ async def root():
     }
 
 class TransactionListItem(BaseModel):
-    id: str; tenant_id: Optional[str] = None; transaction_reference: Optional[str] = None; date: str; description: Optional[str] = None; amount: float; isFraud: bool; fraudProbability: float; score: Optional[int] = 0; confidence: Optional[str] = "LOW"; reconciliationStatus: str; ruleCategory: Optional[str] = "NON_CATEGORISE"; explainability: Optional[dict] = None
+    id: str; tenant_id: Optional[str] = None; transaction_reference: Optional[str] = None; date: str; description: Optional[str] = None; amount: float; isFraud: bool; fraudProbability: float; score: Optional[int] = 0; confidence: Optional[str] = "LOW"; reconciliationStatus: str; ruleCategory: Optional[str] = "NON_CATEGORISE"; explainability: Optional[dict] = None; beneficiary: Optional[str] = None; beneficiary_iban: Optional[str] = None
 
 @app.get("/api/transactions", response_model=APIResponse[List[TransactionListItem]])
 async def list_transactions(tenant_id: Optional[str] = None, status: Optional[str] = None, date_from: Optional[str] = None, date_to: Optional[str] = None, search: Optional[str] = None, limit: int = 500, offset: int = 0, token_payload: dict = Depends(get_optional_context)):
@@ -981,9 +1002,153 @@ async def list_transactions(tenant_id: Optional[str] = None, status: Optional[st
             fraudProbability=float(r.get("fraud_probability") or 0.0), score=int(r.get("score") or round(float(r.get("fraud_probability") or 0.0) * 100)),
             confidence=r.get("confidence") or probability_to_confidence(float(r.get("fraud_probability") or 0.0))["confidence"],
             reconciliationStatus=r.get("reconciliation_status", "UNMATCHED"), ruleCategory=r.get("rule_category", "NON_CATEGORISE"), explainability=r.get("explainability"),
+            beneficiary=r.get("beneficiary") or r.get("beneficiary_iban"), beneficiary_iban=r.get("beneficiary_iban") or r.get("beneficiary"),
         ) for r in rows
     ]
     return APIResponse(success=True, data=items)
+
+class TransactionCreatePayload(BaseModel):
+    description: Optional[str] = None
+    amount: Optional[float] = None
+    date: Optional[str] = None
+    reconciliationStatus: Optional[str] = None
+    isFraud: Optional[bool] = None
+    ruleCategory: Optional[str] = None
+    beneficiary: Optional[str] = None
+    beneficiary_iban: Optional[str] = None
+
+class TransactionUpdatePayload(BaseModel):
+    description: Optional[str] = None
+    amount: Optional[float] = None
+    date: Optional[str] = None
+    reconciliationStatus: Optional[str] = None
+    isFraud: Optional[bool] = None
+    ruleCategory: Optional[str] = None
+    beneficiary: Optional[str] = None
+    beneficiary_iban: Optional[str] = None
+
+@app.post("/api/transactions", response_model=APIResponse[TransactionListItem])
+async def create_transaction(payload: TransactionCreatePayload, token_payload: dict = Depends(get_optional_context)):
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Supabase non disponible")
+    effective_tenant_id = token_payload.get("tenant_id", "default")
+    new_id = str(uuid.uuid4())
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    row = {
+        "tenant_id": effective_tenant_id,
+        "transaction_id": new_id,
+        "transaction_reference": new_id,
+        "date": payload.date or now,
+        "description": payload.description or "Transaction créée manuellement",
+        "amount": float(payload.amount or 0),
+        "is_fraud": bool(payload.isFraud) if payload.isFraud is not None else False,
+        "fraud_probability": 0.0,
+        "score": 0,
+        "reconciliation_status": (payload.reconciliationStatus or "UNMATCHED").upper(),
+        "rule_category": payload.ruleCategory or "NON_CATEGORISE",
+        "explainability": {"summary": "Créée manuellement", "factors": [], "shap_contributions": []},
+        "beneficiary": payload.beneficiary or payload.beneficiary_iban,
+        "beneficiary_iban": payload.beneficiary_iban or payload.beneficiary,
+    }
+    try:
+        res = supabase.table("fraud_alerts").insert(row).execute()
+        # Supabase peut renvoyer une liste
+        inserted = res.data[0] if isinstance(res.data, list) and res.data else row
+    except Exception as e:
+        logger.error(f"Create transaction failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    item = TransactionListItem(
+        id=str(inserted.get("transaction_id") or new_id), tenant_id=inserted.get("tenant_id") or effective_tenant_id,
+        transaction_reference=inserted.get("transaction_reference") or new_id, date=str(inserted.get("date") or now),
+        description=inserted.get("description"), amount=float(inserted.get("amount") or 0), isFraud=bool(inserted.get("is_fraud", False)),
+        fraudProbability=float(inserted.get("fraud_probability") or 0), score=int(inserted.get("score") or 0),
+        confidence=inserted.get("confidence") or "LOW", reconciliationStatus=inserted.get("reconciliation_status", "UNMATCHED"),
+        ruleCategory=inserted.get("rule_category", "NON_CATEGORISE"), explainability=inserted.get("explainability"),
+        beneficiary=inserted.get("beneficiary"), beneficiary_iban=inserted.get("beneficiary_iban"),
+    )
+    return APIResponse(success=True, data=item)
+
+@app.put("/api/transactions/{transaction_id}", response_model=APIResponse[TransactionListItem])
+async def update_transaction(transaction_id: str, payload: TransactionUpdatePayload, token_payload: dict = Depends(get_optional_context)):
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Supabase non disponible")
+    effective_tenant_id = token_payload.get("tenant_id", "default")
+    updates: dict[str, Any] = {}
+    if payload.description is not None:
+        updates["description"] = payload.description
+    if payload.amount is not None:
+        updates["amount"] = float(payload.amount)
+    if payload.date is not None:
+        updates["date"] = payload.date
+    if payload.reconciliationStatus is not None:
+        updates["reconciliation_status"] = payload.reconciliationStatus.upper()
+    if payload.isFraud is not None:
+        updates["is_fraud"] = bool(payload.isFraud)
+    if payload.ruleCategory is not None:
+        updates["rule_category"] = payload.ruleCategory
+    if payload.beneficiary is not None:
+        updates["beneficiary"] = payload.beneficiary
+    if payload.beneficiary_iban is not None:
+        updates["beneficiary_iban"] = payload.beneficiary_iban
+    if not updates:
+        raise HTTPException(status_code=400, detail="Aucun champ à mettre à jour")
+    try:
+        # Vérifie existence
+        existing = supabase.table("fraud_alerts").select("*").eq("transaction_id", transaction_id).eq("tenant_id", effective_tenant_id).execute()
+        if not existing.data:
+            # Fallback sans filtre tenant pour compatibilité
+            existing = supabase.table("fraud_alerts").select("*").eq("transaction_id", transaction_id).execute()
+            if not existing.data:
+                raise HTTPException(status_code=404, detail="Transaction introuvable")
+        supabase.table("fraud_alerts").update(updates).eq("transaction_id", transaction_id).execute()
+        # Relit
+        refreshed = supabase.table("fraud_alerts").select("*").eq("transaction_id", transaction_id).execute()
+        row = refreshed.data[0] if refreshed.data else {"transaction_id": transaction_id, **updates, "tenant_id": effective_tenant_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update transaction failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    item = TransactionListItem(
+        id=str(row.get("transaction_id") or transaction_id), tenant_id=row.get("tenant_id") or effective_tenant_id,
+        transaction_reference=row.get("transaction_reference") or transaction_id, date=str(row.get("date") or ""),
+        description=row.get("description"), amount=float(row.get("amount") or 0), isFraud=bool(row.get("is_fraud", False)),
+        fraudProbability=float(row.get("fraud_probability") or 0), score=int(row.get("score") or 0),
+        confidence=row.get("confidence") or "LOW", reconciliationStatus=row.get("reconciliation_status", "UNMATCHED"),
+        ruleCategory=row.get("rule_category", "NON_CATEGORISE"), explainability=row.get("explainability"),
+        beneficiary=row.get("beneficiary"), beneficiary_iban=row.get("beneficiary_iban"),
+    )
+    return APIResponse(success=True, data=item)
+
+@app.delete("/api/transactions/{transaction_id}", response_model=APIResponse[dict])
+async def delete_transaction(transaction_id: str, token_payload: dict = Depends(get_optional_context)):
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Supabase non disponible")
+    effective_tenant_id = token_payload.get("tenant_id", "default")
+    try:
+        # Supprime avec filtre tenant, fallback sans si non trouvé
+        res = supabase.table("fraud_alerts").delete().eq("transaction_id", transaction_id).eq("tenant_id", effective_tenant_id).execute()
+        if not res.data:
+            # Fallback
+            res = supabase.table("fraud_alerts").delete().eq("transaction_id", transaction_id).execute()
+            if not res.data:
+                # Vérifie si existe encore
+                check = supabase.table("fraud_alerts").select("transaction_id").eq("transaction_id", transaction_id).execute()
+                if not check.data:
+                    raise HTTPException(status_code=404, detail="Transaction introuvable")
+        # Invalide aussi le graphe Neo4j si présent (suppression logique)
+        if graph_engine is not None:
+            try:
+                # On ne supprime pas le graphe physiquement, mais on log
+                logger.info(f"Transaction {transaction_id} supprimée, graphe conservé (tenant {effective_tenant_id})")
+            except Exception:
+                pass
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Delete transaction failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    return APIResponse(success=True, data={"deleted": transaction_id})
 
 # ===== REPORTS ENDPOINTS =====
 

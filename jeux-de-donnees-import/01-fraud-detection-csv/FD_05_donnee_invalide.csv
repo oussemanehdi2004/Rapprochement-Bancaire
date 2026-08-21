@@ -1,0 +1,5 @@
+id,tenant_id,transaction_reference,date,description,amount,sender_balance_before,sender_balance_after,receiver_balance_before,receiver_balance_after,transaction_type,account_iban,beneficiary_iban
+tx_inv_01,tenant-123,REF_INV_01,2026-08-18T10:00:00Z,Montant nul test,0,10000,10000,0,0,TRANSFER,FR7612345678901234567890123,FR7698765432109876543210987
+tx_inv_02,tenant-123,REF_INV_02,2026-08-18T10:30:00Z,Montant negatif test,-500,10000,10500,0,0,TRANSFER,FR7612345678901234567890123,FR7611111111111111111111111
+tx_inv_03,tenant-123,REF_INV_03,2026-08-18T11:00:00Z,Montant aberrant au dessus plafond,2000000000,50000,0,0,2000000000,TRANSFER,FR7612345678901234567890123,FR7622222222222222222222222
+tx_inv_ok,tenant-123,REF_INV_OK,2026-08-18T14:00:00Z,Transaction valide controle,100,10000,9900,0,100,TRANSFER,FR7612345678901234567890123,FR7633333333333333333333333

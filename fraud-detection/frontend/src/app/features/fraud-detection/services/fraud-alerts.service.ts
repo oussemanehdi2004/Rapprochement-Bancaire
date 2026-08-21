@@ -85,6 +85,10 @@ export class FraudAlertsService {
         }
       }
 
+      const rawAny = tx as unknown as Record<string, unknown>;
+      const beneficiaryVal = (rawAny['beneficiary_iban'] as string) || (rawAny['beneficiary'] as string) || (rawAny['receiver_account'] as string) || (rawAny['counterparty_iban'] as string) || (rawAny['beneficiary_iban'] as string) || '—';
+      const beneficiaryDisplay = beneficiaryVal && beneficiaryVal !== '—' ? String(beneficiaryVal) : '—';
+
       return {
         ...tx,
         tenantId: tx.tenant_id,
@@ -92,7 +96,7 @@ export class FraudAlertsService {
         category: derivedCategory,
         confidence: derivedConfidence, // On écrase avec la règle métier stricte
         severity: derivedSeverity,
-        beneficiary: '—',
+        beneficiary: beneficiaryDisplay,
         fraudScore: score,
         status: tx.isFraud ? 'new' : 'dismissed',
         explainability: {

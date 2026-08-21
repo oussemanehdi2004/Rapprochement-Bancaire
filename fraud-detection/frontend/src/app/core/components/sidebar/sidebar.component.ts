@@ -20,7 +20,7 @@ export class SidebarComponent {
 
   menuItems = [
     {
-      icon: '️',
+      icon: '🛡️',
       label: 'Détection de fraude',
       path: '/fraud-detection',
       description: 'Alertes IA'

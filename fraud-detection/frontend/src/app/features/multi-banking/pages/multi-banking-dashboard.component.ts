@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { MultiBankingService } from '../services/multi-banking.service';
 import { IngestionStatsDTO, FileUploadDTO, IngestResponseDTO } from '../models';
 import { ToastService } from '../../../core/services/toast.service';
+import { DataRefreshService } from '../../../core/services/data-refresh.service';
 import type { BankFileFormat } from '../../../core/types/index';
 
 @Component({
@@ -20,6 +21,7 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly multiBankingService = inject(MultiBankingService);
   private readonly toastService = inject(ToastService);
+  private readonly dataRefreshService = inject(DataRefreshService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   loading = false;
@@ -161,6 +163,8 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
         setTimeout(() => this.cdr.detectChanges(), 10);
 
         this.toastService.success('Succès', `Fichier traité avec succès - ${response.parsed_count} transactions extraites`);
+        // Notifier le dashboard Fraude, Transactions et Rapports pour qu'ils rechargent depuis Supabase/Neo4j
+        this.dataRefreshService.trigger();
 
         this.selectedFile = null;
         this.selectedBank = '';
@@ -169,11 +173,18 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
         throw new Error('Échec du traitement du fichier');
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      this.error = `Erreur lors du téléchargement: ${message}`;
+      const raw = error instanceof Error ? error.message : String(error);
+      let userMsg = 'Une erreur inattendue est survenue lors de l’ingestion.';
+      if (raw.includes('Failed to fetch') || raw.includes('Http failure') || raw.includes('0 Unknown') || raw.includes('NetworkError')) {
+        userMsg = 'Service d’ingestion indisponible. Vérifiez que le backend Multi-Banking est démarré et accessible, puis réessayez.';
+      } else if (raw.toLowerCase().includes('format') || raw.toLowerCase().includes('parse')) {
+        userMsg = 'Format de fichier non pris en charge ou fichier corrompu. Vérifiez le format sélectionné (PAIN.001, CAMT.053, MT940, CSV).';
+      } else if (raw) {
+        userMsg = raw;
+      }
+      this.error = userMsg;
       this.stats.failed++;
-
-      this.toastService.error('Erreur', `Échec du téléchargement: ${message}`);
+      this.toastService.error('Échec de l’ingestion', userMsg);
       
       this.recentUploads.unshift({
         id: Date.now().toString(),
@@ -183,7 +194,7 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
         status: 'failed',
         transaction_count: 0,
         uploaded_at: new Date().toISOString(),
-        error_message: message
+        error_message: userMsg
       });
       this.cdr.detectChanges();
     } finally {

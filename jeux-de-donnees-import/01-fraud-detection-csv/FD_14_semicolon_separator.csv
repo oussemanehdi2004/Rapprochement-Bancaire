@@ -1,0 +1,4 @@
+id;tenant_id;transaction_reference;date;description;amount;sender_balance_before;sender_balance_after;receiver_balance_before;receiver_balance_after;transaction_type;account_iban;beneficiary_iban
+tx_semi_01;tenant-123;REF_SEMI_01;2026-08-27T10:00:00Z;Virement test separateur point-virgule;1500,50;5000,00;3500,00;0;1500,50;TRANSFER;FR7612345678901234567890123;FR7698765432109876543210987
+tx_semi_02;tenant-123;REF_SEMI_02;2026-08-27T10:05:00Z;Paiement test virgule decimale;2500,00;3500,00;1000,00;0;2500,00;PAYMENT;FR7612345678901234567890123;FR7611111111111111111111111
+tx_semi_03;tenant-123;REF_SEMI_03;2026-08-27T11:00:00Z;Retrait casino 500 test;500,00;1000,00;500,00;0;0;CASH_OUT;FR7612345678901234567890123;

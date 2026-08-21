@@ -1,0 +1,4 @@
+id,tenant_id,transaction_reference,date,description,amount,sender_balance_before,sender_balance_after,receiver_balance_before,receiver_balance_after,transaction_type,account_iban,beneficiary_iban
+tx_newiban_01,tenant-123,REF_NEWIBAN_01,2026-08-25T10:00:00Z,Premier virement nouveau beneficiaire Alpha,800,10000,9200,0,800,TRANSFER,FR7655555666677778888999999,FR1698765432101234567890123
+tx_newiban_02,tenant-123,REF_NEWIBAN_02,2026-08-25T11:00:00Z,Second virement nouveau beneficiaire Beta,1200,9200,8000,0,1200,TRANSFER,FR7655555666677778888999999,FR2698765432101234567890123
+tx_newiban_03,tenant-123,REF_NEWIBAN_03,2026-08-25T12:00:00Z,Troisieme nouveau beneficiaire Gamma,600,8000,7400,0,600,TRANSFER,FR7655555666677778888999999,FR3698765432101234567890123

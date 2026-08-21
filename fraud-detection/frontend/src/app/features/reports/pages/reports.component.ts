@@ -5,6 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReportsService } from '../services/reports.service';
 import { FraudSummaryDTO, CategoryBreakdownDTO, TimeSeriesDataDTO } from '../../fraud-detection/models';
 import { ToastService } from '../../../core/services/toast.service';
+import { DataRefreshService } from '../../../core/services/data-refresh.service';
 import { Chart } from 'chart.js/auto';
 
 @Component({
@@ -40,19 +41,13 @@ import { Chart } from 'chart.js/auto';
               <span class="h-px flex-1 bg-slate-200"></span>
             </div>
             <div class="flex flex-wrap gap-3 items-end">
-              <div>
+              <div class="min-w-0">
                 <label class="block text-[11px] font-semibold tracking-widest uppercase text-slate-500 mb-1.5">Date de début</label>
-                <div class="relative">
-                  <span class="absolute left-2.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 text-xs">📅</span>
-                  <input type="date" [(ngModel)]="startDate" class="border border-slate-200 rounded-xl pl-10 pr-3 py-2.5 text-sm bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
-                </div>
+                <input type="date" [(ngModel)]="startDate" class="border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm min-w-0">
               </div>
-              <div>
+              <div class="min-w-0">
                 <label class="block text-[11px] font-semibold tracking-widest uppercase text-slate-500 mb-1.5">Date de fin</label>
-                <div class="relative">
-                  <span class="absolute left-2.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 text-xs">📅</span>
-                  <input type="date" [(ngModel)]="endDate" class="border border-slate-200 rounded-xl pl-10 pr-3 py-2.5 text-sm bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
-                </div>
+                <input type="date" [(ngModel)]="endDate" class="border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm min-w-0">
               </div>
               <button (click)="loadReports()" [disabled]="loading" class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm border border-slate-900 disabled:border-transparent transition-colors text-sm">
                 @if (loading) {
@@ -196,6 +191,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly reportsService = inject(ReportsService);
   private readonly toastService = inject(ToastService);
+  private readonly dataRefreshService = inject(DataRefreshService);
   private readonly ngZone = inject(NgZone);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -222,6 +218,12 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     this.endDate = today.toISOString().split('T')[0];
     this.startDate = thirtyDaysAgo.toISOString().split('T')[0];
     this.loadReports();
+    // Rafraîchissement auto après import Multi-Banking / Fraud
+    this.dataRefreshService.refresh$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.ngZone.run(() => this.loadReports());
+      });
   }
 
   ngOnDestroy(): void {

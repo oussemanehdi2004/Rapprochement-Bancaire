@@ -1,0 +1,6 @@
+id,tenant_id,transaction_reference,date,description,amount,sender_balance_before,sender_balance_after,receiver_balance_before,receiver_balance_after,transaction_type,account_iban,beneficiary_iban,device_fingerprint,country,city
+tx_dev_01,tenant-123,REF_DEV_01,2026-08-21T09:00:00Z,Premiere connexion device A,300,10000,9700,0,300,TRANSFER,FR7633333444455556666777777,FR7698765432109876543210987,device_abc123,FR,Paris
+tx_dev_02,tenant-123,REF_DEV_02,2026-08-21T09:10:00Z,Changement device B meme pays,400,9700,9300,0,400,TRANSFER,FR7633333444455556666777777,FR7611111111111111111111111,device_xyz999,FR,Paris
+tx_dev_03,tenant-123,REF_DEV_03,2026-08-21T09:20:00Z,Changement geoloc Allemagne,500,9300,8800,0,500,TRANSFER,FR7633333444455556666777777,FR7622222222222222222222222,device_xyz999,DE,Berlin
+tx_dev_04,tenant-123,REF_DEV_04,2026-08-21T10:00:00Z,Autre compte device normal,200,5000,4800,0,200,TRANSFER,FR7644444555566667777888888,FR7633333333333333333333333,device_other,FR,Lyon
+tx_dev_ok,tenant-123,REF_DEV_OK,2026-08-21T11:00:00Z,Retour device initial France,150,8800,8650,0,150,TRANSFER,FR7633333444455556666777777,FR7644444444444444444444444,device_xyz999,FR,Paris

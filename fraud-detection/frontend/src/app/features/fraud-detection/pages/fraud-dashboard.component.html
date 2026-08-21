@@ -1,725 +1,888 @@
-<div class="p-6 max-w-[90rem] mx-auto transition-colors duration-300 min-w-0">
+<div class="min-h-screen bg-[#F8FAFC] p-6">
+  <div class="max-w-[90rem] mx-auto min-w-0">
 
-  <!-- ===== EN-TÊTE ===== -->
-  <div class="flex items-center justify-between mb-4">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-800">🛡️ AI Fraud Detection</h1>
-      <p class="text-gray-500 text-sm">Plateforme de détection de fraude bancaire hybride (Règles + ML + Graphe)</p>
-    </div>
-  </div>
-
-  <!-- ===== BARRE D'ONGLETS ===== -->
-  <div class="tabs-container">
-    @for (tab of tabs; track tab.id) {
-      <button
-        (click)="tab.ready && setTab(tab.id)"
-        [disabled]="!tab.ready"
-        class="tab-button"
-        [class.active]="activeTab() === tab.id"
-        [class.text-gray-600]="activeTab() !== tab.id && tab.ready"
-        [class.text-gray-400]="!tab.ready"
-      >
-        <span>{{ tab.icon }}</span>
-        <span>{{ tab.label }}</span>
-        @if (!tab.ready) {
-          <span class="text-xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full">bientôt</span>
-        }
-      </button>
-    }
-  </div>
-
-  <!-- ===== ONGLET : VUE D'ENSEMBLE ===== -->
-  @if (activeTab() === 'overview') {
-
-    <!-- Import / Démo (minimized since auto-analysis runs) -->
-    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-6">
-      <div class="flex items-center justify-between flex-wrap gap-4">
-        <div class="flex items-center gap-3">
-          <span class="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xl">📁</span>
-          <div>
-            <h3 class="font-semibold text-gray-800 text-sm">Importer des transactions</h3>
-            <p class="text-xs text-gray-500">CSV: tenant_id, mongo_transaction_id, id, date, description, amount, balances...</p>
-          </div>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div class="flex items-start gap-3.5">
+        <div class="hidden sm:flex h-11 w-11 rounded-xl bg-slate-900 items-center justify-center text-white shadow-sm border border-slate-800 shrink-0">
+          <span class="text-[18px] leading-none">🛡️</span>
         </div>
-        <div class="flex gap-2 items-center">
-          <label class="px-3 py-2 border border-blue-200 text-blue-600 rounded-lg cursor-pointer text-sm font-medium hover:bg-blue-50 transition-colors">
-            Choisir CSV
-            <input type="file" accept=".csv" class="hidden" (change)="onFileSelected($event)" />
-          </label>
-          <button
-            (click)="useDemoData()"
-            [disabled]="loading()"
-            class="px-3 py-2 bg-blue-600 text-white border-none rounded-lg cursor-pointer text-sm font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {{ loading() ? 'Analyse…' : 'Relancer Démo' }}
-          </button>
-        </div>
-      </div>
-      @if (importedFileName()) {
-        <p class="text-xs text-green-600 mt-2 ml-12">✅ Fichier chargé : {{ importedFileName() }}</p>
-      }
-      @if (importError()) {
-        <p class="text-xs text-red-600 mt-2 ml-12">⚠️ {{ importError() }}</p>
-      }
-    </div>
-
-    <!-- Analysis Mode Indicator -->
-    @if (analysisMode() === 'supabase') {
-      <div class="bg-slate-900 text-white rounded-xl border border-slate-700 p-4 shadow-sm mb-6 flex items-center gap-3">
-        <span class="text-2xl">🗄️</span>
         <div>
-          <h3 class="font-semibold text-sm">Mode Analyse Supabase Actif</h3>
-          <p class="text-xs text-slate-300">Données provenant de la base de données Supabase avec persistance d'état</p>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-[22px] font-bold tracking-tight text-slate-900 leading-none">AI Fraud Detection</h1>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-[10px] font-semibold tracking-widest uppercase text-emerald-700 leading-[1.3]">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
+            </span>
+          </div>
+          <p class="text-[12.5px] leading-4 text-slate-500 mt-1.5 flex items-center gap-1.5 flex-wrap">
+            Plateforme hybride <span class="hidden sm:inline text-slate-300">—</span> Règles + ML + Graphe
+            <span class="inline-flex items-center rounded-full bg-slate-900 text-white px-2.5 py-1 text-[10px] font-medium tracking-wide border border-slate-800 ml-1 leading-none">TRACFIN-ready</span>
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 self-start sm:self-auto">
+        <span class="hidden md:inline-flex items-center gap-2 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+          <span class="h-2 w-2 rounded-full bg-blue-500"></span> {{ totalAnalyzed() }} analyses
+        </span>
+      </div>
+    </div>
+
+    @if (hasLoadError()) {
+      <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6 flex gap-3 shadow-sm">
+        <span class="h-9 w-9 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0 leading-none">⚠️</span>
+        <div>
+          <p class="text-sm font-semibold text-rose-800">Erreur de chargement</p>
+          <p class="text-sm text-rose-700 mt-1">{{ errorMessage() || 'Une erreur inattendue est survenue. Veuillez rafraîchir la page.' }}</p>
+          <button (click)="useDemoData()" class="mt-3 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold shadow-sm">↻ Réessayer</button>
         </div>
       </div>
     }
 
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Transactions analysées</p>
-          <span class="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">📊</span>
-        </div>
-        <p class="text-3xl font-bold text-gray-800 mt-2">{{ totalAnalyzed() }}</p>
-        <p class="text-xs text-gray-400 mt-1">total des transactions</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Taux de fraude détecté</p>
-          <span class="h-8 w-8 rounded-lg bg-red-50 flex items-center justify-center text-red-600">⚠️</span>
-        </div>
-        <div class="flex items-baseline gap-2 mt-2">
-          <p class="text-3xl font-bold text-red-600">{{ fraudRate() }}%</p>
-          @if (fraudRateTrend()) {
-            <span class="text-xs font-medium" [class.text-green-600]="fraudRateTrend().isPositive" [class.text-red-600]="!fraudRateTrend().isPositive">
-              {{ fraudRateTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(fraudRateTrend().value) }}%
-            </span>
-          }
-        </div>
-        <p class="text-xs text-gray-400 mt-1">sur {{ totalAnalyzed() }} transactions</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Montant total à risque</p>
-          <span class="h-8 w-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">💰</span>
-        </div>
-        <div class="flex items-baseline gap-2 mt-2">
-          <p class="text-3xl font-bold text-gray-800">{{ totalAtRisk() | number: '1.0-0' }} €</p>
-          @if (amountAtRiskTrend()) {
-            <span class="text-xs font-medium" [class.text-green-600]="amountAtRiskTrend().isPositive" [class.text-red-600]="!amountAtRiskTrend().isPositive">
-              {{ amountAtRiskTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(amountAtRiskTrend().value) }}%
-            </span>
-          }
-        </div>
-        <p class="text-xs text-gray-400 mt-1">montant suspect détecté</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Score de risque global</p>
-          <span class="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">🎯</span>
-        </div>
-        <div class="flex items-baseline gap-2 mt-2">
-          <p class="text-3xl font-bold text-purple-600">{{ globalRiskScore() }}</p>
-          @if (riskScoreTrend()) {
-            <span class="text-xs font-medium" [class.text-green-600]="riskScoreTrend().isPositive" [class.text-red-600]="!riskScoreTrend().isPositive">
-              {{ riskScoreTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(riskScoreTrend().value) }}%
-            </span>
-          }
-        </div>
-        <p class="text-xs text-gray-400 mt-1">score moyen de risque</p>
+    <!-- Tabs -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-1.5 mb-6 overflow-x-auto">
+      <div class="flex items-center gap-1.5 min-w-max">
+        @for (tab of tabs; track tab.id) {
+          <button
+            (click)="tab.ready && setTab(tab.id)"
+            [disabled]="!tab.ready"
+            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-medium whitespace-nowrap border transition-all leading-none"
+            [class.bg-slate-900]="activeTab() === tab.id"
+            [class.text-white]="activeTab() === tab.id"
+            [class.border-slate-900]="activeTab() === tab.id"
+            [class.shadow-sm]="activeTab() === tab.id"
+            [class.bg-white]="activeTab() !== tab.id && tab.ready"
+            [class.text-slate-700]="activeTab() !== tab.id && tab.ready"
+            [class.border-slate-200]="activeTab() !== tab.id && tab.ready"
+            [class.hover:bg-slate-50]="activeTab() !== tab.id && tab.ready"
+            [class.bg-slate-50]="!tab.ready"
+            [class.text-slate-400]="!tab.ready"
+            [class.border-transparent]="!tab.ready"
+            [class.cursor-not-allowed]="!tab.ready"
+          >
+            <span class="text-[14px] leading-none align-middle">{{ tab.icon }}</span>
+            <span>{{ tab.label }}</span>
+            @if (!tab.ready) {
+              <span class="text-[10px] font-semibold tracking-wide uppercase bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full border border-slate-200">bientôt</span>
+            }
+          </button>
+        }
       </div>
     </div>
 
-    <!-- Boutons d'analyse -->
-    <div class="button-group">
-      <button (click)="analyze()" [disabled]="loading()" class="px-4 py-2.5 bg-white text-blue-900 border border-blue-200 rounded-lg cursor-pointer font-semibold hover:bg-blue-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
-        Relancer l'analyse locale
-      </button>
-      <button (click)="analyzeSupabaseCases()" [disabled]="loading()" class="px-4 py-2.5 bg-slate-900 text-white border border-slate-700 rounded-lg cursor-pointer font-semibold hover:bg-slate-800 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors analyze-btn-supa text-sm whitespace-nowrap">
-        Lancer Cas Supabase
-      </button>
-      <button
-        (click)="exportToCsv()"
-        [disabled]="filteredAlerts().length === 0 && !supabaseResults()?.length"
-        class="px-4 py-2.5 bg-white text-green-800 border border-green-200 rounded-lg cursor-pointer font-semibold hover:bg-green-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
-        📥 Exporter en CSV
-      </button>
-      <button
-        (click)="exportToPdf()"
-        [disabled]="filteredAlerts().length === 0 && !supabaseResults()?.length"
-        class="px-4 py-2.5 bg-white text-red-800 border border-red-200 rounded-lg cursor-pointer font-semibold hover:bg-red-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
-        📄 Exporter en PDF
-      </button>
-      <button
-        (click)="exportSummaryToPdf()"
-        [disabled]="safeStats().totalAlerts === 0"
-        class="px-4 py-2.5 bg-white text-purple-800 border border-purple-200 rounded-lg cursor-pointer font-semibold hover:bg-purple-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap">
-        📊 Synthèse PDF
-      </button>
-    </div>
+    @if (activeTab() === 'overview') {
 
-    <!-- Graphiques globaux (lazy: chart.js ~200KB) -->
-    @defer (when activeTab() === 'overview' || activeTab() === 'hybrid') {
-      <app-fraud-charts
-        [severityCounts]="severityCounts()"
-        [categoryStats]="categoryChartStats()"
-        [timeSeriesData]="timeSeriesData()"
-        [hourlyData]="hourlyData()"
-        [analysisMode]="analysisMode()"
-      ></app-fraud-charts>
-    } @placeholder {
-      <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
-        <div class="h-4 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
-        <div class="h-56 bg-gray-100 rounded-lg animate-pulse"></div>
-      </div>
-    }
-
-    <!-- Fraud Detection Stats -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-800">Statistiques de Détection de Fraude</h2>
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-500">Mise à jour:</span>
-          <span class="text-sm font-medium text-gray-700">{{ getCurrentTime() }}</span>
-        </div>
-      </div>
-      
-      <div class="stats-grid">
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-          <p class="text-xs uppercase tracking-wider text-blue-600 font-semibold">Total alertes</p>
-          <p class="text-3xl font-bold text-blue-800 mt-2">{{ safeStats().totalAlerts }}</p>
-        </div>
-        <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200">
-          <p class="text-xs uppercase tracking-wider text-red-600 font-semibold">Critiques</p>
-          <p class="text-3xl font-bold text-red-800 mt-2">{{ safeStats().critical }}</p>
-        </div>
-        <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
-          <p class="text-xs uppercase tracking-wider text-orange-600 font-semibold">Élevées</p>
-          <p class="text-3xl font-bold text-orange-800 mt-2">{{ safeStats().high }}</p>
-        </div>
-        <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
-          <p class="text-xs uppercase tracking-wider text-amber-600 font-semibold">En investigation</p>
-          <p class="text-3xl font-bold text-amber-800 mt-2">{{ safeStats().underInvestigation }}</p>
-        </div>
-        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-          <p class="text-xs uppercase tracking-wider text-green-600 font-semibold">Résolues</p>
-          <p class="text-3xl font-bold text-green-800 mt-2">{{ safeStats().totalAlerts - safeStats().underInvestigation }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Error State -->
-    @if (errorMessage()) {
-      <div class="bg-red-50 rounded-xl border border-red-200 p-6 shadow-sm mb-6">
-        <div class="flex items-center gap-3">
-          <span class="text-2xl">❌</span>
-          <div>
-            <p class="font-semibold text-red-800 m-0">Erreur lors de l'analyse</p>
-            <p class="text-red-700 mt-1 mb-0">{{ errorMessage() }}</p>
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-5">
+        <div class="h-1 w-full bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-600"></div>
+        <div class="p-4 sm:p-5">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+              <span class="h-11 w-11 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-[18px] shrink-0 leading-none">📁</span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-[14px] font-semibold text-slate-900 tracking-tight">Importer des transactions</h3>
+                  <span class="hidden sm:inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase text-slate-500">CSV · tenant_id, montant, description</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">CSV : tenant_id, mongo_transaction_id, id, date, description, amount, balances…</p>
+                @if (importedFileName()) {
+                  <p class="inline-flex items-center gap-1.5 mt-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full leading-none">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Fichier chargé : {{ importedFileName() }}
+                  </p>
+                }
+                @if (importError()) {
+                  <p class="inline-flex items-center gap-1.5 mt-2 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full leading-none">⚠️ {{ importError() }}</p>
+                }
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 flex-wrap">
+              <label class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-[13px] font-medium hover:bg-slate-50 cursor-pointer transition-colors shadow-sm">
+                <span class="text-slate-500 leading-none">⤒</span> Choisir CSV
+                <input type="file" accept=".csv" class="hidden" (change)="onFileSelected($event)" />
+              </label>
+              <button
+                (click)="useDemoData()"
+                [disabled]="loading()"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:text-slate-500 text-white text-[13px] font-semibold shadow-sm border border-indigo-600 disabled:border-transparent transition-colors"
+              >
+                <span class="text-xs leading-none">▶</span> {{ loading() ? 'Analyse…' : 'Relancer Démo' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    }
 
-    <!-- Loading State -->
-    @if (loading()) {
-      <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
-        <div class="space-y-4">
-          <!-- Skeleton KPI Cards -->
+      @if (analysisMode() === 'supabase') {
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm mb-5 overflow-hidden">
+          <div class="px-4 sm:px-5 py-4 flex items-center gap-3">
+            <span class="h-10 w-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-white text-lg shrink-0 leading-none">🗄️</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-semibold text-white tracking-tight">Mode Supabase Actif</h3>
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/20 text-emerald-300 px-2 py-0.5 text-[10px] font-semibold tracking-widest uppercase leading-none"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Stateful</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Données persistées — réconciliation et historique conservés</p>
+            </div>
+          </div>
+        </div>
+      }
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        <div class="group bg-white rounded-2xl border border-slate-200 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-slate-300 transition-all">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-[10px] leading-none tracking-[0.14em] font-semibold uppercase text-slate-500">Transactions analysées</p>
+              <p class="text-[11px] text-slate-400 mt-1.5">volume traité</p>
+            </div>
+            <span class="h-9 w-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 leading-none">📊</span>
+          </div>
+          <p class="text-[28px] font-bold tracking-tight text-slate-900 mt-4 leading-none pb-1">{{ totalAnalyzed() }}</p>
+          <div class="mt-4 flex items-center gap-2">
+            <span class="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-600 leading-none">total des transactions</span>
+          </div>
+        </div>
+
+        <div class="group bg-white rounded-2xl border border-slate-200 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-slate-300 transition-all relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-[3px] bg-rose-500"></div>
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-[10px] leading-none tracking-[0.14em] font-semibold uppercase text-slate-500">Taux de fraude détecté</p>
+              <p class="text-[11px] text-slate-400 mt-1.5">sur {{ totalAnalyzed() }} transactions</p>
+            </div>
+            <span class="h-9 w-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0 leading-none">⚠️</span>
+          </div>
+          <div class="flex items-baseline gap-2 mt-4">
+            <p class="text-[28px] font-bold tracking-tight leading-none text-rose-600">{{ fraudRate() }}<span class="text-[18px] font-semibold text-rose-500/80">%</span></p>
+            @if (fraudRateTrend()) {
+              <span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none"
+                [class.bg-emerald-50]="fraudRateTrend().isPositive" [class.text-emerald-700]="fraudRateTrend().isPositive" [class.border-emerald-200]="fraudRateTrend().isPositive"
+                [class.bg-rose-50]="!fraudRateTrend().isPositive" [class.text-rose-700]="!fraudRateTrend().isPositive" [class.border-rose-200]="!fraudRateTrend().isPositive">
+                {{ fraudRateTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(fraudRateTrend().value) }}%
+              </span>
+            }
+          </div>
+          <div class="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-full bg-rose-500 rounded-full transition-all duration-500" [style.width.%]="fraudRate()"></div>
+          </div>
+        </div>
+
+        <div class="group bg-white rounded-2xl border border-slate-200 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-slate-300 transition-all relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-[3px] bg-amber-500"></div>
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-[10px] leading-none tracking-[0.14em] font-semibold uppercase text-slate-500">Montant total à risque</p>
+              <p class="text-[11px] text-slate-400 mt-1.5">montant suspect détecté</p>
+            </div>
+            <span class="h-9 w-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0 leading-none">💰</span>
+          </div>
+          <div class="flex items-baseline gap-2 mt-4 flex-wrap">
+            <p class="text-[26px] font-bold tracking-tight leading-none text-slate-900 pb-1">{{ totalAtRisk() | number: '1.0-0' }} <span class="text-[16px] font-semibold text-slate-500">€</span></p>
+            @if (amountAtRiskTrend()) {
+              <span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none"
+                [class.bg-emerald-50]="amountAtRiskTrend().isPositive" [class.text-emerald-700]="amountAtRiskTrend().isPositive" [class.border-emerald-200]="amountAtRiskTrend().isPositive"
+                [class.bg-rose-50]="!amountAtRiskTrend().isPositive" [class.text-rose-700]="!amountAtRiskTrend().isPositive" [class.border-rose-200]="!amountAtRiskTrend().isPositive">
+                {{ amountAtRiskTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(amountAtRiskTrend().value) }}%
+              </span>
+            }
+          </div>
+        </div>
+
+        <div class="group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-[0_8px_24px_rgba(2,6,23,0.18)] hover:shadow-[0_12px_32px_rgba(2,6,23,0.24)] transition-all">
+          <div class="absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-transparent pointer-events-none"></div>
+          <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-indigo-500/20 blur-2xl"></div>
+          <div class="relative flex items-start justify-between gap-3">
+            <div>
+              <p class="text-[10px] leading-none tracking-[0.14em] font-semibold uppercase text-slate-400">Score de risque global</p>
+              <p class="text-[11px] text-slate-400 mt-1.5">score moyen pondéré</p>
+            </div>
+            <span class="h-9 w-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-white shrink-0 backdrop-blur leading-none">🎯</span>
+          </div>
+          <div class="relative flex items-baseline gap-2 mt-4">
+            <p class="text-[28px] font-bold tracking-tight leading-none text-white pb-1">{{ globalRiskScore() }}</p>
+            <span class="text-xs font-medium text-slate-400">/ 100</span>
+            @if (riskScoreTrend()) {
+              <span class="ml-1 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none"
+                [class.bg-emerald-500/15]="riskScoreTrend().isPositive" [class.text-emerald-300]="riskScoreTrend().isPositive" [class.border-emerald-500/20]="riskScoreTrend().isPositive"
+                [class.bg-rose-500/15]="!riskScoreTrend().isPositive" [class.text-rose-300]="!riskScoreTrend().isPositive" [class.border-rose-500/20]="!riskScoreTrend().isPositive">
+                {{ riskScoreTrend().isPositive ? '↓' : '↑' }} {{ Math.abs(riskScoreTrend().value) }}%
+              </span>
+            }
+          </div>
+          <div class="relative mt-4 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500" [style.width.%]="globalRiskScore()" [style.background-color]="gaugeColor(globalRiskScore())"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-2 mb-5 flex flex-wrap items-center gap-2">
+        <span class="hidden sm:inline-flex items-center gap-2 text-[11px] font-semibold tracking-widest uppercase text-slate-400 px-2 leading-none">Actions</span>
+        <span class="hidden sm:inline h-6 w-px bg-slate-200"></span>
+        <button (click)="analyze()" [disabled]="loading()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-[13px] font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm leading-none">
+          <span class="h-6 w-6 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 text-xs leading-none">↻</span>
+          Relancer l'analyse locale
+        </button>
+        <button (click)="analyzeSupabaseCases()" [disabled]="loading()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:bg-slate-700 text-white text-[13px] font-semibold shadow-sm border border-slate-900 disabled:border-slate-700 transition-colors leading-none">
+          <span class="h-6 w-6 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-white text-xs leading-none">⬢</span>
+          Lancer Cas Supabase
+        </button>
+        <span class="h-6 w-px bg-slate-200 hidden sm:inline"></span>
+        <button
+          (click)="exportToCsv()"
+          [disabled]="filteredAlerts().length === 0 && !supabaseResults()?.length"
+          class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-700 text-[13px] font-medium hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm leading-none">
+          <span class="text-xs leading-none">📥</span> Exporter CSV
+        </button>
+        <button
+          (click)="exportToPdf()"
+          [disabled]="filteredAlerts().length === 0 && !supabaseResults()?.length"
+          class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-rose-200 text-rose-700 text-[13px] font-medium hover:bg-rose-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm leading-none">
+          <span class="text-xs leading-none">📄</span> Exporter PDF
+        </button>
+        <button
+          (click)="exportSummaryToPdf()"
+          [disabled]="safeStats().totalAlerts === 0"
+          class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-violet-200 text-violet-700 text-[13px] font-medium hover:bg-violet-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm leading-none">
+          <span class="text-xs leading-none">📊</span> Synthèse PDF
+        </button>
+      </div>
+
+      <!-- Charts — render immediately, no defer to avoid click-required -->
+      @if (isBrowser()) {
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-5">
+          <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="h-8 w-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-sm leading-none">📈</span>
+              <div>
+                <h3 class="text-[13px] font-semibold text-slate-900 tracking-tight">Visualisations & Tendances</h3>
+                <p class="text-[11px] text-slate-500">Évolution, répartition et heatmap — Chart.js</p>
+              </div>
+            </div>
+            <span class="hidden sm:inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-[10px] font-semibold tracking-widest uppercase text-slate-500 leading-none">Temps réel</span>
+          </div>
+          <div class="p-4 sm:p-5 bg-[#F8FAFC]">
+            <app-fraud-charts
+              [severityCounts]="severityCounts()"
+              [categoryStats]="categoryChartStats()"
+              [timeSeriesData]="timeSeriesData()"
+              [hourlyData]="hourlyData()"
+              [analysisMode]="analysisMode()"
+            ></app-fraud-charts>
+          </div>
+        </div>
+      } @else {
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-5">
+          <div class="h-4 bg-slate-100 rounded w-1/3 mb-4 animate-pulse"></div>
+          <div class="h-56 bg-slate-50 rounded-xl animate-pulse border border-slate-100"></div>
+        </div>
+      }
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-5">
+        <div class="px-5 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="h-8 w-8 rounded-xl bg-slate-900 flex items-center justify-center text-white border border-slate-800 text-sm leading-none">◈</span>
+            <div>
+              <h2 class="text-[13px] font-semibold text-slate-900 tracking-tight">Statistiques de Détection</h2>
+              <p class="text-[11px] text-slate-500">Synthèse par criticité et statut</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 self-start sm:self-auto">
+            <span class="text-[11px] font-medium tracking-wide text-slate-500">Mise à jour</span>
+            <span class="inline-flex items-center rounded-full bg-slate-900 text-white border border-slate-800 px-3 py-1.5 text-xs font-medium leading-none">{{ getCurrentTime() }}</span>
+          </div>
+        </div>
+        
+        <div class="p-4 sm:p-5">
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-5">
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+              <p class="text-[10px] tracking-[0.12em] font-semibold uppercase text-slate-500">Total alertes</p>
+              <p class="text-[26px] font-bold tracking-tight text-slate-900 mt-2 leading-none pb-1">{{ safeStats().totalAlerts }}</p>
+              <p class="text-[11px] text-slate-500 mt-1">événements flaggés</p>
+            </div>
+            <div class="rounded-xl border border-rose-200 bg-rose-50/60 p-4 relative overflow-hidden">
+              <div class="absolute top-3 right-3 h-2 w-2 rounded-full bg-rose-500 animate-pulse"></div>
+              <p class="text-[10px] tracking-[0.12em] font-semibold uppercase text-rose-700">Critiques</p>
+              <p class="text-[26px] font-bold tracking-tight text-rose-700 mt-2 leading-none pb-1">{{ safeStats().critical }}</p>
+              <p class="text-[11px] text-rose-600/70 mt-1">priorité immédiate</p>
+            </div>
+            <div class="rounded-xl border border-orange-200 bg-orange-50/60 p-4">
+              <p class="text-[10px] tracking-[0.12em] font-semibold uppercase text-orange-700">Élevées</p>
+              <p class="text-[26px] font-bold tracking-tight text-orange-700 mt-2 leading-none pb-1">{{ safeStats().high }}</p>
+              <p class="text-[11px] text-orange-600/70 mt-1">à investiguer</p>
+            </div>
+            <div class="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+              <p class="text-[10px] tracking-[0.12em] font-semibold uppercase text-amber-700">En investigation</p>
+              <p class="text-[26px] font-bold tracking-tight text-amber-700 mt-2 leading-none pb-1">{{ safeStats().underInvestigation }}</p>
+              <p class="text-[11px] text-amber-600/70 mt-1">ouvertes</p>
+            </div>
+            <div class="col-span-2 lg:col-span-1 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+              <p class="text-[10px] tracking-[0.12em] font-semibold uppercase text-emerald-700">Résolues</p>
+              <p class="text-[26px] font-bold tracking-tight text-emerald-700 mt-2 leading-none pb-1">{{ safeStats().totalAlerts - safeStats().underInvestigation }}</p>
+              <p class="text-[11px] text-emerald-600/70 mt-1">traitées</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 shadow-sm mb-5 flex gap-3">
+          <span class="h-9 w-9 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0 leading-none">❌</span>
+          <div>
+            <p class="text-[13px] font-semibold text-rose-800">Erreur lors de l'analyse</p>
+            <p class="text-[12.5px] text-rose-700 mt-0.5 leading-relaxed">{{ errorMessage() }}</p>
+          </div>
+        </div>
+      }
+
+      @if (loading()) {
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm mb-5">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             @for (i of [1, 2, 3, 4]; track i) {
-              <div class="p-5 border border-gray-200 rounded-xl">
-                <app-skeleton-loader height="0.75rem" width="50%" [darkMode]="darkMode()"></app-skeleton-loader>
-                <app-skeleton-loader height="2.25rem" width="30%" [darkMode]="darkMode()"></app-skeleton-loader>
-              </div>
-            }
-          </div>
-          
-          <!-- Skeleton Stats -->
-          <div class="grid grid-cols-2 gap-4">
-            @for (i of [1, 2, 3, 4, 5]; track i) {
-              <div class="p-4 border border-gray-200 rounded-xl">
-                <app-skeleton-loader height="0.75rem" width="40%" [darkMode]="darkMode()"></app-skeleton-loader>
-                <app-skeleton-loader height="2.25rem" width="25%" [darkMode]="darkMode()"></app-skeleton-loader>
-              </div>
-            }
-          </div>
-        </div>
-        <p class="text-center text-gray-500 mt-4">Analyse des transactions en cours...</p>
-      </div>
-    }
-
-    <!-- Empty State -->
-    @if (!loading() && filteredAlerts().length === 0 && !supabaseResults()?.length) {
-      <div class="bg-white rounded-xl border border-gray-200 p-10 shadow-sm text-center">
-        <div class="flex flex-col items-center gap-2">
-          <span class="text-4xl">🛡️</span>
-          <p class="text-gray-400">Aucune alerte détectée. Cliquez sur un bouton d'analyse pour commencer.</p>
-        </div>
-      </div>
-    }
-
-    <!-- Alerts Table (Analyse Locale) -->
-    @if (!loading() && filteredAlerts().length > 0) {
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6 min-w-0">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 class="font-semibold text-gray-800">Alertes de Fraude (Règles Locales)</h3>
-        </div>
-
-        <div class="overflow-x-auto min-w-0">
-          <table class="w-full text-sm min-w-[900px]">
-            <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
-              <tr>
-                <th class="text-left px-4 py-3 w-[120px]">Score</th>
-                <th class="text-left px-4 py-3 w-[100px]">Criticité</th>
-                <th class="text-left px-4 py-3 min-w-[200px]">Description</th>
-                <th class="text-left px-4 py-3 w-[140px]">Règle</th>
-                <th class="text-left px-4 py-3 min-w-[150px]">Bénéficiaire</th>
-                <th class="text-right px-4 py-3 w-[120px]">Montant</th>
-                <th class="text-left px-4 py-3 w-[100px]">Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (alert of filteredAlerts(); track alert.id) {
-                <tr class="border-t border-gray-100">
-                  <td class="px-4 py-3 whitespace-nowrap">
-                    <div class="flex items-center gap-2">
-                      <div class="h-2 w-16 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
-                        <div
-                          class="h-full bg-red-500"
-                          [style.width.%]="$any(alert).fraudScore"
-                        ></div>
-                      </div>
-                      <span class="font-semibold text-gray-700">{{ $any(alert).fraudScore }}%</span>
-                    </div>
-                  </td>
-                  <td class="px-4 py-3 whitespace-nowrap">
-                    <app-severity-badge [severity]="$any(alert).severity || 'LOW'"></app-severity-badge>
-                  </td>
-                  <td class="px-4 py-3 text-gray-700 truncate max-w-[250px]">{{ alert.description }}</td>
-                  <td class="px-4 py-3 whitespace-nowrap">
-                    <app-category-badge [category]="$any(alert).category || 'NON_CATEGORISE'"></app-category-badge>
-                  </td>
-                  <td class="px-4 py-3 text-gray-500 truncate max-w-[180px]">{{ $any(alert).beneficiary || '—' }}</td>
-                  <td class="px-4 py-3 text-right font-semibold text-gray-800 whitespace-nowrap">
-                    {{ alert.amount | number: '1.2-2' }} €
-                  </td>
-                  <td class="px-4 py-3 whitespace-nowrap">
-                    <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 inline-block">
-                      {{ $any(alert).status || 'analyse' }}
-                    </span>
-                  </td>
-                </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-    }
-
-    <!-- Résultats Supabase -->
-    @if (!loading() && supabaseResults() && supabaseResults()!.length > 0) {
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-w-0">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-slate-50">
-          <h3 class="font-semibold text-slate-800">Résultats — Cas Supabase (Stateful)</h3>
-        </div>
-
-        <div class="overflow-x-auto min-w-0">
-          <table class="w-full text-sm min-w-[700px]">
-            <thead class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold">
-              <tr>
-                <th class="text-left px-4 py-3 w-[180px]">ID Transaction</th>
-                <th class="text-left px-4 py-3 w-[150px]">Catégorie</th>
-                <th class="text-center px-4 py-3 w-[120px]">Détection</th>
-                <th class="text-left px-4 py-3 min-w-[250px]">Explication de l'IA</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (r of (supabaseResults() ?? []); track r.id) {
-                <tr class="border-t border-slate-200">
-                  <td class="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">{{ r.id }}</td>
-                  <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ $any(r).ruleCategory || $any(r).rule_category || 'Analyse IA' }}</td>
-                  <td class="px-4 py-3 text-center whitespace-nowrap">
-                    <span
-                      class="text-xs font-semibold px-3 py-1 rounded-full border inline-block"
-                      [class.text-red-600]="r.isFraud"
-                      [class.text-green-600]="!r.isFraud"
-                      [class.bg-red-50]="r.isFraud"
-                      [class.bg-green-50]="!r.isFraud"
-                      [class.border-red-200]="r.isFraud"
-                      [class.border-green-200]="!r.isFraud"
-                      [class.]="r.isFraud"
-                      [class.]="!r.isFraud"
-                      [class.]="r.isFraud"
-                      [class.]="!r.isFraud"
-                      [class.]="r.isFraud"
-                      [class.]="!r.isFraud"
-                    >
-                      {{ r.isFraud ? 'FRAUDE' : 'CLEAN' }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-slate-600 truncate max-w-[300px]">{{ r.explainability?.summary || 'Aucune explication fournie' }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-    }
-  }
-
-  <!-- ===== ONGLET : RÉSEAUX & GRAPHE ===== -->
-  @if (activeTab() === 'graph') {
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      
-      <!-- Contrôles du Graphe -->
-      <div class="flex items-center gap-4 mb-6 flex-wrap">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tenant ID (Identifiant client)</label>
-          <input 
-            type="text" 
-            [ngModel]="graphTenantId()"
-            (ngModelChange)="graphTenantId.set($event)"
-            placeholder="Ex: tenant-123" 
-            class="px-3 py-2 border border-gray-300 rounded-lg w-64 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <button 
-          (click)="loadTopAccounts()" 
-          [disabled]="graphLoading()"
-          class="mt-5 px-5 py-2 bg-slate-900 text-white border-none rounded-lg cursor-pointer text-sm font-medium flex items-center gap-2 hover:bg-slate-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-        >
-          {{ graphLoading() ? 'Chargement...' : '🔍 Rechercher les réseaux' }}
-        </button>
-      </div>
-
-      <!-- Erreurs Graphe -->
-      @if (graphError()) {
-        <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-6 text-sm">
-          {{ graphError() }}
-        </div>
-      }
-
-      <div class="flex gap-6 min-h-[500px] border-t border-gray-200 pt-6">
-        
-        <!-- Colonne de gauche : Liste des comptes -->
-        <div class="w-[300px] border-r border-gray-200 pr-6">
-          <h3 class="text-base font-semibold text-gray-800 mb-4">Comptes suspects</h3>
-          
-          @if (!graphLoading() && topAccounts().length === 0) {
-            <p class="text-sm text-gray-500 italic">Aucun compte chargé. Lancez une recherche.</p>
-          }
-
-          <div class="flex flex-col gap-2">
-            @for (acc of topAccounts(); track acc.iban) {
-              <div 
-                (click)="selectAccount(acc.iban)"
-                class="p-3 rounded-lg cursor-pointer border transition-colors"
-                [class.bg-blue-50]="selectedIban() === acc.iban"
-                [class.bg-gray-50]="selectedIban() !== acc.iban"
-                [class.]="selectedIban() === acc.iban"
-                [class.]="selectedIban() !== acc.iban"
-                [class.border-blue-300]="selectedIban() === acc.iban"
-                [class.]="selectedIban() === acc.iban"
-                [class.border-gray-200]="selectedIban() !== acc.iban"
-                [class.]="selectedIban() !== acc.iban"
-                [class.hover:bg-blue-100]="selectedIban() === acc.iban"
-                [class.]="selectedIban() === acc.iban"
-                [class.hover:bg-gray-100]="selectedIban() !== acc.iban"
-                [class.]="selectedIban() !== acc.iban"
-              >
-                <div class="flex justify-between items-center mb-1">
-                  <span class="font-semibold text-sm text-gray-800">{{ shortIban(acc.iban) }}</span>
-                  <span class="text-xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">
-                    Score: {{ ($any(acc).fraud_score || $any(acc).fraudScore) | number:'1.1-1' }}
-                  </span>
-                </div>
-                <p class="text-xs text-gray-500 m-0">{{ $any(acc).transaction_count || $any(acc).transactionCount }} transaction(s)</p>
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Colonne de droite : Visualisation interactive -->
-        <div class="flex-1 flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 relative overflow-hidden min-h-[500px]">
-          
-          @if (networkData()) {
-            <!-- Titre du réseau -->
-            <div class="absolute top-4 left-4 bg-white px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 shadow-sm z-10">
-              Réseau de : <span class="font-bold text-slate-900">{{ networkData()?.center_iban }}</span>
-            </div>
-
-            <!-- Graphe interactif (lazy: vis-network ~159KB) -->
-            @defer (when activeTab() === 'graph' && networkData()) {
-              <app-interactive-graph
-                [nodes]="graphNodes()"
-                [edges]="graphEdges()"
-                [loading]="graphLoading()"
-                [centerNode]="selectedIban() || undefined"
-                class="w-full h-full"
-              ></app-interactive-graph>
-            } @placeholder {
-              <div class="absolute inset-0 flex items-center justify-center">
-                <div class="h-8 w-8 rounded-full border-3 border-slate-300 border-r-slate-700 animate-spin"></div>
-              </div>
-            }
-          } @else {
-            <p class="text-slate-400 text-sm">Sélectionnez un compte pour afficher son réseau d'interactions.</p>
-          }
-        </div>
-
-      </div>
-    </div>
-  }
-
-  <!-- ===== ONGLET : DÉTECTION HYBRIDE ===== -->
-  @if (activeTab() === 'hybrid') {
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-w-0">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="font-semibold text-gray-800">Détail Règles + ML par transaction</h3>
-        <p class="text-xs text-gray-500 mt-1">Score consolidé = max(règle métier, probabilité IA)</p>
-      </div>
-      @if (filteredAlerts().length === 0) {
-        <div class="p-10 text-center text-gray-400">Lancez une analyse pour voir le détail.</div>
-      } @else {
-        <div class="overflow-x-auto min-w-0">
-          <table class="w-full text-sm min-w-[900px]">
-            <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
-              <tr>
-                <th class="text-left px-4 py-3 w-[180px]">Transaction</th>
-                <th class="text-left px-4 py-3 w-[140px]">Règle</th>
-                <th class="text-center px-4 py-3 w-[100px]">Score IA</th>
-                <th class="text-center px-4 py-3 w-[120px]">Décision finale</th>
-                <th class="text-left px-4 py-3 min-w-[250px]">Facteurs</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (alert of filteredAlerts(); track alert.id) {
-                <tr class="border-t border-gray-100">
-                  <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{{ $any(alert).transactionId || alert.id }}</td>
-                  <td class="px-4 py-3 text-gray-700 whitespace-nowrap">
-                    <app-category-badge [category]="$any(alert).category || 'NON_CATEGORISE'"></app-category-badge>
-                  </td>
-                  <td class="px-4 py-3 text-center font-semibold whitespace-nowrap" [class.text-red-600]="($any(alert).fraudScore ?? 0) >= 50" [class.text-green-600]="($any(alert).fraudScore ?? 0) < 50" [class.]="($any(alert).fraudScore ?? 0) >= 50" [class.]="($any(alert).fraudScore ?? 0) < 50">
-                    {{ $any(alert).fraudScore ?? 0 }}%
-                  </td>
-                  <td class="px-4 py-3 text-center whitespace-nowrap">
-                    <app-severity-badge [severity]="$any(alert).severity || ((($any(alert).fraudScore ?? 0) >= 70) ? 'HIGH' : 'LOW')"></app-severity-badge>
-                  </td>
-                  <td class="px-4 py-3 text-gray-500 text-xs truncate max-w-[320px]">
-                    {{ $any(alert).explainability?.factors?.join(' · ') || '—' }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
-  }
-
-  <!-- ===== ONGLET : EXPLICABILITÉ SHAP ===== -->
-  @if (activeTab() === 'shap') {
-    <div class="flex flex-col gap-6">
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h3 class="font-semibold text-gray-800 mb-4">Features les plus contributives (agrégat SHAP)</h3>
-        @if (shapFactorStats().length === 0) {
-          <p class="text-gray-400 text-sm">Aucune contribution SHAP disponible (modèle ML désactivé ou pas encore lancé).</p>
-        } @else {
-          <div class="flex flex-col gap-3">
-            @for (f of shapFactorStats(); track f.feature) {
-              <div>
-                <div class="flex justify-between text-xs mb-1">
-                  <span class="font-medium text-gray-700">{{ f.feature }}</span>
-                  <span class="text-gray-500">{{ f.total }} occurrence(s)</span>
-                </div>
-                <div class="flex h-2.5 rounded-full overflow-hidden bg-gray-100">
-                  <div class="bg-red-500" [style.width.%]="(f.positive / f.total) * 100"></div>
-                  <div class="bg-green-500" [style.width.%]="(f.negative / f.total) * 100"></div>
+              <div class="p-5 border border-slate-200 rounded-2xl bg-slate-50/50">
+                <app-skeleton-loader height="0.75rem" width="50%" [darkMode]="false"></app-skeleton-loader>
+                <div class="mt-3">
+                  <app-skeleton-loader height="2.25rem" width="30%" [darkMode]="false"></app-skeleton-loader>
                 </div>
               </div>
             }
           </div>
-          <p class="text-xs text-gray-400 mt-4">
-            <span class="text-red-500">■</span> contribue à la fraude &nbsp;
-            <span class="text-green-500">■</span> réduit le risque
+          <p class="text-center text-xs font-medium tracking-wide text-slate-500 mt-6 flex items-center justify-center gap-2">
+            <span class="h-4 w-4 rounded-full border-2 border-slate-300 border-t-slate-700 animate-spin"></span> Analyse des transactions en cours…
           </p>
-        }
-      </div>
+        </div>
+      }
 
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h3 class="font-semibold text-gray-800 mb-4">Explication par transaction</h3>
-        @if (alertsWithMlFactors().length === 0) {
-          <p class="text-gray-400 text-sm">Aucune transaction analysée par le modèle ML pour l'instant.</p>
-        }
-        <div class="flex flex-col gap-4">
-          @for (alert of alertsWithMlFactors(); track alert.id) {
-            <div class="border border-gray-200 rounded-lg p-4">
-              <div class="flex justify-between mb-2">
-                <span class="font-semibold text-gray-800">{{ alert.transactionId }}</span>
-                <span class="text-xs text-gray-500">Score IA : {{ alert.fraudScore }}%</span>
+      @if (!loading() && filteredAlerts().length === 0 && !supabaseResults()?.length) {
+        <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-10 shadow-sm text-center">
+          <div class="mx-auto h-12 w-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-xl leading-none">🛡️</div>
+          <p class="text-sm font-medium text-slate-700 mt-3">Aucune alerte détectée</p>
+          <p class="text-xs text-slate-500 mt-1">Cliquez sur <span class="font-medium text-slate-700">Relancer Démo</span> ou <span class="font-medium text-slate-700">Lancer Cas Supabase</span> pour commencer.</p>
+        </div>
+      }
+
+      @if (!loading() && filteredAlerts().length > 0) {
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-5">
+          <div class="px-5 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+            <div class="flex items-center gap-3">
+              <span class="h-8 w-8 rounded-xl bg-slate-900 text-white flex items-center justify-center text-sm border border-slate-800 leading-none">⚑</span>
+              <div>
+                <h3 class="text-[13px] font-semibold text-slate-900 tracking-tight">Alertes de Fraude — Règles Locales</h3>
+                <p class="text-[11px] text-slate-500">{{ filteredAlerts().length }} alerte(s) · tri par score décroissant</p>
               </div>
-              <ul class="m-0 pl-5 text-xs text-gray-600">
-                @for (factor of mlFactorsOf($any(alert)); track factor) {
-                  <li>{{ factor }}</li>
-                }
-              </ul>
             </div>
-          }
-        </div>
-      </div>
-    </div>
-  }
+            <span class="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-600 leading-none">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-1.5"></span> Temps réel
+            </span>
+          </div>
 
-  <!-- ===== ONGLET : RÈGLES MÉTIER ===== -->
-  @if (activeTab() === 'rules') {
-    <div class="flex flex-col gap-6">
-
-      <!-- Jauge globale de risque -->
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-gray-800">Score de risque composite global</h3>
-          <span class="font-bold text-xl" [style.color]="gaugeColor(globalRiskScore())">
-            {{ globalRiskScore() }} / 100
-          </span>
-        </div>
-        <div class="h-3.5 w-full bg-gray-100 rounded-full overflow-hidden">
-          <div
-            class="h-full rounded-full transition-all duration-400 ease-in-out"
-            [style.width.%]="globalRiskScore()"
-            [style.background-color]="gaugeColor(globalRiskScore())"
-          ></div>
-        </div>
-        <div class="flex justify-between text-xs text-gray-400 mt-1.5">
-          <span>Faible</span>
-          <span>Moyen (40)</span>
-          <span>Élevé (70)</span>
-          <span>Critique (85)</span>
-        </div>
-      </div>
-
-      <!-- Tableau des règles avec jauge par catégorie -->
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-w-0">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h3 class="font-semibold text-gray-800">Règles déclenchées sur le lot analysé</h3>
-          <p class="text-xs text-gray-400 mt-1">Triées par score de risque moyen décroissant</p>
-        </div>
-        @if (ruleCategoryStats().length === 0) {
-          <div class="p-10 text-center text-gray-400">Aucune règle déclenchée sur ce lot (ou aucune analyse lancée).</div>
-        } @else {
-          <div class="overflow-x-auto min-w-0">
-            <table class="w-full text-sm min-w-[900px]">
-              <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[1020px] border-collapse">
+              <thead class="bg-slate-50 text-slate-500 text-[10px] leading-none uppercase tracking-[0.12em] font-semibold border-b border-slate-200">
                 <tr>
-                  <th class="text-left px-4 py-3 w-[180px]">Règle</th>
-                  <th class="text-left px-4 py-3 w-[160px]">Score moyen</th>
-                  <th class="text-center px-4 py-3 w-[100px]">Occurrences</th>
-                  <th class="text-right px-4 py-3 w-[140px]">Montant cumulé</th>
-                  <th class="text-left px-4 py-3 min-w-[200px]">Exemple de facteur</th>
+                  <th class="text-left px-5 py-3.5 font-semibold whitespace-nowrap w-[140px] border-r border-slate-200/60">Score</th>
+                  <th class="text-left px-4 py-3.5 font-semibold whitespace-nowrap w-[110px] border-r border-slate-200/60">Criticité</th>
+                  <th class="text-left px-4 py-3.5 font-semibold min-w-[220px] border-r border-slate-200/60">Description</th>
+                  <th class="text-left px-4 py-3.5 font-semibold whitespace-nowrap w-[160px] border-r border-slate-200/60">Règle</th>
+                  <th class="text-left px-4 py-3.5 font-semibold min-w-[160px] border-r border-slate-200/60">Bénéficiaire</th>
+                  <th class="text-right px-4 py-3.5 font-semibold whitespace-nowrap w-[140px] border-r border-slate-200">Montant</th>
+                  <th class="text-left px-5 py-3.5 font-semibold whitespace-nowrap w-[120px] bg-slate-50">Statut</th>
                 </tr>
               </thead>
-              <tbody>
-              @for (stat of ruleCategoryStats(); track stat.category) {
-                <tr class="border-t border-gray-100">
-                  <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{{ ruleCategoryLabel(stat.category) }}</td>
-                  <td class="px-4 py-3 whitespace-nowrap">
-                    <div class="flex items-center gap-2">
-                      <div class="h-2 w-24 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
-                        <div
-                          class="h-full rounded-full"
-                          [style.width.%]="stat.avgScore"
-                          [style.background-color]="gaugeColor(stat.avgScore)"
-                        ></div>
+              <tbody class="divide-y divide-slate-100">
+                @for (alert of filteredAlerts(); track alert.id) {
+                  <tr class="hover:bg-slate-50/70 transition-colors group">
+                    <td class="px-5 py-3.5 whitespace-nowrap border-r border-slate-100">
+                      <div class="flex items-center gap-2.5">
+                        <div class="h-1.5 w-16 bg-slate-100 rounded-full overflow-hidden flex-shrink-0 border border-slate-200/50">
+                          <div class="h-full rounded-full transition-all"
+                            [class.bg-emerald-500]="($any(alert).fraudScore ?? 0) < 40"
+                            [class.bg-amber-500]="($any(alert).fraudScore ?? 0) >= 40 && ($any(alert).fraudScore ?? 0) < 70"
+                            [class.bg-orange-500]="($any(alert).fraudScore ?? 0) >= 70 && ($any(alert).fraudScore ?? 0) < 85"
+                            [class.bg-rose-600]="($any(alert).fraudScore ?? 0) >= 85"
+                            [style.width.%]="$any(alert).fraudScore"
+                          ></div>
+                        </div>
+                        <span class="text-[12px] font-semibold tabular-nums leading-none"
+                          [class.text-emerald-700]="($any(alert).fraudScore ?? 0) < 40"
+                          [class.text-amber-700]="($any(alert).fraudScore ?? 0) >= 40 && ($any(alert).fraudScore ?? 0) < 70"
+                          [class.text-orange-700]="($any(alert).fraudScore ?? 0) >= 70 && ($any(alert).fraudScore ?? 0) < 85"
+                          [class.text-rose-700]="($any(alert).fraudScore ?? 0) >= 85"
+                        >{{ $any(alert).fraudScore }}%</span>
                       </div>
-                      <span class="font-semibold text-xs" [style.color]="gaugeColor(stat.avgScore)">{{ stat.avgScore }}</span>
-                    </div>
-                  </td>
-                  <td class="px-4 py-3 text-center whitespace-nowrap">
-                    <span class="bg-red-50 text-red-600 font-semibold px-1.5 py-0.5 rounded-full text-xs inline-block">{{ stat.count }}</span>
-                  </td>
-                  <td class="px-4 py-3 text-right font-semibold text-gray-800 whitespace-nowrap">{{ stat.amount | number: '1.2-2' }} €</td>
-                  <td class="px-4 py-3 text-gray-500 text-xs truncate max-w-[200px]">{{ stat.sampleFactor || '—' }}</td>
-                </tr>
+                    </td>
+                    <td class="px-4 py-3.5 whitespace-nowrap border-r border-slate-100">
+                      <app-severity-badge [severity]="$any(alert).severity || 'LOW'"></app-severity-badge>
+                    </td>
+                    <td class="px-4 py-3.5 text-slate-700 max-w-[260px] truncate text-[13px] leading-snug border-r border-slate-100" [title]="alert.description">{{ alert.description }}</td>
+                    <td class="px-4 py-3.5 whitespace-nowrap border-r border-slate-100">
+                      <app-category-badge [category]="$any(alert).category || 'NON_CATEGORISE'"></app-category-badge>
+                    </td>
+                    <td class="px-4 py-3.5 text-slate-600 max-w-[180px] truncate text-[13px] font-mono text-xs leading-none border-r border-slate-100" [title]="$any(alert).beneficiary">{{ $any(alert).beneficiary && $any(alert).beneficiary !== '—' ? $any(alert).beneficiary : '—' }}</td>
+                    <td class="px-4 py-3.5 text-right font-semibold tabular-nums text-slate-900 whitespace-nowrap text-[13px] border-r border-slate-100 bg-white">
+                      {{ alert.amount | number: '1.2-2' }} <span class="font-normal text-slate-500 ml-1">€</span>
+                    </td>
+                    <td class="px-5 py-3.5 whitespace-nowrap bg-slate-50/50">
+                      <span class="inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold leading-none"
+                        [class.bg-rose-50]="$any(alert).status === 'new' || $any(alert).status === 'under_investigation'"
+                        [class.text-rose-700]="$any(alert).status === 'new' || $any(alert).status === 'under_investigation'"
+                        [class.border-rose-200]="$any(alert).status === 'new' || $any(alert).status === 'under_investigation'"
+                        [class.bg-amber-50]="$any(alert).status === 'investigating'"
+                        [class.text-amber-700]="$any(alert).status === 'investigating'"
+                        [class.border-amber-200]="$any(alert).status === 'investigating'"
+                        [class.bg-emerald-50]="$any(alert).status === 'dismissed' || $any(alert).status === 'cleared'"
+                        [class.text-emerald-700]="$any(alert).status === 'dismissed' || $any(alert).status === 'cleared'"
+                        [class.border-emerald-200]="$any(alert).status === 'dismissed' || $any(alert).status === 'cleared'"
+                        [class.bg-slate-50]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating')"
+                        [class.text-slate-600]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating')"
+                        [class.border-slate-200]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating')">
+                        <span class="h-1.5 w-1.5 rounded-full mr-1.5"
+                          [class.bg-rose-500]="$any(alert).status === 'new' || $any(alert).status === 'under_investigation'"
+                          [class.bg-amber-500]="$any(alert).status === 'investigating'"
+                          [class.bg-emerald-500]="$any(alert).status === 'dismissed' || $any(alert).status === 'cleared'"
+                          [class.bg-slate-400]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating')"></span>{{ $any(alert).status || 'analyse' }}
+                      </span>
+                    </td>
+                  </tr>
               }
             </tbody>
           </table>
         </div>
-      }
-    </div>
-    </div>
-  }
-  <!-- ===== ONGLET : CONFIG SEUILS ===== -->
-  @if (activeTab() === 'config') {
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h3 class="font-semibold text-gray-800 mb-1">Configuration des Seuils de Détection</h3>
-          <p class="text-xs text-gray-500">Ajustez la sensibilité du moteur de règles et des modèles de Machine Learning.</p>
+        <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
+          <span>{{ filteredAlerts().length }} ligne(s) · densité haute</span>
+          <span class="hidden sm:inline">Survol pour détails · pills = sévérité</span>
         </div>
-        <button 
-          (click)="saveConfig()" 
-          class="px-5 py-2.5 bg-blue-600 text-white border-none rounded-lg cursor-pointer text-sm font-semibold hover:bg-blue-700 transition-colors"
-        >
-          💾 Enregistrer les modifications
-        </button>
       </div>
+      }
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Simulateur de Seuils -->
-        <div class="col-span-full">
-          <app-threshold-simulator 
-            [thresholds]="currentSimulation()" 
-            (thresholdChange)="onSimulationChange($event)"
-          ></app-threshold-simulator>
+      @if (!loading() && supabaseResults() && supabaseResults()!.length > 0) {
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+            <div class="flex items-center gap-3">
+              <span class="h-8 w-8 rounded-xl bg-slate-900 text-white flex items-center justify-center border border-slate-800 text-sm leading-none">⬢</span>
+              <div>
+                <h3 class="text-[13px] font-semibold text-slate-900 tracking-tight">Résultats — Cas Supabase (Stateful)</h3>
+                <p class="text-[11px] text-slate-500">{{ supabaseResults()!.length }} transaction(s)</p>
+              </div>
+            </div>
+            <span class="inline-flex items-center rounded-full bg-slate-900 text-white border border-slate-800 px-3 py-1.5 text-[10px] font-semibold tracking-widest uppercase leading-none">Supabase</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[720px]">
+              <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase tracking-[0.12em] font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="text-left px-5 py-3.5 font-semibold whitespace-nowrap w-[190px]">ID Transaction</th>
+                  <th class="text-left px-4 py-3.5 font-semibold whitespace-nowrap w-[160px]">Catégorie</th>
+                  <th class="text-center px-4 py-3.5 font-semibold whitespace-nowrap w-[130px]">Détection</th>
+                  <th class="text-left px-5 py-3.5 font-semibold min-w-[280px]">Explication IA</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (r of (supabaseResults() ?? []); track r.id) {
+                  <tr class="hover:bg-slate-50/70 transition-colors">
+                    <td class="px-5 py-3.5 font-medium font-mono text-xs text-slate-900 whitespace-nowrap leading-none">{{ r.id }}</td>
+                    <td class="px-4 py-3.5 whitespace-nowrap">
+                      <span class="inline-flex items-center rounded-lg bg-blue-50 border border-blue-100 px-2 py-1 text-xs font-medium text-blue-700 leading-none">
+                        <span class="h-1.5 w-1.5 rounded-full bg-blue-500 mr-1.5"></span>{{ $any(r).ruleCategory || $any(r).rule_category || 'Analyse IA' }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3.5 text-center whitespace-nowrap">
+                      <span
+                        class="inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase min-w-[78px] leading-none"
+                        [class.bg-rose-50]="r.isFraud"
+                        [class.text-rose-700]="r.isFraud"
+                        [class.border-rose-200]="r.isFraud"
+                        [class.bg-emerald-50]="!r.isFraud"
+                        [class.text-emerald-700]="!r.isFraud"
+                        [class.border-emerald-200]="!r.isFraud"
+                      >
+                        <span class="h-1.5 w-1.5 rounded-full mr-1.5" [class.bg-rose-500]="r.isFraud" [class.bg-emerald-500]="!r.isFraud"></span>
+                        {{ r.isFraud ? 'FRAUDE' : 'CLEAN' }}
+                      </span>
+                    </td>
+                    <td class="px-5 py-3.5 text-slate-600 text-[13px] leading-snug max-w-[360px] truncate" [title]="r.explainability?.summary">{{ r.explainability?.summary || 'Aucune explication fournie' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
+      }
+    }
 
-        <!-- Seuil Score ML -->
-        <div class="border border-gray-200 rounded-lg p-4">
-          <label class="font-semibold text-sm text-gray-700 block mb-2">
-            Seuil d'alerte Machine Learning (%)
-          </label>
-          <input 
-            type="range" 
-            min="0" 
-            max="100" 
-            [(ngModel)]="mlThreshold" 
-            (ngModelChange)="onMlThresholdSliderChange($event)"
-            class="w-full cursor-pointer"
-          />
-          <div class="flex justify-between text-xs text-gray-500 mt-1">
-            <span>Permissif (0%)</span>
-            <span class="font-bold text-blue-600">{{ mlThreshold }}%</span>
-            <span>Strict (100%)</span>
+    @if (activeTab() === 'graph') {
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="h-8 w-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-sm leading-none">🕸️</span>
+            <div>
+              <h3 class="text-[13px] font-semibold text-slate-900 tracking-tight">Réseaux & Graphe</h3>
+              <p class="text-[11px] text-slate-500">Exploration des liens — vis-network</p>
+            </div>
+          </div>
+          <span class="hidden sm:inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-600 leading-none">Neo4j · tenant</span>
+        </div>
+        
+        <div class="p-5">
+          <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3 mb-5 bg-slate-50 rounded-xl border border-slate-200 p-4">
+            <div class="flex-1 w-full sm:w-auto">
+              <label class="block text-[11px] font-semibold tracking-widest uppercase text-slate-500 mb-1.5">Tenant ID</label>
+              <input 
+                type="text" 
+                [ngModel]="graphTenantId()"
+                (ngModelChange)="graphTenantId.set($event)"
+                placeholder="Ex: tenant-123" 
+                class="w-full sm:w-72 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+              />
+            </div>
+            <button 
+              (click)="loadTopAccounts()" 
+              [disabled]="graphLoading()"
+              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white text-sm font-semibold shadow-sm border border-slate-800 disabled:border-transparent transition-colors whitespace-nowrap w-full sm:w-auto justify-center leading-none"
+            >
+              <span class="text-xs leading-none">{{ graphLoading() ? '⏳' : '🔍' }}</span> {{ graphLoading() ? 'Chargement…' : 'Rechercher les réseaux' }}
+            </button>
+          </div>
+
+          @if (graphError()) {
+            <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl mb-5 text-sm flex gap-2 leading-none">
+              <span>⚠️</span> <span>{{ graphError() }}</span>
+            </div>
+          }
+
+          <div class="flex flex-col lg:flex-row gap-5 lg:min-h-[500px]">
+            <div class="w-full lg:w-[320px] shrink-0">
+              <h3 class="text-[11px] font-semibold tracking-widest uppercase text-slate-500 mb-3">Comptes suspects</h3>
+              @if (!graphLoading() && topAccounts().length === 0) {
+                <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center bg-slate-50/50">
+                  <p class="text-sm text-slate-500">Aucun compte chargé.</p>
+                  <p class="text-xs text-slate-400 mt-1">Lancez une recherche.</p>
+                </div>
+              }
+              <div class="flex flex-col gap-2 max-h-[520px] overflow-y-auto pr-1">
+                @for (acc of topAccounts(); track acc.iban) {
+                  <div 
+                    (click)="selectAccount(acc.iban)"
+                    class="p-3.5 rounded-xl cursor-pointer border transition-all"
+                    [class.bg-indigo-50]="selectedIban() === acc.iban"
+                    [class.border-indigo-200]="selectedIban() === acc.iban"
+                    [class.shadow-sm]="selectedIban() === acc.iban"
+                    [class.bg-white]="selectedIban() !== acc.iban"
+                    [class.border-slate-200]="selectedIban() !== acc.iban"
+                    [class.hover:border-slate-300]="selectedIban() !== acc.iban"
+                    [class.hover:bg-slate-50]="selectedIban() !== acc.iban"
+                  >
+                    <div class="flex justify-between items-center gap-2 mb-1">
+                      <span class="font-mono text-xs font-semibold text-slate-900 truncate leading-none">{{ shortIban(acc.iban) }}</span>
+                      <span class="inline-flex items-center rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[11px] font-bold tabular-nums text-rose-700 shrink-0 leading-none">
+                        {{ ($any(acc).fraud_score || $any(acc).fraudScore) | number:'1.1-1' }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-500">{{ $any(acc).transaction_count || $any(acc).transactionCount }} transaction(s)</p>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="flex-1 flex flex-col items-center justify-center bg-[#F8FAFC] rounded-xl border border-slate-200 relative overflow-hidden min-h-[380px] lg:min-h-[500px]">
+              @if (networkData()) {
+                <div class="absolute top-3 left-3 bg-white border border-slate-200 shadow-sm rounded-xl px-3 py-2 text-xs font-medium text-slate-700 flex items-center gap-2 z-10 leading-none">
+                  <span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span> Réseau : <span class="font-mono font-semibold">{{ networkData()?.center_iban }}</span>
+                </div>
+                @if (isBrowser()) {
+                  <app-interactive-graph
+                    [nodes]="graphNodes()"
+                    [edges]="graphEdges()"
+                    [loading]="graphLoading()"
+                    [centerNode]="selectedIban() || undefined"
+                    class="w-full h-full"
+                  ></app-interactive-graph>
+                }
+              } @else {
+                <div class="text-center p-6">
+                  <div class="mx-auto h-12 w-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 leading-none">🕸️</div>
+                  <p class="text-sm font-medium text-slate-700 mt-3">Sélectionnez un compte</p>
+                  <p class="text-xs text-slate-500 mt-1">pour afficher son réseau d'interactions</p>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (activeTab() === 'hybrid') {
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-200">
+          <div class="flex items-center gap-3">
+            <span class="h-8 w-8 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600 text-sm leading-none">🔍</span>
+            <div>
+              <h3 class="text-[13px] font-semibold text-slate-900 tracking-tight">Détail Règles + ML par transaction</h3>
+              <p class="text-[11px] text-slate-500">Score consolidé = max(règle métier, probabilité IA)</p>
+            </div>
+          </div>
+        </div>
+        @if (filteredAlerts().length === 0) {
+          <div class="p-12 text-center">
+            <div class="mx-auto h-12 w-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 leading-none">◐</div>
+            <p class="text-sm text-slate-500 mt-3">Lancez une analyse pour voir le détail.</p>
+          </div>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[920px]">
+              <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase tracking-[0.12em] font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="text-left px-5 py-3.5 font-semibold whitespace-nowrap w-[190px]">Transaction</th>
+                  <th class="text-left px-4 py-3.5 font-semibold whitespace-nowrap w-[160px]">Règle</th>
+                  <th class="text-center px-4 py-3.5 font-semibold whitespace-nowrap w-[110px]">Score IA</th>
+                  <th class="text-center px-4 py-3.5 font-semibold whitespace-nowrap w-[130px]">Décision finale</th>
+                  <th class="text-left px-5 py-3.5 font-semibold min-w-[280px]">Facteurs</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (alert of filteredAlerts(); track alert.id) {
+                  <tr class="hover:bg-slate-50/70 transition-colors">
+                    <td class="px-5 py-3.5 font-mono text-xs font-medium text-slate-900 whitespace-nowrap leading-none">{{ $any(alert).transactionId || alert.id }}</td>
+                    <td class="px-4 py-3.5 whitespace-nowrap">
+                      <app-category-badge [category]="$any(alert).category || 'NON_CATEGORISE'"></app-category-badge>
+                    </td>
+                    <td class="px-4 py-3.5 text-center tabular-nums text-sm font-semibold whitespace-nowrap leading-none" [class.text-rose-600]="($any(alert).fraudScore ?? 0) >= 50" [class.text-emerald-600]="($any(alert).fraudScore ?? 0) < 50">
+                      {{ $any(alert).fraudScore ?? 0 }}%
+                    </td>
+                    <td class="px-4 py-3.5 text-center whitespace-nowrap">
+                      <app-severity-badge [severity]="$any(alert).severity || ((($any(alert).fraudScore ?? 0) >= 70) ? 'HIGH' : 'LOW')"></app-severity-badge>
+                    </td>
+                    <td class="px-5 py-3.5 text-slate-500 text-xs leading-snug max-w-[360px] truncate" [title]="$any(alert).explainability?.factors?.join(' · ') || '—'">
+                      {{ $any(alert).explainability?.factors?.join(' · ') || '—' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+
+    @if (activeTab() === 'shap') {
+      <div class="flex flex-col gap-5">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-200 flex items-center gap-3">
+            <span class="h-8 w-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 text-sm leading-none">📈</span>
+            <div>
+              <h3 class="text-[13px] font-semibold text-slate-900 tracking-tight">Features les plus contributives (agrégat SHAP)</h3>
+              <p class="text-[11px] text-slate-500">Contributions positives vs négatives</p>
+            </div>
+          </div>
+          <div class="p-5">
+            @if (shapFactorStats().length === 0) {
+              <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-6 text-center text-sm text-slate-500">Aucune contribution SHAP disponible (modèle ML désactivé ou pas encore lancé).</div>
+            } @else {
+              <div class="flex flex-col gap-4">
+                @for (f of shapFactorStats(); track f.feature) {
+                  <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                    <div class="flex justify-between text-xs mb-2">
+                      <span class="font-medium text-slate-700 font-mono text-xs leading-none">{{ f.feature }}</span>
+                      <span class="inline-flex items-center rounded-full bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600 leading-none">{{ f.total }} occurrence(s)</span>
+                    </div>
+                    <div class="flex h-2 rounded-full overflow-hidden bg-slate-100 border border-slate-200/50">
+                      <div class="bg-rose-500 transition-all" [style.width.%]="(f.positive / f.total) * 100"></div>
+                      <div class="bg-emerald-500 transition-all" [style.width.%]="(f.negative / f.total) * 100"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] leading-none mt-1.5 font-medium">
+                      <span class="text-rose-600">+ fraude {{ f.positive }}</span>
+                      <span class="text-emerald-600">− risque {{ f.negative }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+              <p class="text-[11px] text-slate-500 mt-4 flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5 leading-none"><span class="h-2.5 w-2.5 rounded-sm bg-rose-500"></span> contribue à la fraude</span>
+                <span class="inline-flex items-center gap-1.5 leading-none"><span class="h-2.5 w-2.5 rounded-sm bg-emerald-500"></span> réduit le risque</span>
+              </p>
+            }
           </div>
         </div>
 
-        <!-- Seuil Montant Critique -->
-        <div class="border border-gray-200 rounded-lg p-4">
-          <label class="font-semibold text-sm text-gray-700 block mb-2">
-            Seuil de Montant Critique (€)
-          </label>
-          <input 
-            type="number" 
-            [(ngModel)]="criticalAmountThreshold" 
-            placeholder="Ex: 10000"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-
-        <!-- Blocage Automatique -->
-        <div class="border border-gray-200 rounded-lg p-4">
-          <label class="font-semibold text-sm text-gray-700 block mb-2">
-            Actions Automatiques
-          </label>
-          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-            <input type="checkbox" [(ngModel)]="autoBlockEnabled" />
-            Bloquer immédiatement si Score > 85%
-          </label>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="text-[13px] font-semibold text-slate-900 tracking-tight">Explication par transaction</h3>
+            <p class="text-[11px] text-slate-500">Facteurs ML détaillés</p>
+          </div>
+          <div class="p-5">
+            @if (alertsWithMlFactors().length === 0) {
+              <p class="text-sm text-slate-500">Aucune transaction analysée par le modèle ML pour l'instant.</p>
+            }
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              @for (alert of alertsWithMlFactors(); track alert.id) {
+                <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="font-mono text-xs font-semibold text-slate-900 leading-none">{{ alert.transactionId }}</span>
+                    <span class="inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold tabular-nums leading-none"
+                      [class.bg-rose-50]="(alert.fraudScore ?? 0) >= 50" [class.text-rose-700]="(alert.fraudScore ?? 0) >= 50" [class.border-rose-200]="(alert.fraudScore ?? 0) >= 50"
+                      [class.bg-emerald-50]="(alert.fraudScore ?? 0) < 50" [class.text-emerald-700]="(alert.fraudScore ?? 0) < 50" [class.border-emerald-200]="(alert.fraudScore ?? 0) < 50"
+                    >IA {{ alert.fraudScore }}%</span>
+                  </div>
+                  <ul class="m-0 pl-4 space-y-1 text-xs text-slate-600 list-disc">
+                    @for (factor of mlFactorsOf($any(alert)); track factor) {
+                      <li class="leading-relaxed">{{ factor }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+          </div>
         </div>
       </div>
+    }
+
+    @if (activeTab() === 'rules') {
+      <div class="flex flex-col gap-5">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 border-b border-slate-200">
+            <div class="flex items-center gap-3">
+              <span class="h-8 w-8 rounded-xl bg-slate-900 text-white flex items-center justify-center border border-slate-800 text-sm leading-none">◈</span>
+              <h3 class="text-[13px] font-semibold text-slate-900 tracking-tight">Score de risque composite global</h3>
+            </div>
+            <span class="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold tabular-nums leading-none" [style.color]="gaugeColor(globalRiskScore())" [style.border-color]="gaugeColor(globalRiskScore())" [style.background-color]="'color-mix(in srgb, ' + gaugeColor(globalRiskScore()) + ' 10%, transparent)'">
+              {{ globalRiskScore() }} / 100
+            </span>
+          </div>
+          <div class="p-5">
+            <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/50 p-1">
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                [style.width.%]="globalRiskScore()"
+                [style.background-color]="gaugeColor(globalRiskScore())"
+              ></div>
+            </div>
+            <div class="flex justify-between text-[10px] font-semibold tracking-widest uppercase text-slate-400 mt-2">
+              <span>Faible</span>
+              <span>Moyen · 40</span>
+              <span>Élevé · 70</span>
+              <span>Critique · 85</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="text-[13px] font-semibold text-slate-900 tracking-tight">Règles déclenchées sur le lot analysé</h3>
+            <p class="text-[11px] text-slate-500 mt-1">Triées par score de risque moyen décroissant — densité haute</p>
+          </div>
+          @if (ruleCategoryStats().length === 0) {
+            <div class="p-12 text-center text-sm text-slate-500">Aucune règle déclenchée sur ce lot (ou aucune analyse lancée).</div>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm min-w-[920px]">
+                <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase tracking-[0.12em] font-semibold border-b border-slate-200">
+                  <tr>
+                    <th class="text-left px-5 py-3.5 font-semibold whitespace-nowrap w-[220px]">Règle</th>
+                    <th class="text-left px-4 py-3.5 font-semibold whitespace-nowrap w-[180px]">Score moyen</th>
+                    <th class="text-center px-4 py-3.5 font-semibold whitespace-nowrap w-[110px]">Occurrences</th>
+                    <th class="text-right px-4 py-3.5 font-semibold whitespace-nowrap w-[150px]">Montant cumulé</th>
+                    <th class="text-left px-5 py-3.5 font-semibold min-w-[240px]">Exemple de facteur</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                @for (stat of ruleCategoryStats(); track stat.category) {
+                  <tr class="hover:bg-slate-50/70 transition-colors">
+                    <td class="px-5 py-3.5 font-medium text-slate-900 whitespace-nowrap text-[13px] leading-none">{{ ruleCategoryLabel(stat.category) }}</td>
+                    <td class="px-4 py-3.5 whitespace-nowrap">
+                      <div class="flex items-center gap-2">
+                        <div class="h-1.5 w-24 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50 flex-shrink-0">
+                          <div
+                            class="h-full rounded-full"
+                            [style.width.%]="stat.avgScore"
+                            [style.background-color]="gaugeColor(stat.avgScore)"
+                          ></div>
+                        </div>
+                        <span class="text-xs font-semibold tabular-nums leading-none" [style.color]="gaugeColor(stat.avgScore)">{{ stat.avgScore }}</span>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3.5 text-center whitespace-nowrap">
+                      <span class="inline-flex items-center justify-center min-w-[32px] rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-semibold px-2 py-1 text-xs leading-none">{{ stat.count }}</span>
+                    </td>
+                    <td class="px-4 py-3.5 text-right font-semibold tabular-nums text-slate-900 whitespace-nowrap">{{ stat.amount | number: '1.2-2' }} €</td>
+                    <td class="px-5 py-3.5 text-slate-500 text-xs leading-snug max-w-[260px] truncate" [title]="stat.sampleFactor">{{ stat.sampleFactor || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+      </div>
+    }
+
+    @if (activeTab() === 'config') {
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="text-[13px] font-semibold text-slate-900 tracking-tight">Configuration des Seuils de Détection</h3>
+            <p class="text-[11px] text-slate-500 mt-1">Ajustez la sensibilité du moteur de règles et des modèles ML.</p>
+          </div>
+          <button 
+            (click)="saveConfig()" 
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm border border-indigo-600 transition-colors whitespace-nowrap justify-center leading-none"
+          >
+            <span class="text-xs leading-none">💾</span> Enregistrer les modifications
+          </button>
+        </div>
+
+        <div class="p-5">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-3">
+              <div class="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+                <app-threshold-simulator 
+                  [thresholds]="currentSimulation()" 
+                  (thresholdChange)="onSimulationChange($event)"
+                ></app-threshold-simulator>
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 bg-white p-4">
+              <label class="block text-xs font-semibold tracking-wide text-slate-700 mb-2">
+                Seuil d'alerte Machine Learning (%)
+              </label>
+              <input 
+                type="range" 
+                min="0" 
+                max="100" 
+                [(ngModel)]="mlThreshold" 
+                (ngModelChange)="onMlThresholdSliderChange($event)"
+                class="w-full cursor-pointer accent-indigo-600"
+              />
+              <div class="flex justify-between text-[11px] font-medium text-slate-500 mt-2">
+                <span>Permissif</span>
+                <span class="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-xs font-bold text-indigo-700 leading-none">{{ mlThreshold }}%</span>
+                <span>Strict</span>
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 bg-white p-4">
+              <label class="block text-xs font-semibold tracking-wide text-slate-700 mb-2">
+                Seuil de Montant Critique (€)
+              </label>
+              <input 
+                type="number" 
+                [(ngModel)]="criticalAmountThreshold" 
+                placeholder="Ex: 10000"
+                class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+              />
+            </div>
+
+            <div class="rounded-xl border border-slate-200 bg-white p-4">
+              <label class="block text-xs font-semibold tracking-wide text-slate-700 mb-2">
+                Actions Automatiques
+              </label>
+              <label class="flex items-center gap-2.5 text-sm text-slate-600 cursor-pointer select-none mt-1">
+                <input type="checkbox" [(ngModel)]="autoBlockEnabled" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                Bloquer immédiatement si Score &gt; 85%
+              </label>
+              <p class="text-[11px] text-slate-500 mt-2">Seuil critique — blocage automatique.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
 
     </div>
-  }
-
 </div>

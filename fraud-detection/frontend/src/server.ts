@@ -24,9 +24,13 @@ const FRAUD_API_URL = process.env['FRAUD_API_URL'] || 'http://localhost:8006';
 const MULTI_BANKING_API_URL = process.env['MULTI_BANKING_API_URL'] || 'http://localhost:8010';
 const NODE_BACKEND_URL = process.env['NODE_BACKEND_URL'] || 'http://localhost:8006';
 const JWT_SECRET = process.env['JWT_SECRET'] || 'internal_dev_secret';
+const FRAUD_INTERNAL_SECRET = process.env['FRAUD_INTERNAL_SECRET'] || 'fraud_dev_secret_123';
 
 if (!process.env['JWT_SECRET']) {
   console.warn("⚠️  JWT_SECRET non défini dans l'environnement. Utilisation de la clé par défaut.");
+}
+if (!process.env['FRAUD_INTERNAL_SECRET']) {
+  console.warn("⚠️  FRAUD_INTERNAL_SECRET non défini, utilisation de la valeur par défaut dev.");
 }
 
 console.log(`🔗 Configuration API:`);
@@ -40,9 +44,15 @@ if (!process.env['JWT_SECRET']) {
 
 /**
  * Génère un jeton JWT interne éphémère pour authentifier les requêtes Express -> FastAPI
+ * Utilise FRAUD_INTERNAL_SECRET pour les routes /api/analyze vers fraud-service,
+ * et JWT_SECRET pour compatibilité legacy.
  */
-const generateInternalToken = () => {
-  return jwt.sign({ service: 'express-gateway' }, JWT_SECRET, { expiresIn: '5m' });
+const generateInternalToken = (useFraudSecret = false) => {
+  const secret = useFraudSecret ? FRAUD_INTERNAL_SECRET : JWT_SECRET;
+  const payload: Record<string, unknown> = useFraudSecret
+    ? { service: 'express-gateway', purpose: 'internal_api_call', tenant_id: 'default' }
+    : { service: 'express-gateway' };
+  return jwt.sign(payload, secret, { expiresIn: '5m' });
 };
 
 // ====================================================================
@@ -149,7 +159,7 @@ app.use('/api/banking', upload.any(), async (req: Request, res: Response) => {
   }
 });
 
-// Proxy pour Fraud Detection API (port 8005)
+// Proxy pour Fraud Detection API (port 8005/8006)
 app.use('/api', async (req: Request, res: Response, next: NextFunction) => {
   // Skip if this is a banking route (handled above)
   if (req.originalUrl.startsWith('/api/banking')) {
@@ -159,10 +169,11 @@ app.use('/api', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const targetUrl = `${FRAUD_API_URL}${req.originalUrl}`;
 
-    // Vérification du Token
+    // Vérification du Token — utilise FRAUD_INTERNAL_SECRET pour les routes fraud
     const rawAuth = req.headers['authorization'];
     const hasValidToken = rawAuth && rawAuth.replace('Bearer ', '').trim().length > 0;
-    const authHeader = hasValidToken ? rawAuth : `Bearer ${generateInternalToken()}`;
+    const needsFraudSecret = req.originalUrl.startsWith('/api/analyze') || req.originalUrl.startsWith('/api/graph') || req.originalUrl.startsWith('/api/config') || req.originalUrl.startsWith('/api/fraud') || req.originalUrl.startsWith('/api/transactions') || req.originalUrl.startsWith('/api/reports');
+    const authHeader = hasValidToken ? rawAuth : `Bearer ${generateInternalToken(needsFraudSecret)}`;
 
     const response = await axios({
       method: req.method,
@@ -171,7 +182,8 @@ app.use('/api', async (req: Request, res: Response, next: NextFunction) => {
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: 8000
     });
 
     res.status(response.status).json(response.data);

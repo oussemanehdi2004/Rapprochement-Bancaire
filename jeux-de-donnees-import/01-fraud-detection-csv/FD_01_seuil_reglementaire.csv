@@ -1,0 +1,5 @@
+id,tenant_id,transaction_reference,date,description,amount,sender_balance_before,sender_balance_after,receiver_balance_before,receiver_balance_after,transaction_type,account_iban,beneficiary_iban
+tx_seuil_01,tenant-123,REF_SEUIL_01,2026-08-14T10:00:00Z,Virement fournisseur externe urgent,15000,50000,35000,0,15000,TRANSFER,FR7612345678901234567890123,FR7698765432109876543210987
+tx_seuil_02,tenant-123,REF_SEUIL_02,2026-08-14T11:30:00Z,Virement immobilier,12000,35000,23000,0,12000,TRANSFER,FR7612345678901234567890123,FR7611111111111111111111111
+tx_seuil_03,tenant-123,REF_SEUIL_03,2026-08-14T14:15:00Z,Virement seuil juste au dessus,10001,23000,12999,0,10001,TRANSFER,FR7612345678901234567890123,FR7622222222222222222222222
+tx_seuil_ok,tenant-123,REF_SEUIL_OK,2026-08-14T15:00:00Z,Paiement normal sous seuil,2500,12999,10499,0,2500,PAYMENT,FR7612345678901234567890123,FR7633333333333333333333333

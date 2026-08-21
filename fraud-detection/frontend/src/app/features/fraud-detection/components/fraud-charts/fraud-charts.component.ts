@@ -42,7 +42,7 @@ export interface HourlyData {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="grid grid-cols-1 gap-4 w-full">
+    <div class="grid grid-cols-1 gap-6 w-full">
       <!-- Evolution temporelle -->
       <div [ngClass]="analysisMode === 'supabase' ? 'bg-slate-50 border-slate-300' : 'bg-white border-gray-200'" class="rounded-xl border p-4 shadow-sm">
         <div class="flex items-center justify-between mb-1">
@@ -60,11 +60,11 @@ export interface HourlyData {
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Répartition par sévérité -->
-        <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
+        <div [ngClass]="analysisMode === 'supabase' ? 'bg-slate-50 border-slate-300' : 'bg-white border-gray-200'" class="rounded-xl border p-4 shadow-sm">
           <div class="flex items-center justify-between mb-1">
-            <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="text-sm font-semibold">Répartition par sévérité</h3>
+            <h3 [ngClass]="analysisMode === 'supabase' ? 'text-slate-800' : 'text-gray-700'" class="text-sm font-semibold">Répartition par sévérité</h3>
             @if (analysisMode === 'supabase') {
               <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">Supabase</span>
             }
@@ -79,9 +79,9 @@ export interface HourlyData {
         </div>
 
         <!-- Règles les plus déclenchées -->
-        <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
+        <div [ngClass]="analysisMode === 'supabase' ? 'bg-slate-50 border-slate-300' : 'bg-white border-gray-200'" class="rounded-xl border p-4 shadow-sm">
           <div class="flex items-center justify-between mb-1">
-            <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="text-sm font-semibold">Règles les plus déclenchées</h3>
+            <h3 [ngClass]="analysisMode === 'supabase' ? 'text-slate-800' : 'text-gray-700'" class="text-sm font-semibold">Règles les plus déclenchées</h3>
             @if (analysisMode === 'supabase') {
               <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">Supabase</span>
             }
@@ -97,9 +97,9 @@ export interface HourlyData {
       </div>
 
       <!-- Heatmap horaire -->
-      <div [class.bg-slate-50]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.bg-white]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" [class.border-slate-300]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.border-gray-200]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="rounded-xl border p-4 shadow-sm">
+      <div [ngClass]="analysisMode === 'supabase' ? 'bg-slate-50 border-slate-300' : 'bg-white border-gray-200'" class="rounded-xl border p-4 shadow-sm">
         <div class="flex items-center justify-between mb-1">
-          <h3 [class.text-slate-800]="analysisMode === 'supabase'" [class.]="analysisMode === 'supabase'" [class.text-gray-700]="analysisMode !== 'supabase'" [class.]="analysisMode !== 'supabase'" class="text-sm font-semibold">Heatmap horaire des alertes</h3>
+          <h3 [ngClass]="analysisMode === 'supabase' ? 'text-slate-800' : 'text-gray-700'" class="text-sm font-semibold">Heatmap horaire des alertes</h3>
           @if (analysisMode === 'supabase') {
             <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">Supabase</span>
           }

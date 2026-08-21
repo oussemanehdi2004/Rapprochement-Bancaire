@@ -1,0 +1,4 @@
+id,tenant_id,transaction_reference,date,description,amount,sender_balance_before,sender_balance_after,receiver_balance_before,receiver_balance_after,transaction_type,account_iban,beneficiary_iban
+tx_dup_01,tenant-123,REF_DUP_01,2026-08-22T11:00:00Z,Paiement Fournisseur ABC,2500,8000,5500,0,2500,PAYMENT,FR7612345678901234567890123,FR7698765432109876543210987
+tx_dup_02,tenant-123,REF_DUP_02,2026-08-22T11:01:00Z,Paiement Fournisseur ABC,2500,5500,3000,0,2500,PAYMENT,FR7612345678901234567890123,FR7698765432109876543210987
+tx_dup_ok,tenant-123,REF_DUP_OK,2026-08-22T14:00:00Z,Achat unique,180,3000,2820,0,180,PAYMENT,FR7612345678901234567890123,FR7611111111111111111111111

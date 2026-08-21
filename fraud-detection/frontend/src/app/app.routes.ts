@@ -3,6 +3,11 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
+    redirectTo: 'fraud-detection',
+    pathMatch: 'full'
+  },
+  {
+    path: '',
     loadComponent: () => import('./core/layouts/main-layout/main-layout.component')
       .then(m => m.MainLayoutComponent),
     children: [
@@ -30,16 +35,11 @@ export const routes: Routes = [
         path: 'use-cases',
         loadComponent: () => import('./use-cases/use-cases.component')
           .then(m => m.UseCasesComponent)
-      },
-      {
-        path: '',
-        redirectTo: 'fraud-detection',
-        pathMatch: 'full'
       }
     ]
   },
   {
     path: '**',
-    redirectTo: ''
+    redirectTo: 'fraud-detection'
   }
 ];

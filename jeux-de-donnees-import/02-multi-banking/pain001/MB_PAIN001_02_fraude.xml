@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
+  <CstmrCdtTrfInitn>
+    <GrpHdr>
+      <MsgId>MSG-PAIN-FRAUDE-002</MsgId>
+      <CreDtTm>2026-08-23T10:00:00</CreDtTm>
+      <NbOfTxs>7</NbOfTxs>
+      <CtrlSum>25500.00</CtrlSum>
+      <InitgPty><Nm>Entreprise Demo</Nm></InitgPty>
+    </GrpHdr>
+    <PmtInf>
+      <PmtInfId>PMT-FRAUDE-002</PmtInfId>
+      <PmtMtd>TRF</PmtMtd>
+      <ReqdExctnDt>2026-08-24</ReqdExctnDt>
+      <Dbtr><Nm>Entreprise Demo</Nm></Dbtr>
+      <DbtrAcct><Id><IBAN>FR7630001007941234567890185</IBAN></Id></DbtrAcct>
+      <DbtrAgt><FinInstnId><BIC>BNPAFRPPXXX</BIC></FinInstnId></DbtrAgt>
+      <CdtTrfTxInf>
+        <PmtId><EndToEndId>REF-PAIN-SEUIL-001</EndToEndId></PmtId>
+        <Amt><InstdAmt Ccy="EUR">15000.00</InstdAmt></Amt>
+        <Cdtr><Nm>Offshore Ltd</Nm></Cdtr>
+        <CdtrAcct><Id><IBAN>FR7630006000019999999999999</IBAN></Id></CdtrAcct>
+        <RmtInf><Ustrd>VIREMENT FOURNISSEUR OFFSHORE SEUIL REGLEMENTAIRE</Ustrd></RmtInf>
+      </CdtTrfTxInf>
+      <CdtTrfTxInf>
+        <PmtId><EndToEndId>REF-PAIN-DUP-01</EndToEndId></PmtId>
+        <Amt><InstdAmt Ccy="EUR">2500.00</InstdAmt></Amt>
+        <Cdtr><Nm>Fournisseur ABC</Nm></Cdtr>
+        <CdtrAcct><Id><IBAN>FR7630006000011234567890189</IBAN></Id></CdtrAcct>
+        <RmtInf><Ustrd>PAIEMENT FOURNISSEUR ABC</Ustrd></RmtInf>
+      </CdtTrfTxInf>
+      <CdtTrfTxInf>
+        <PmtId><EndToEndId>REF-PAIN-DUP-02</EndToEndId></PmtId>
+        <Amt><InstdAmt Ccy="EUR">2500.00</InstdAmt></Amt>
+        <Cdtr><Nm>Fournisseur ABC</Nm></Cdtr>
+        <CdtrAcct><Id><IBAN>FR7630006000011234567890189</IBAN></Id></CdtrAcct>
+        <RmtInf><Ustrd>PAIEMENT FOURNISSEUR ABC</Ustrd></RmtInf>
+      </CdtTrfTxInf>
+      <CdtTrfTxInf>
+        <PmtId><EndToEndId>REF-PAIN-REP-01</EndToEndId></PmtId>
+        <Amt><InstdAmt Ccy="EUR">800.00</InstdAmt></Amt>
+        <Cdtr><Nm>Service X</Nm></Cdtr>
+        <CdtrAcct><Id><IBAN>FR7630006000019876543210987</IBAN></Id></CdtrAcct>
+        <RmtInf><Ustrd>ABONNEMENT SERVICE X</Ustrd></RmtInf>
+      </CdtTrfTxInf>
+      <CdtTrfTxInf>
+        <PmtId><EndToEndId>REF-PAIN-REP-02</EndToEndId></PmtId>
+        <Amt><InstdAmt Ccy="EUR">800.00</InstdAmt></Amt>
+        <Cdtr><Nm>Service X</Nm></Cdtr>
+        <CdtrAcct><Id><IBAN>FR7630006000019876543210987</IBAN></Id></CdtrAcct>
+        <RmtInf><Ustrd>ABONNEMENT SERVICE X</Ustrd></RmtInf>
+      </CdtTrfTxInf>
+      <CdtTrfTxInf>
+        <PmtId><EndToEndId>REF-PAIN-REP-03</EndToEndId></PmtId>
+        <Amt><InstdAmt Ccy="EUR">800.00</InstdAmt></Amt>
+        <Cdtr><Nm>Service X</Nm></Cdtr>
+        <CdtrAcct><Id><IBAN>FR7630006000019876543210987</IBAN></Id></CdtrAcct>
+        <RmtInf><Ustrd>ABONNEMENT SERVICE X</Ustrd></RmtInf>
+      </CdtTrfTxInf>
+      <CdtTrfTxInf>
+        <PmtId><EndToEndId>REF-PAIN-CASINO-01</EndToEndId></PmtId>
+        <Amt><InstdAmt Ccy="EUR">250.00</InstdAmt></Amt>
+        <Cdtr><Nm>Casino Online</Nm></Cdtr>
+        <CdtrAcct><Id><IBAN>FR7630006000013456789012345</IBAN></Id></CdtrAcct>
+        <RmtInf><Ustrd>VIREMENT CASINO EN LIGNE</Ustrd></RmtInf>
+      </CdtTrfTxInf>
+    </PmtInf>
+  </CstmrCdtTrfInitn>
+</Document>

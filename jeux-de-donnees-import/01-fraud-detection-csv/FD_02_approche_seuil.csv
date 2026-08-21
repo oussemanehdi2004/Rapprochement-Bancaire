@@ -1,0 +1,5 @@
+id,tenant_id,transaction_reference,date,description,amount,sender_balance_before,sender_balance_after,receiver_balance_before,receiver_balance_after,transaction_type,account_iban,beneficiary_iban
+tx_appro_01,tenant-123,REF_APPR_01,2026-08-15T09:00:00Z,Virement approche seuil 95%,9500,20000,10500,0,9500,TRANSFER,FR7612345678901234567890123,FR7698765432109876543210987
+tx_appro_02,tenant-123,REF_APPR_02,2026-08-15T10:00:00Z,Virement approche seuil 90% exact,9000,10500,1500,0,9000,TRANSFER,FR7612345678901234567890123,FR7611111111111111111111111
+tx_appro_03,tenant-123,REF_APPR_03,2026-08-15T11:00:00Z,Virement juste sous seuil approche,8999,1500,0,0,8999,TRANSFER,FR7612345678901234567890123,FR7622222222222222222222222
+tx_appro_ok,tenant-123,REF_APPR_OK,2026-08-15T14:00:00Z,Achat fournitures,45,1000,955,0,45,PAYMENT,FR7612345678901234567890123,FR7633333333333333333333333

@@ -1,0 +1,5 @@
+id,tenant_id,transaction_reference,date,description,amount,sender_balance_before,sender_balance_after,receiver_balance_before,receiver_balance_after,transaction_type,account_iban,beneficiary_iban
+tx_rep_01,tenant-123,REF_REP_01,2026-08-23T12:00:00Z,Abonnement mensuel Service X,800,3000,2200,0,800,PAYMENT,FR7612345678901234567890123,FR7698765432109876543210987
+tx_rep_02,tenant-123,REF_REP_02,2026-08-23T12:01:00Z,Abonnement mensuel Service X,800,2200,1400,0,800,PAYMENT,FR7612345678901234567890123,FR7698765432109876543210987
+tx_rep_03,tenant-123,REF_REP_03,2026-08-23T12:02:00Z,Abonnement mensuel Service X,800,1400,600,0,800,PAYMENT,FR7612345678901234567890123,FR7698765432109876543210987
+tx_rep_ok,tenant-123,REF_REP_OK,2026-08-23T15:00:00Z,Facture normale,320,600,280,0,320,PAYMENT,FR7612345678901234567890123,FR7611111111111111111111111

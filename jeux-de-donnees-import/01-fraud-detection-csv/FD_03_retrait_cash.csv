@@ -1,0 +1,5 @@
+id,tenant_id,transaction_reference,date,description,amount,sender_balance_before,sender_balance_after,receiver_balance_before,receiver_balance_after,transaction_type,account_iban,beneficiary_iban
+tx_cash_01,tenant-123,REF_CASH_01,2026-08-16T10:30:00Z,Retrait exceptionnel agence PARIS,6000,10000,4000,0,0,CASH_OUT,FR7612345678901234567890123,
+tx_cash_02,tenant-123,REF_CASH_02,2026-08-16T11:00:00Z,Retrait cash important distributeur,8000,4000,0,0,0,CASH_OUT,FR7612345678901234567890123,
+tx_cash_03,tenant-123,REF_CASH_03,2026-08-16T12:00:00Z,Retrait cash faible,2000,5000,3000,0,0,CASH_OUT,FR7612345678901234567890123,
+tx_cash_ok,tenant-123,REF_CASH_OK,2026-08-16T14:00:00Z,Paiement carte supermarché,85,3000,2915,0,85,PAYMENT,FR7612345678901234567890123,FR7698765432109876543210987

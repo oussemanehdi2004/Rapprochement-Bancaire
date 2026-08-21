@@ -20,5 +20,7 @@ export interface TransactionOutputDTO {
   confidence?: ConfidenceLevel;
   reconciliationStatus: ReconciliationStatus;
   ruleCategory?: string | null;
+  beneficiary?: string | null;
+  beneficiary_iban?: string | null;
   explainability: ExplainabilityDTO;
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, PLATFORM_ID, computed, inject, signal, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DestroyRef } from '@angular/core';
@@ -9,6 +9,7 @@ import { GraphService, GraphAccountNode, GraphNetworkResponse } from '../service
 import { FraudAlert, FraudCategory, FraudSeverity } from '../models/fraud-alert.model';
 import { ConfigService, ThresholdsConfig } from '../services/config.service';
 import { PdfExportService } from '../services/pdf-export.service';
+import { DataRefreshService } from '../../../core/services/data-refresh.service';
 
 import { SeverityBadgeComponent } from '../components/severity-badge/severity-badge.component';
 import { CategoryBadgeComponent } from '../components/category-badge/category-badge.component';
@@ -70,10 +71,13 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   // Services injectés
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly ngZone = inject(NgZone);
+  private readonly cdr = inject(ChangeDetectorRef);
   public alertsService = inject(FraudAlertsService);
   private graphService = inject(GraphService);
   private apiService = inject(DefaultService);
   private pdfExportService = inject(PdfExportService);
+  private dataRefreshService = inject(DataRefreshService);
 
   // Theme — single light theme (dark mode removed, kept for child component inputs)
   public darkMode = signal(false);
@@ -117,23 +121,47 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
           clearInterval(this.timeUpdateInterval);
         }
       });
+      this.hasLoadError.set(false);
+      this.errorMessage.set(null);
+      // Abonnement au rafraîchissement global (Multi-Banking ingest ou Fraud CSV)
+      this.dataRefreshService.refresh$
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => {
+          this.ngZone.run(() => {
+            // Si on est en mode Supabase, on recharge depuis la persistance
+            if (this.analysisMode() === 'supabase') {
+              this.loadSupabasePersistedData();
+            }
+            // Toujours forcer le recalcul des KPIs/graphes
+            this.cdr.detectChanges();
+            // Si onglet graphe actif, recharger le graphe
+            if (this.activeTab() === 'graph') {
+              this.loadTopAccounts();
+            }
+          });
+        });
       // Defer initial demo load to after hydration to avoid SSR/client race and ensure vite proxy is ready
       const hasData = (() => {
         try { return (this.filteredAlerts()?.length ?? 0) > 0 || !!this.supabaseResults()?.length; } catch { return false; }
       })();
       if (!hasData) {
         setTimeout(() => {
-          try {
-            const stillEmpty = (() => {
-              try { return (this.filteredAlerts()?.length ?? 0) === 0 && !this.supabaseResults()?.length; } catch { return true; }
-            })();
-            if (stillEmpty) {
-              this.useDemoData();
+          this.ngZone.run(() => {
+            try {
+              const stillEmpty = (() => {
+                try { return (this.filteredAlerts()?.length ?? 0) === 0 && !this.supabaseResults()?.length; } catch { return true; }
+              })();
+              if (stillEmpty) {
+                this.useDemoData();
+              }
+              this.hasLoadError.set(false);
+              this.cdr.detectChanges();
+            } catch (e) {
+              this.hasLoadError.set(true);
+              this.errorMessage.set('Erreur d\'initialisation: ' + (e instanceof Error ? e.message : String(e)));
+              this.cdr.detectChanges();
             }
-          } catch (e) {
-            this.hasLoadError.set(true);
-            this.errorMessage.set('Erreur d\'initialisation: ' + (e instanceof Error ? e.message : String(e)));
-          }
+          });
         }, 300);
       }
     } catch (e) {
@@ -294,6 +322,10 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         }
       }
 
+      const rawAny = tx as unknown as Record<string, unknown>;
+      const beneficiaryRaw = (rawAny['beneficiary_iban'] as string) || (rawAny['beneficiary'] as string) || (rawAny['receiver_account'] as string) || (rawAny['counterparty_iban'] as string) || null;
+      const beneficiaryVal = beneficiaryRaw && String(beneficiaryRaw).trim().length > 0 ? String(beneficiaryRaw) : '—';
+
       return {
         ...tx,
         tenantId: tx.tenant_id,
@@ -301,7 +333,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         category: derivedCategory,
         confidence: derivedConfidence,
         severity: derivedSeverity,
-        beneficiary: '—',
+        beneficiary: beneficiaryVal,
         fraudScore: score,
         status: tx.isFraud ? 'new' : 'dismissed',
         isFraud: tx.isFraud ?? false,
@@ -342,6 +374,10 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     if (this.alertsService.alerts().length > 0) {
       this.alertsService.updateStats(this.alertsService.alerts());
     }
+    this.ngZone.run(() => {
+      this.cdr.detectChanges();
+      setTimeout(() => this.cdr.detectChanges(), 30);
+    });
   }
 
   public onMlThresholdSliderChange(value: number): void {
@@ -350,6 +386,10 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     if (this.alertsService.alerts().length > 0) {
       this.alertsService.updateStats(this.alertsService.alerts());
     }
+    this.ngZone.run(() => {
+      this.cdr.detectChanges();
+      setTimeout(() => this.cdr.detectChanges(), 30);
+    });
   }
 
   // ===== GESTION DES ONGLETS =====
@@ -369,6 +409,10 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     if (id === 'config' && !this.editableThresholds()) {
       this.loadThresholdsFromApi();
     }
+    if (id === 'graph') {
+      // Toujours recharger le graphe à l'ouverture pour refléter les derniers imports (évite cache figé)
+      this.loadTopAccounts();
+    }
   }
 
   public saveConfig(): void {
@@ -379,6 +423,10 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
       this.alertsService.updateStats(this.alertsService.alerts());
     }
     this.configSaved.set(true);
+    this.ngZone.run(() => {
+      this.cdr.detectChanges();
+      setTimeout(() => this.cdr.detectChanges(), 30);
+    });
     if (isPlatformBrowser(this.platformId)) {
       setTimeout(() => this.configSaved.set(false), 3000);
     }
@@ -647,6 +695,17 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         this.editableThresholds.set(updated);
         this.configLoading.set(false);
         this.configSaved.set(true);
+        // Forcer recalcul des graphiques après changement de seuils backend (APPROVED/BLOCKED)
+        // On relance une analyse légère si des données existent pour refléter le nouveau scoring côté backend
+        if (this.alertsService.alerts().length > 0) {
+          // On déclenche un re-render via la simulation courante
+          this.appliedMlThreshold.set(this.appliedMlThreshold());
+          this.alertsService.updateStats(this.alertsService.alerts());
+        }
+        this.ngZone.run(() => {
+          this.cdr.detectChanges();
+          setTimeout(() => this.cdr.detectChanges(), 50);
+        });
       },
       error: (err) => {
         this.configLoading.set(false);
@@ -832,14 +891,71 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
 
   private runAnalysis(transactions: CsvTransaction[]): void {
     this.errorMessage.set(null);
+    this.hasLoadError.set(false);
     this.supabaseResults.set(null);
+    this.analysisMode.set('local');
     this.resetLocalAlerts();
 
     this.alertsService.analyzeTransactions(transactions).subscribe({
-      next: () => console.log('Import CSV analysé avec succès'),
+      next: (res) => {
+        console.log('Import CSV analysé avec succès', res);
+        this.ngZone.run(() => {
+          this.hasLoadError.set(false);
+          this.cdr.detectChanges();
+          setTimeout(() => {
+            this.cdr.detectChanges();
+            // Recharger le graphe après nouvel import
+            if (this.activeTab() === 'graph') this.loadTopAccounts();
+          }, 100);
+          // Notifier les autres pages (Transactions, Rapports) que Supabase a potentiellement été mis à jour via l'import
+          this.dataRefreshService.trigger();
+        });
+      },
       error: (err: unknown) => {
         const message = err instanceof Error ? err.message : 'Échec de l\'analyse du fichier importé';
         this.errorMessage.set(`Erreur: ${message}`);
+        this.hasLoadError.set(true);
+        // Fallback local si backend indisponible
+        if (this.shouldUseLocalDemoFallback(err)) {
+          this.useMockDataForDemo();
+        }
+      }
+    });
+  }
+
+  /** Charge les données persistées en Supabase et bascule en mode supabase */
+  private loadSupabasePersistedData(): void {
+    this.loading.set(true);
+    this.errorMessage.set(null);
+    this.hasLoadError.set(false);
+    this.analysisMode.set('supabase');
+    // On charge les transactions persistées via le service qui mappe et met à jour les stats
+    this.alertsService.getTransactions({ limit: 500 }).subscribe({
+      next: (data) => {
+        this.ngZone.run(() => {
+          // getTransactions a déjà mis à jour alertsService.alerts et stats
+          // On synchronise aussi supabaseResults pour le computed filteredAlerts
+          const raw = data as unknown as TransactionOutput[];
+          this.supabaseResults.set(raw as unknown as TransactionOutput[]);
+          this.loading.set(false);
+          this.hasLoadError.set(false);
+          this.cdr.detectChanges();
+          setTimeout(() => this.cdr.detectChanges(), 50);
+          if (this.activeTab() === 'graph') this.loadTopAccounts();
+        });
+      },
+      error: (err) => {
+        this.ngZone.run(() => {
+          console.warn('loadSupabasePersistedData failed, fallback mock', err);
+          this.loading.set(false);
+          if (this.shouldUseLocalDemoFallback(err)) {
+            this.useMockSupabaseData();
+          } else {
+            this.errorMessage.set('Erreur chargement Supabase: ' + (err instanceof Error ? err.message : String(err)));
+            this.hasLoadError.set(true);
+          }
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -951,6 +1067,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
 
   public analyze(): void {
     this.errorMessage.set(null);
+    this.hasLoadError.set(false);
     this.importError.set(null);
     this.supabaseResults.set(null);
     this.analysisMode.set('local');
@@ -960,18 +1077,33 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
 
     this.alertsService.analyzeTransactions(this.mockTransactionsToAnalyze).subscribe({
       next: (resultats: TransactionOutputExtended[]) => {
-        console.log('Analyse démo terminée avec succès', resultats);
+        this.ngZone.run(() => {
+          console.log('Analyse démo terminée avec succès', resultats);
+          this.hasLoadError.set(false);
+          this.errorMessage.set(null);
+          this.cdr.detectChanges();
+          // Force chart redraw after data + refresh graphe
+          setTimeout(() => {
+            this.cdr.detectChanges();
+            if (this.activeTab() === 'graph') this.loadTopAccounts();
+          }, 50);
+          this.dataRefreshService.trigger();
+        });
       },
       error: (erreur: unknown) => {
-        console.error('Erreur lors de l\'analyse démo', erreur);
-
-        if (this.shouldUseLocalDemoFallback(erreur)) {
-          console.log('Utilisation des donnees mockees en mode demo local');
-          this.useMockDataForDemo();
-        } else {
-          const message = erreur instanceof Error ? erreur.message : 'Impossible de se connecter au backend';
-          this.errorMessage.set(`Erreur: ${message}`);
-        }
+        this.ngZone.run(() => {
+          console.error('Erreur lors de l\'analyse démo', erreur);
+          if (this.shouldUseLocalDemoFallback(erreur)) {
+            console.log('Utilisation des donnees mockees en mode demo local');
+            this.useMockDataForDemo();
+          } else {
+            const message = erreur instanceof Error ? erreur.message : 'Impossible de se connecter au backend';
+            this.errorMessage.set(`Erreur: ${message}`);
+            this.hasLoadError.set(true);
+            this.loading.set(false);
+          }
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -997,6 +1129,8 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   }
 
   private useMockDataForDemo(): void {
+    this.hasLoadError.set(false);
+    this.errorMessage.set(null);
     const mockAlerts: TransactionOutputExtended[] = [
       {
         tenant_id: "tenant-123",
@@ -1135,13 +1269,23 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     ];
 
     // Injecter les données mockées via le service
-    this.alertsService.alerts.set(mockAlerts);
-    this.alertsService.updateStats(mockAlerts);
-    this.loading.set(false);
+    this.ngZone.run(() => {
+      this.alertsService.alerts.set(mockAlerts);
+      this.alertsService.updateStats(mockAlerts);
+      this.loading.set(false);
+      this.hasLoadError.set(false);
+      this.cdr.detectChanges();
+      setTimeout(() => {
+        this.cdr.detectChanges();
+        if (this.activeTab() === 'graph') this.loadTopAccounts();
+      }, 100);
+      this.dataRefreshService.trigger();
+    });
   }
 
   public analyzeSupabaseCases(): void {
     this.errorMessage.set(null);
+    this.hasLoadError.set(false);
     this.loading.set(true);
     this.analysisMode.set('supabase');
     
@@ -1196,26 +1340,62 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
       }
     ] as unknown as TransactionInput[];
 
+    let fallbackTimeout: ReturnType<typeof setTimeout> | undefined;
+    let completed = false;
+    const triggerFallback = () => {
+      if (completed) return;
+      completed = true;
+      this.ngZone.run(() => {
+        console.log('Fallback Supabase mock après timeout');
+        this.useMockSupabaseData();
+      });
+    };
+    // Fallback rapide si backend indisponible (évite lag)
+    fallbackTimeout = setTimeout(() => {
+      if (!completed && this.loading()) {
+        triggerFallback();
+      }
+    }, 3500);
+
     this.apiService.analyzeTransactions(transactionsSupabase).subscribe({
       next: (resultats: TransactionOutput[]) => {
-        this.supabaseResults.set(resultats);
-
-        const mappedResults = this.mapTransactionData(resultats);
-        this.alertsService.alerts.set(mappedResults);
-        this.alertsService.updateStats(mappedResults);
-
-        this.loading.set(false);
+        if (completed) return;
+        completed = true;
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
+        this.ngZone.run(() => {
+          // On a persisté les 3 cas, maintenant on recharge l'ensemble des données Supabase pour refléter tout l'historique (multi-banking inclus)
+          console.log('Cas Supabase persistés, rechargement complet...');
+          this.loading.set(false);
+          this.hasLoadError.set(false);
+          this.errorMessage.set(null);
+          // D'abord afficher les 3 cas immédiatement pour feedback, puis charger tout
+          this.supabaseResults.set(resultats);
+          const mappedResults = this.mapTransactionData(resultats);
+          this.alertsService.alerts.set(mappedResults);
+          this.alertsService.updateStats(mappedResults);
+          this.cdr.detectChanges();
+          // Ensuite charger l'ensemble persisté (délai pour laisser Supabase indexer)
+          setTimeout(() => this.loadSupabasePersistedData(), 400);
+          this.dataRefreshService.trigger();
+          if (this.activeTab() === 'graph') this.loadTopAccounts();
+        });
       },
       error: (erreur: unknown) => {
-        this.loading.set(false);
-
-        if (this.shouldUseLocalDemoFallback(erreur)) {
-          console.log('Utilisation des donnees mockees en mode demo local');
-          this.useMockSupabaseData();
-        } else {
-          const message = erreur instanceof Error ? erreur.message : 'Échec de connexion';
-          this.errorMessage.set(`Erreur Supabase: ${message}`);
-        }
+        if (completed) return;
+        completed = true;
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
+        this.ngZone.run(() => {
+          this.loading.set(false);
+          if (this.shouldUseLocalDemoFallback(erreur)) {
+            console.log('Utilisation des donnees mockees en mode demo local');
+            this.useMockSupabaseData();
+          } else {
+            const message = erreur instanceof Error ? erreur.message : 'Échec de connexion';
+            this.errorMessage.set(`Erreur Supabase: ${message}`);
+            this.hasLoadError.set(true);
+          }
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -1240,7 +1420,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
             { feature: 'time_of_day', value: -0.15, direction: 'negative' }
           ]
         }
-      },
+      } as unknown as TransactionOutput,
       {
         tenant_id: "tenant-123",
         transaction_reference: 'mongo_supa_002',
@@ -1259,7 +1439,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
             { feature: 'amount', value: 0.10, direction: 'positive' }
           ]
         }
-      },
+      } as unknown as TransactionOutput,
       {
         tenant_id: "tenant-123",
         transaction_reference: 'mongo_supa_003',
@@ -1278,15 +1458,28 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
             { feature: 'transaction_frequency', value: -0.10, direction: 'negative' }
           ]
         }
-      }
+      } as unknown as TransactionOutput
     ];
+    // Inject beneficiary_iban for display
+    (mockSupabaseResults[0] as unknown as Record<string, unknown>)['beneficiary_iban'] = 'FR76-BENEF-A1';
+    (mockSupabaseResults[1] as unknown as Record<string, unknown>)['beneficiary_iban'] = 'FR76-BENEF-B1';
+    (mockSupabaseResults[2] as unknown as Record<string, unknown>)['beneficiary_iban'] = 'FR76-BENEF-C-NEW';
 
-    this.supabaseResults.set(mockSupabaseResults);
-    
-    // Also put in main alerts service for consistent UI when in fallback mode
-    const mappedResults = this.mapTransactionData(mockSupabaseResults);
-    this.alertsService.alerts.set(mappedResults);
-    this.alertsService.updateStats(mappedResults);
+    this.ngZone.run(() => {
+      this.supabaseResults.set(mockSupabaseResults);
+      const mappedResults = this.mapTransactionData(mockSupabaseResults);
+      this.alertsService.alerts.set(mappedResults);
+      this.alertsService.updateStats(mappedResults);
+      this.hasLoadError.set(false);
+      this.errorMessage.set(null);
+      this.loading.set(false);
+      this.cdr.detectChanges();
+      setTimeout(() => {
+        this.cdr.detectChanges();
+        if (this.activeTab() === 'graph') this.loadTopAccounts();
+      }, 100);
+      this.dataRefreshService.trigger();
+    });
   }
 
   // ===== FONCTIONS UTILITAIRES D'AFFICHAGE =====
