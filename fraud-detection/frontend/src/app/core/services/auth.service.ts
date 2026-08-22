@@ -9,6 +9,7 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  tenantId?: string;
   avatar?: string;
 }
 
@@ -30,6 +31,7 @@ interface ApiUserResponse {
   name?: string;
   email?: string;
   role?: string;
+  tenantId?: string;
   avatar?: string;
 }
 
@@ -65,6 +67,7 @@ export class AuthService {
             name: sessionData.user.user_metadata?.name || sessionData.user.email?.split('@')[0] || 'Utilisateur',
             email: sessionData.user.email || '',
             role: sessionData.user.user_metadata?.role || 'USER',
+            tenantId: (sessionData.user.user_metadata as any)?.tenant_id || 'default',
             avatar: sessionData.user.user_metadata?.avatar
           };
           this.currentUserSubject.next(user);
@@ -107,6 +110,7 @@ export class AuthService {
           name: response.name || response.email?.split('@')[0] || 'Utilisateur',
           email: response.email || '',
           role: response.role || 'USER',
+          tenantId: response.tenantId || 'default',
           avatar: response.avatar
         };
         this.currentUserSubject.next(user);
@@ -121,6 +125,7 @@ export class AuthService {
           name: 'Utilisateur Démo',
           email: 'demo@bankmatch.com',
           role: 'ACCOUNTANT',
+          tenantId: 'default',
           avatar: '👤'
         };
         this.currentUserSubject.next(defaultUser);

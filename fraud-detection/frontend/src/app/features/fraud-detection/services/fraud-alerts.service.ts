@@ -107,13 +107,18 @@ export class FraudAlertsService {
     });
   }
 
-  analyzeTransactions(transactions?: unknown[]): Observable<TransactionOutputExtended[]> {
+  analyzeTransactions(transactions?: unknown[], tenantId?: string): Observable<TransactionOutputExtended[]> {
     this.loading.set(true);
 
     const payload = transactions || [];
     const endpoint = `${this.apiUrl}/analyze-demo`;
 
-    return this.http.post<APIResponse>(endpoint, payload).pipe(
+    let params = new HttpParams();
+    if (tenantId) {
+      params = params.set('tenant_id', tenantId);
+    }
+
+    return this.http.post<APIResponse>(endpoint, payload, { params }).pipe(
       map((res) => this.mapTransactionData(res.data)),
       tap((data) => {
         const newAlerts = Array.isArray(data) ? data : [data];
@@ -137,6 +142,7 @@ export class FraudAlertsService {
     search?: string;
     limit?: number;
     offset?: number;
+    tenantId?: string;
   }): Observable<TransactionOutputExtended[]> {
     this.loading.set(true);
     let params = new HttpParams();
@@ -144,6 +150,7 @@ export class FraudAlertsService {
     if (filters?.search) params = params.set('search', filters.search);
     if (filters?.limit) params = params.set('limit', filters.limit.toString());
     if (filters?.offset) params = params.set('offset', filters.offset.toString());
+    if (filters?.tenantId) params = params.set('tenant_id', filters.tenantId);
 
     return this.http
       .get<APIResponse<TransactionOutputDTO[]>>(`${this.apiUrl}/transactions`, { params })

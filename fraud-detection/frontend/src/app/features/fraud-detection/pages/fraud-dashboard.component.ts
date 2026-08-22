@@ -10,6 +10,7 @@ import { FraudAlert, FraudCategory, FraudSeverity } from '../models/fraud-alert.
 import { ConfigService, ThresholdsConfig } from '../services/config.service';
 import { PdfExportService } from '../services/pdf-export.service';
 import { DataRefreshService } from '../../../core/services/data-refresh.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 import { SeverityBadgeComponent } from '../components/severity-badge/severity-badge.component';
 import { CategoryBadgeComponent } from '../components/category-badge/category-badge.component';
@@ -78,6 +79,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   private apiService = inject(DefaultService);
   private pdfExportService = inject(PdfExportService);
   private dataRefreshService = inject(DataRefreshService);
+  private authService = inject(AuthService);
 
   // Theme — single light theme (dark mode removed, kept for child component inputs)
   public darkMode = signal(false);
@@ -193,86 +195,88 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   ];
 
   // Données de démonstration - SPREAD ACROSS MULTIPLE DATES FOR TIME SERIES
-  public readonly mockTransactionsToAnalyze: CsvTransaction[] = [
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_001", id: "tx_seuil",
-      date: "2026-08-13T10:00:00Z", description: "Virement fournisseur externe",
-      amount: 15000.0, sender_balance_before: 50000.0, sender_balance_after: 35000.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 15000.0, transaction_type: "TRANSFER"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_002", id: "tx_approche",
-      date: "2026-08-13T10:02:00Z", description: "Virement fournisseur B",
-      amount: 9500.0, sender_balance_before: 20000.0, sender_balance_after: 10500.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 9500.0, transaction_type: "TRANSFER"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_003", id: "tx_cash",
-      date: "2026-08-14T10:05:00Z", description: "Retrait exceptionnel PARIS",
-      amount: 6000.0, sender_balance_before: 10000.0, sender_balance_after: 4000.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 0.0, transaction_type: "CASH_OUT"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_004", id: "tx_casino",
-      date: "2026-08-14T10:07:00Z", description: "Virement casino en ligne",
-      amount: 250.0, sender_balance_before: 2000.0, sender_balance_after: 1750.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 250.0, transaction_type: "TRANSFER"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_005", id: "tx_dup_1",
-      date: "2026-08-15T11:00:00Z", description: "Paiement Fournisseur ABC",
-      amount: 2500.0, sender_balance_before: 8000.0, sender_balance_after: 5500.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 2500.0, transaction_type: "PAYMENT"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_006", id: "tx_dup_2",
-      date: "2026-08-15T11:01:00Z", description: "Paiement Fournisseur ABC",
-      amount: 2500.0, sender_balance_before: 5500.0, sender_balance_after: 3000.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 2500.0, transaction_type: "PAYMENT"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_007", id: "tx_rep_1",
-      date: "2026-08-16T12:00:00Z", description: "Abonnement mensuel Service X",
-      amount: 800.0, sender_balance_before: 3000.0, sender_balance_after: 2200.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_008", id: "tx_rep_2",
-      date: "2026-08-16T12:01:00Z", description: "Abonnement mensuel Service X",
-      amount: 800.0, sender_balance_before: 2200.0, sender_balance_after: 1400.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_009", id: "tx_rep_3",
-      date: "2026-08-17T12:02:00Z", description: "Abonnement mensuel Service X",
-      amount: 800.0, sender_balance_before: 1400.0, sender_balance_after: 600.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_010", id: "tx_frac_1",
-      date: "2026-08-17T13:00:00Z", description: "Virement partiel A",
-      amount: 4000.0, sender_balance_before: 20000.0, sender_balance_after: 16000.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 4000.0, transaction_type: "TRANSFER"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_011", id: "tx_frac_2",
-      date: "2026-08-18T13:10:00Z", description: "Virement partiel B",
-      amount: 4000.0, sender_balance_before: 16000.0, sender_balance_after: 12000.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 4000.0, transaction_type: "TRANSFER"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_012", id: "tx_frac_3",
-      date: "2026-08-18T13:20:00Z", description: "Virement partiel C",
-      amount: 3000.0, sender_balance_before: 12000.0, sender_balance_after: 9000.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 3000.0, transaction_type: "TRANSFER"
-    },
-    {
-      tenant_id: "tenant-123", transaction_reference: "mongo_013", id: "tx_clean",
-      date: "2026-08-19T14:00:00Z", description: "Achat fournitures de bureau",
-      amount: 45.0, sender_balance_before: 1000.0, sender_balance_after: 955.0,
-      receiver_balance_before: 0.0, receiver_balance_after: 45.0, transaction_type: "PAYMENT"
-    }
-  ];
+  private getMockTransactionsToAnalyze(tenantId: string): CsvTransaction[] {
+    return [
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_001", id: "tx_seuil",
+        date: "2026-08-13T10:00:00Z", description: "Virement fournisseur externe",
+        amount: 15000.0, sender_balance_before: 50000.0, sender_balance_after: 35000.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 15000.0, transaction_type: "TRANSFER"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_002", id: "tx_approche",
+        date: "2026-08-13T10:02:00Z", description: "Virement fournisseur B",
+        amount: 9500.0, sender_balance_before: 20000.0, sender_balance_after: 10500.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 9500.0, transaction_type: "TRANSFER"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_003", id: "tx_cash",
+        date: "2026-08-14T10:05:00Z", description: "Retrait exceptionnel PARIS",
+        amount: 6000.0, sender_balance_before: 10000.0, sender_balance_after: 4000.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 0.0, transaction_type: "CASH_OUT"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_004", id: "tx_casino",
+        date: "2026-08-14T10:07:00Z", description: "Virement casino en ligne",
+        amount: 250.0, sender_balance_before: 2000.0, sender_balance_after: 1750.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 250.0, transaction_type: "TRANSFER"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_005", id: "tx_dup_1",
+        date: "2026-08-15T11:00:00Z", description: "Paiement Fournisseur ABC",
+        amount: 2500.0, sender_balance_before: 8000.0, sender_balance_after: 5500.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 2500.0, transaction_type: "PAYMENT"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_006", id: "tx_dup_2",
+        date: "2026-08-15T11:01:00Z", description: "Paiement Fournisseur ABC",
+        amount: 2500.0, sender_balance_before: 5500.0, sender_balance_after: 3000.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 2500.0, transaction_type: "PAYMENT"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_007", id: "tx_rep_1",
+        date: "2026-08-16T12:00:00Z", description: "Abonnement mensuel Service X",
+        amount: 800.0, sender_balance_before: 3000.0, sender_balance_after: 2200.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_008", id: "tx_rep_2",
+        date: "2026-08-16T12:01:00Z", description: "Abonnement mensuel Service X",
+        amount: 800.0, sender_balance_before: 2200.0, sender_balance_after: 1400.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_009", id: "tx_rep_3",
+        date: "2026-08-17T12:02:00Z", description: "Abonnement mensuel Service X",
+        amount: 800.0, sender_balance_before: 1400.0, sender_balance_after: 600.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 800.0, transaction_type: "PAYMENT"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_010", id: "tx_frac_1",
+        date: "2026-08-17T13:00:00Z", description: "Virement partiel A",
+        amount: 4000.0, sender_balance_before: 20000.0, sender_balance_after: 16000.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 4000.0, transaction_type: "TRANSFER"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_011", id: "tx_frac_2",
+        date: "2026-08-18T13:10:00Z", description: "Virement partiel B",
+        amount: 4000.0, sender_balance_before: 16000.0, sender_balance_after: 12000.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 4000.0, transaction_type: "TRANSFER"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_012", id: "tx_frac_3",
+        date: "2026-08-18T13:20:00Z", description: "Virement partiel C",
+        amount: 3000.0, sender_balance_before: 12000.0, sender_balance_after: 9000.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 3000.0, transaction_type: "TRANSFER"
+      },
+      {
+        tenant_id: tenantId, transaction_reference: "mongo_013", id: "tx_clean",
+        date: "2026-08-19T14:00:00Z", description: "Achat fournitures de bureau",
+        amount: 45.0, sender_balance_before: 1000.0, sender_balance_after: 955.0,
+        receiver_balance_before: 0.0, receiver_balance_after: 45.0, transaction_type: "PAYMENT"
+      }
+    ];
+  }
 
   // Analysis mode to track data source
   public analysisMode = signal<'local' | 'supabase'>('local');
@@ -722,7 +726,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ===== ÉTAT DU GRAPHE =====
-  public graphTenantId = signal<string>('tenant-123');
+  public graphTenantId = signal<string>(this.authService?.getCurrentUser()?.tenantId || 'default');
   public topAccounts = signal<GraphAccountNode[]>([]);
   public selectedIban = signal<string | null>(null);
   public networkData = signal<GraphNetworkResponse | null>(null);
@@ -910,12 +914,14 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.resetLocalAlerts();
 
     // Mettre à jour le tenant_id du graphe avec celui du CSV importé
-    if (transactions.length > 0 && transactions[0].tenant_id) {
-      this.graphTenantId.set(transactions[0].tenant_id);
-      console.log(`Graph tenant ID updated to: ${transactions[0].tenant_id}`);
-    }
+    const tenantId = transactions.length > 0 && transactions[0].tenant_id 
+      ? transactions[0].tenant_id 
+      : this.graphTenantId();
+    
+    this.graphTenantId.set(tenantId);
+    console.log(`Graph tenant ID updated to: ${tenantId}`);
 
-    this.alertsService.analyzeTransactions(transactions).subscribe({
+    this.alertsService.analyzeTransactions(transactions, tenantId).subscribe({
       next: (res) => {
         console.log('Import CSV analysé avec succès', res);
         this.ngZone.run(() => {
@@ -951,8 +957,16 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.errorMessage.set(null);
     this.hasLoadError.set(false);
     this.analysisMode.set('supabase');
+    
+    // Récupérer le tenant_id de l'utilisateur connecté
+    const currentUser = this.authService?.getCurrentUser();
+    const tenantId = currentUser?.tenantId || this.graphTenantId();
+    
+    // Mettre à jour le tenant_id du graphe
+    this.graphTenantId.set(tenantId);
+    
     // On charge les transactions persistées via le service qui mappe et met à jour les stats
-    this.alertsService.getTransactions({ limit: 500 }).subscribe({
+    this.alertsService.getTransactions({ limit: 500, tenantId }).subscribe({
       next: (data) => {
         this.ngZone.run(() => {
           // getTransactions a déjà mis à jour alertsService.alerts et stats
@@ -1097,13 +1111,18 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.saveCurrentAsPrevious();
     this.resetLocalAlerts();
 
-    // Mettre à jour le tenant_id du graphe avec celui des données démo
-    if (this.mockTransactionsToAnalyze.length > 0 && this.mockTransactionsToAnalyze[0].tenant_id) {
-      this.graphTenantId.set(this.mockTransactionsToAnalyze[0].tenant_id);
-      console.log(`Graph tenant ID updated to: ${this.mockTransactionsToAnalyze[0].tenant_id}`);
-    }
+    // Utiliser le tenant_id de l'utilisateur connecté
+    const currentUser = this.authService?.getCurrentUser();
+    const tenantId = currentUser?.tenantId || this.graphTenantId();
+    
+    // Mettre à jour le tenant_id du graphe
+    this.graphTenantId.set(tenantId);
+    console.log(`Graph tenant ID updated to: ${tenantId}`);
 
-    this.alertsService.analyzeTransactions(this.mockTransactionsToAnalyze).subscribe({
+    // Appliquer le tenant_id aux transactions mock si nécessaire
+    const transactionsWithTenant = this.getMockTransactionsToAnalyze(tenantId);
+
+    this.alertsService.analyzeTransactions(transactionsWithTenant, tenantId).subscribe({
       next: (resultats: TransactionOutputExtended[]) => {
         this.ngZone.run(() => {
           console.log('Analyse démo terminée avec succès', resultats);
@@ -1162,9 +1181,14 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   private useMockDataForDemo(): void {
     this.hasLoadError.set(false);
     this.errorMessage.set(null);
+    
+    // Utiliser le tenant_id de l'utilisateur connecté
+    const currentUser = this.authService?.getCurrentUser();
+    const tenantId = currentUser?.tenantId || this.graphTenantId();
+    
     const mockAlerts: TransactionOutputExtended[] = [
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: "mongo_001",
         id: 'tx_seuil',
         transactionId: 'mongo_001',
@@ -1191,7 +1215,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         }
       },
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: "mongo_002",
         id: 'tx_approche',
         transactionId: 'mongo_002',
@@ -1218,7 +1242,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         }
       },
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: "mongo_003",
         id: 'tx_cash',
         transactionId: 'mongo_003',
@@ -1245,7 +1269,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         }
       },
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: "mongo_005",
         id: 'tx_dup_1',
         transactionId: 'mongo_005',
@@ -1272,7 +1296,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         }
       },
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: "mongo_013",
         id: 'tx_clean',
         transactionId: 'mongo_013',
@@ -1323,9 +1347,13 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     // Save current data as previous for trend calculation
     this.saveCurrentAsPrevious();
 
+    // Utiliser le tenant_id de l'utilisateur connecté
+    const currentUser = this.authService?.getCurrentUser();
+    const tenantId = currentUser?.tenantId || this.graphTenantId();
+
     const transactionsSupabase = [
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: "mongo_supa_001",
         id: "tx_montant_except",
         date: "2026-08-13T09:00:00Z",
@@ -1340,7 +1368,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         beneficiary_iban: "FR76-BENEF-A1"
       },
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: "mongo_supa_002",
         id: "tx_compte_dormant",
         date: "2026-08-14T09:05:00Z",
@@ -1355,7 +1383,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         beneficiary_iban: "FR76-BENEF-B1"
       },
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: "mongo_supa_003",
         id: "tx_nouvel_iban",
         date: "2026-08-15T09:10:00Z",
@@ -1432,9 +1460,13 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   }
 
   private useMockSupabaseData(): void {
+    // Utiliser le tenant_id de l'utilisateur connecté
+    const currentUser = this.authService?.getCurrentUser();
+    const tenantId = currentUser?.tenantId || this.graphTenantId();
+
     const mockSupabaseResults: TransactionOutput[] = [
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: "mongo_supa_001",
         id: 'tx_montant_except',
         date: '2026-08-13T09:00:00Z',
@@ -1453,7 +1485,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         }
       } as unknown as TransactionOutput,
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: 'mongo_supa_002',
         id: 'tx_compte_dormant',
         date: '2026-08-14T09:05:00Z',
@@ -1472,7 +1504,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         }
       } as unknown as TransactionOutput,
       {
-        tenant_id: "tenant-123",
+        tenant_id: tenantId,
         transaction_reference: 'mongo_supa_003',
         id: 'tx_nouvel_iban',
         date: '2026-08-15T09:10:00Z',

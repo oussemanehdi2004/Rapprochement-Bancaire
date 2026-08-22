@@ -73,11 +73,12 @@ class GraphEngine:
     def _write_transaction(tx, **p) -> None:
         tx.run(
             """
-            MERGE (s:Account {iban: $sender})
-            MERGE (r:Account {iban: $receiver})
+            MERGE (s:Account {iban: $sender, tenant_id: $tenant_id})
+            MERGE (r:Account {iban: $receiver, tenant_id: $tenant_id})
             MERGE (t:Transaction {id: $tx_id, tenant_id: $tenant_id})
             SET t.amount = $amount, t.date = $date,
-                t.is_fraud = $is_fraud, t.rule_category = $rule_category
+                t.is_fraud = $is_fraud, t.rule_category = $rule_category,
+                t.sender_iban = $sender, t.receiver_iban = $receiver
             MERGE (s)-[:SENT]->(t)
             MERGE (t)-[:RECEIVED_BY]->(r)
             WITH s, r, t
@@ -100,7 +101,7 @@ class GraphEngine:
     def _q_network(tx, tenant_id: str, iban: str, min_alerts: int):
         result = tx.run(
             """
-            MATCH (acc:Account {iban: $iban})<-[:FLAGS]-(a:Alert {tenant_id: $tenant_id})
+            MATCH (acc:Account {iban: $iban, tenant_id: $tenant_id})<-[:FLAGS]-(a:Alert {tenant_id: $tenant_id})
             WITH acc, count(DISTINCT a) AS alert_count
             WHERE alert_count >= $min_alerts
             RETURN acc.iban AS iban, alert_count AS alert_count
@@ -119,7 +120,7 @@ class GraphEngine:
     def _q_circular(tx, tenant_id: str, iban: str, max_hops: int):
         result = tx.run(
             f"""
-            MATCH path = (start:Account {{iban: $iban}})-[:SENT|RECEIVED_BY*2..{max_hops * 2}]->(start)
+            MATCH path = (start:Account {{iban: $iban, tenant_id: $tenant_id}})-[:SENT|RECEIVED_BY*2..{max_hops * 2}]->(start)
             WHERE ALL(t IN [n IN nodes(path) WHERE n:Transaction] WHERE t.tenant_id = $tenant_id)
             RETURN [n IN nodes(path) WHERE n:Account | n.iban] AS cycle
             LIMIT 1
@@ -138,7 +139,7 @@ class GraphEngine:
     def _q_reciprocal(tx, tenant_id: str, iban: str, min_occurrences: int):
         result = tx.run(
             """
-            MATCH (a:Account {iban: $iban})-[:SENT]->(t1:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(b:Account)
+            MATCH (a:Account {iban: $iban, tenant_id: $tenant_id})-[:SENT]->(t1:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(b:Account {tenant_id: $tenant_id})
             MATCH (b)-[:SENT]->(t2:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(a)
             WITH b, count(DISTINCT t1) AS out_count, count(DISTINCT t2) AS in_count
             WHERE out_count >= $min_occurrences AND in_count >= $min_occurrences
@@ -158,7 +159,7 @@ class GraphEngine:
     def _q_top_accounts(tx, tenant_id: str, limit: int):
         result = tx.run(
             """
-            MATCH (acc:Account)<-[:FLAGS]-(a:Alert {tenant_id: $tenant_id})
+            MATCH (acc:Account {tenant_id: $tenant_id})<-[:FLAGS]-(a:Alert {tenant_id: $tenant_id})
             WITH acc, count(DISTINCT a) AS alert_count, collect(DISTINCT a.category) AS categories
             RETURN acc.iban AS iban, alert_count, categories
             ORDER BY alert_count DESC
@@ -177,9 +178,9 @@ class GraphEngine:
     def _q_network_graph(tx, tenant_id: str, iban: str):
         result = tx.run(
             """
-            MATCH (center:Account {iban: $iban})
-            OPTIONAL MATCH (center)-[:SENT]->(t1:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(other1:Account)
-            OPTIONAL MATCH (other2:Account)-[:SENT]->(t2:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(center)
+            MATCH (center:Account {iban: $iban, tenant_id: $tenant_id})
+            OPTIONAL MATCH (center)-[:SENT]->(t1:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(other1:Account {tenant_id: $tenant_id})
+            OPTIONAL MATCH (other2:Account {tenant_id: $tenant_id})-[:SENT]->(t2:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(center)
             WITH center, 
                  collect(DISTINCT CASE WHEN t1 IS NOT NULL THEN 
                     {other: other1.iban, tx_id: t1.id, amount: t1.amount, is_fraud: coalesce(t1.is_fraud, false)} 
@@ -253,12 +254,12 @@ class GraphEngine:
         result = tx.run(
             """
             // Trouver les comptes avec beaucoup d'entrées
-            MATCH (acc:Account)-[:SENT]->(t_in:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(acc)
+            MATCH (acc:Account {tenant_id: $tenant_id})-[:SENT]->(t_in:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(acc)
             WITH acc, count(DISTINCT t_in) AS in_count
             WHERE in_count >= $min_transactions
             
             // Compter les sorties
-            MATCH (acc)-[:SENT]->(t_out:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(:Account)
+            MATCH (acc)-[:SENT]->(t_out:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(:Account {tenant_id: $tenant_id})
             WITH acc, in_count, count(DISTINCT t_out) AS out_count
             
             // Calculer le ratio in/out
@@ -270,7 +271,7 @@ class GraphEngine:
             
             // Calculer le délai moyen entre entrées et sorties (pour les paires correspondantes)
             MATCH (acc)-[:SENT]->(t_in:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(acc)
-            MATCH (acc)-[:SENT]->(t_out:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(:Account)
+            MATCH (acc)-[:SENT]->(t_out:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(:Account {tenant_id: $tenant_id})
             WHERE t_out.date >= t_in.date 
               AND duration.between(datetime(t_in.date), datetime(t_out.date)).hours <= $max_delay_hours
             WITH acc, in_count, out_count, in_out_ratio, 
@@ -306,7 +307,7 @@ class GraphEngine:
         result = tx.run(
             """
             // Créer un graphe projeté pour les transactions du tenant
-            MATCH (a1:Account)-[:SENT]->(t:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(a2:Account)
+            MATCH (a1:Account {tenant_id: $tenant_id})-[:SENT]->(t:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(a2:Account {tenant_id: $tenant_id})
             WITH a1, a2, count(t) AS weight
             RETURN a1 AS source, a2 AS target, weight
             """,
@@ -317,7 +318,7 @@ class GraphEngine:
         # En production, utiliser: CALL gds.pageRank.stream('myGraph') YIELD nodeId, score
         result = tx.run(
             """
-            MATCH (acc:Account)
+            MATCH (acc:Account {tenant_id: $tenant_id})
             OPTIONAL MATCH (acc)-[:SENT]->(t:Transaction {tenant_id: $tenant_id})
             WITH acc, count(t) AS out_degree
             OPTIONAL MATCH (acc)<-[:RECEIVED_BY]-(t2:Transaction {tenant_id: $tenant_id})
@@ -351,8 +352,8 @@ class GraphEngine:
         # En production, utiliser: CALL gds.wcc.stream('myGraph') YIELD nodeId, componentId
         result = tx.run(
             """
-            MATCH (acc:Account)
-            OPTIONAL MATCH (acc)-[:SENT]->(t:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(other:Account)
+            MATCH (acc:Account {tenant_id: $tenant_id})
+            OPTIONAL MATCH (acc)-[:SENT]->(t:Transaction {tenant_id: $tenant_id})-[:RECEIVED_BY]->(other:Account {tenant_id: $tenant_id})
             WITH acc, collect(DISTINCT other.iban) AS connected_ibans
             WHERE size(connected_ibans) >= $min_community_size
             RETURN acc.iban AS center_account, 

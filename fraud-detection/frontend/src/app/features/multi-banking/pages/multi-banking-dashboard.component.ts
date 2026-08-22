@@ -7,6 +7,7 @@ import { MultiBankingService } from '../services/multi-banking.service';
 import { IngestionStatsDTO, FileUploadDTO, IngestResponseDTO } from '../models';
 import { ToastService } from '../../../core/services/toast.service';
 import { DataRefreshService } from '../../../core/services/data-refresh.service';
+import { AuthService } from '../../../core/services/auth.service';
 import type { BankFileFormat } from '../../../core/types/index';
 
 @Component({
@@ -23,6 +24,7 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
   private readonly toastService = inject(ToastService);
   private readonly dataRefreshService = inject(DataRefreshService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly authService = inject(AuthService);
 
   loading = false;
   uploading = false;
@@ -46,6 +48,12 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
   ngOnInit() {
     if (!isPlatformBrowser(this.platformId)) {
       return;
+    }
+
+    // Récupérer le tenant_id de l'utilisateur connecté
+    const currentUser = this.authService.getCurrentUser();
+    if (currentUser?.tenantId) {
+      this.tenantId = currentUser.tenantId;
     }
 
     this.loadStats();

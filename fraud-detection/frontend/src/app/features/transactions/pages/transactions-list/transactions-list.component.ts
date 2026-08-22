@@ -258,7 +258,6 @@ export class TransactionsListComponent {
           }
           this.showEditModal.set(false);
           this.cdr.detectChanges();
-          this.dataRefreshService.trigger();
         });
       },
       error: (err: unknown) => {
@@ -296,7 +295,6 @@ export class TransactionsListComponent {
           }
           this.toastService.success('Supprimé', 'Transaction supprimée');
           this.cdr.detectChanges();
-          this.dataRefreshService.trigger();
         });
       },
       error: (err: unknown) => {

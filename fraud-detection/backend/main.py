@@ -938,12 +938,18 @@ if not IS_PRODUCTION and ENABLE_TEST_TOKEN_ENDPOINT:
 # Endpoint de démonstration sans authentification pour le développement frontend
 if not IS_PRODUCTION:
     @app.post("/api/analyze-demo", response_model=APIResponse[List[TransactionOutput]])
-    async def analyze_transactions_demo(transactions: List[TransactionInput]):
+    async def analyze_transactions_demo(transactions: List[TransactionInput], tenant_id: Optional[str] = None):
         """Endpoint de démonstration sans authentification pour le développement."""
-        logger.info("Accès API démo (sans authentification).")
+        logger.info(f"Accès API démo (sans authentification). Tenant ID: {tenant_id or 'non spécifié'}")
         start_time = time.perf_counter()
         
         try:
+            # Appliquer le tenant_id aux transactions si fourni
+            if tenant_id:
+                for tx in transactions:
+                    if not tx.tenant_id or tx.tenant_id == "default":
+                        tx.tenant_id = tenant_id
+            
             results = analyze_batch(transactions)
             
             # Synchroniser avec Neo4j pour les graphes (comme dans l'endpoint principal)
