@@ -183,7 +183,7 @@ app.use('/api', async (req: Request, res: Response, next: NextFunction) => {
         'Authorization': authHeader,
         'Content-Type': 'application/json'
       },
-      timeout: 8000
+      timeout: 30000
     });
 
     res.status(response.status).json(response.data);
