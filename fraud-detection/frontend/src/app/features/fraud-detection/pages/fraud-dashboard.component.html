@@ -527,7 +527,7 @@
               <input 
                 type="text" 
                 [ngModel]="graphTenantId()"
-                (ngModelChange)="graphTenantId.set($event)"
+                (ngModelChange)="onTenantIdChange($event)"
                 placeholder="Ex: tenant-123" 
                 class="w-full sm:w-72 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
               />

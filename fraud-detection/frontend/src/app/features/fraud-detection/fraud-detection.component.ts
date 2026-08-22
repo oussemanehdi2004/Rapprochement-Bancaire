@@ -89,7 +89,7 @@ export class FraudDetectionComponent implements OnInit {
    * 2. Récupère les comptes les plus signalés (Graphe Neo4j)
    */
   loadTopAccounts(): void {
-    this.graphService.getTopFlaggedAccounts(5).subscribe({
+    this.graphService.getTopFlaggedAccounts(undefined, 5).subscribe({
       next: (data) => {
         this.topAccounts = data;
       },

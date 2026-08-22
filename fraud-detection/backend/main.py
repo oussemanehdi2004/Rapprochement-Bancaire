@@ -945,6 +945,17 @@ if not IS_PRODUCTION:
         
         try:
             results = analyze_batch(transactions)
+            
+            # Synchroniser avec Neo4j pour les graphes (comme dans l'endpoint principal)
+            if graph_engine is not None:
+                for tx, result in zip(transactions, results):
+                    tx_dict = tx.model_dump()
+                    try: 
+                        graph_engine.sync_transaction(tx_dict, result.isFraud, result.ruleCategory)
+                        logger.info(f"Transaction {tx_dict.get('id')} synchronisée avec Neo4j (tenant: {tx_dict.get('tenant_id')})")
+                    except Exception as e:
+                        logger.warning(f"Échec de synchronisation Neo4j pour transaction {tx_dict.get('id')}: {e}")
+            
             logger.info(f"Temps de traitement démo : {(time.perf_counter() - start_time) * 1000:.2f} ms pour {len(results)} transaction(s)")
             return APIResponse(success=True, data=results)
         except HTTPException: raise

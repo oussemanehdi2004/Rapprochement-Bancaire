@@ -46,16 +46,24 @@ export class GraphService {
   getAccountNetwork(ibanOrTenant: string, ibanOrDepth?: string | number, depth = 2): Observable<GraphNetworkResponse> {
     let iban = ibanOrTenant;
     let actualDepth = depth;
+    let tenantId: string | undefined;
 
     if (typeof ibanOrDepth === 'string') {
+      // Signature: (tenantId, iban, depth)
+      tenantId = ibanOrTenant;
       iban = ibanOrDepth;
     } else if (typeof ibanOrDepth === 'number') {
+      // Signature: (iban, depth)
       actualDepth = ibanOrDepth;
     }
 
     const params = new HttpParams()
       .set('iban', iban)
       .set('depth', actualDepth.toString());
+
+    if (tenantId) {
+      params.set('tenant_id', tenantId);
+    }
 
     return this.http
       .get<APIResponse<GraphNetworkResponse>>(`${this.apiUrl}/network`, { params })
@@ -65,8 +73,12 @@ export class GraphService {
       );
   }
 
-  getTopFlaggedAccounts(limit = 10): Observable<TopAccount[]> {
+  getTopFlaggedAccounts(tenantId?: string, limit = 10): Observable<TopAccount[]> {
     const params = new HttpParams().set('limit', limit.toString());
+
+    if (tenantId) {
+      params.set('tenant_id', tenantId);
+    }
 
     return this.http
       .get<APIResponse<TopAccount[]>>(`${this.apiUrl}/top-accounts`, { params })
@@ -81,7 +93,8 @@ export class GraphService {
    */
   getTopAccounts(tenantId?: string | number, limit = 10): Observable<TopAccount[]> {
     const actualLimit = typeof tenantId === 'number' ? tenantId : limit;
-    return this.getTopFlaggedAccounts(actualLimit);
+    const actualTenantId = typeof tenantId === 'string' ? tenantId : undefined;
+    return this.getTopFlaggedAccounts(actualTenantId, actualLimit);
   }
 
   private handleError(error: HttpErrorResponse): Observable<never> {

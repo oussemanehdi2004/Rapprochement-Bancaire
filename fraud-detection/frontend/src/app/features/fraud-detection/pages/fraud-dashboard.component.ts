@@ -733,10 +733,12 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.graphError.set(null);
     this.graphLoading.set(true);
     this.networkData.set(null);
+    console.log(`Loading top accounts for tenant_id: ${this.graphTenantId()}`);
     this.graphService.getTopAccounts(this.graphTenantId()).subscribe({
       next: (accounts) => {
         this.topAccounts.set(accounts);
         this.graphLoading.set(false);
+        console.log(`Loaded ${accounts.length} accounts for tenant: ${this.graphTenantId()}`);
         if (accounts.length > 0) {
           this.selectAccount(accounts[0].iban);
         } else {
@@ -750,10 +752,21 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  public onTenantIdChange(newTenantId: string): void {
+    this.graphTenantId.set(newTenantId);
+    console.log(`Tenant ID changed to: ${newTenantId}`);
+    // Recharger le graphe automatiquement quand le tenant_id change
+    this.loadTopAccounts();
+  }
+
   public selectAccount(iban: string): void {
     this.selectedIban.set(iban);
+    console.log(`Loading network for IBAN: ${iban}, tenant: ${this.graphTenantId()}`);
     this.graphService.getAccountNetwork(this.graphTenantId(), iban).subscribe({
-      next: (net) => this.networkData.set(net),
+      next: (net) => {
+        this.networkData.set(net);
+        console.log(`Network loaded: ${net.nodes.length} nodes, ${net.edges.length} edges`);
+      },
       error: (err) => this.graphError.set(`Impossible de charger le réseau: ${err.message}`)
     });
   }
@@ -896,6 +909,12 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.analysisMode.set('local');
     this.resetLocalAlerts();
 
+    // Mettre à jour le tenant_id du graphe avec celui du CSV importé
+    if (transactions.length > 0 && transactions[0].tenant_id) {
+      this.graphTenantId.set(transactions[0].tenant_id);
+      console.log(`Graph tenant ID updated to: ${transactions[0].tenant_id}`);
+    }
+
     this.alertsService.analyzeTransactions(transactions).subscribe({
       next: (res) => {
         console.log('Import CSV analysé avec succès', res);
@@ -904,8 +923,11 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
           this.cdr.detectChanges();
           setTimeout(() => {
             this.cdr.detectChanges();
-            // Recharger le graphe après nouvel import
-            if (this.activeTab() === 'graph') this.loadTopAccounts();
+            // Recharger le graphe après nouvel import avec le bon tenant_id
+            if (this.activeTab() === 'graph') {
+              console.log(`Reloading graph with tenant_id: ${this.graphTenantId()}`);
+              this.loadTopAccounts();
+            }
           }, 100);
           // Notifier les autres pages (Transactions, Rapports) que Supabase a potentiellement été mis à jour via l'import
           this.dataRefreshService.trigger();
@@ -1075,6 +1097,12 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.saveCurrentAsPrevious();
     this.resetLocalAlerts();
 
+    // Mettre à jour le tenant_id du graphe avec celui des données démo
+    if (this.mockTransactionsToAnalyze.length > 0 && this.mockTransactionsToAnalyze[0].tenant_id) {
+      this.graphTenantId.set(this.mockTransactionsToAnalyze[0].tenant_id);
+      console.log(`Graph tenant ID updated to: ${this.mockTransactionsToAnalyze[0].tenant_id}`);
+    }
+
     this.alertsService.analyzeTransactions(this.mockTransactionsToAnalyze).subscribe({
       next: (resultats: TransactionOutputExtended[]) => {
         this.ngZone.run(() => {
@@ -1085,7 +1113,10 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
           // Force chart redraw after data + refresh graphe
           setTimeout(() => {
             this.cdr.detectChanges();
-            if (this.activeTab() === 'graph') this.loadTopAccounts();
+            if (this.activeTab() === 'graph') {
+              console.log(`Reloading graph with tenant_id: ${this.graphTenantId()}`);
+              this.loadTopAccounts();
+            }
           }, 50);
           this.dataRefreshService.trigger();
         });
