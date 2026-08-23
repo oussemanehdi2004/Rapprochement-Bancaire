@@ -420,6 +420,9 @@
                     </td>
                     <td class="px-5 py-3.5 whitespace-nowrap bg-slate-50/50">
                       <span class="inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold leading-none"
+                        [class.bg-slate-900]="$any(alert).status === 'blocked'"
+                        [class.text-white]="$any(alert).status === 'blocked'"
+                        [class.border-slate-900]="$any(alert).status === 'blocked'"
                         [class.bg-rose-50]="$any(alert).status === 'new' || $any(alert).status === 'under_investigation'"
                         [class.text-rose-700]="$any(alert).status === 'new' || $any(alert).status === 'under_investigation'"
                         [class.border-rose-200]="$any(alert).status === 'new' || $any(alert).status === 'under_investigation'"
@@ -429,14 +432,15 @@
                         [class.bg-emerald-50]="$any(alert).status === 'dismissed' || $any(alert).status === 'cleared'"
                         [class.text-emerald-700]="$any(alert).status === 'dismissed' || $any(alert).status === 'cleared'"
                         [class.border-emerald-200]="$any(alert).status === 'dismissed' || $any(alert).status === 'cleared'"
-                        [class.bg-slate-50]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating')"
-                        [class.text-slate-600]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating')"
-                        [class.border-slate-200]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating')">
+                        [class.bg-slate-50]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating' && $any(alert).status !== 'blocked')"
+                        [class.text-slate-600]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating' && $any(alert).status !== 'blocked')"
+                        [class.border-slate-200]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating' && $any(alert).status !== 'blocked')">
                         <span class="h-1.5 w-1.5 rounded-full mr-1.5"
+                          [class.bg-white]="$any(alert).status === 'blocked'"
                           [class.bg-rose-500]="$any(alert).status === 'new' || $any(alert).status === 'under_investigation'"
                           [class.bg-amber-500]="$any(alert).status === 'investigating'"
                           [class.bg-emerald-500]="$any(alert).status === 'dismissed' || $any(alert).status === 'cleared'"
-                          [class.bg-slate-400]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating')"></span>{{ $any(alert).status || 'analyse' }}
+                          [class.bg-slate-400]="!$any(alert).status || ($any(alert).status !== 'new' && $any(alert).status !== 'dismissed' && $any(alert).status !== 'cleared' && $any(alert).status !== 'under_investigation' && $any(alert).status !== 'investigating' && $any(alert).status !== 'blocked')"></span>{{ $any(alert).status === 'blocked' ? '#bloqué' : ($any(alert).status || 'analyse') }}
                       </span>
                     </td>
                   </tr>

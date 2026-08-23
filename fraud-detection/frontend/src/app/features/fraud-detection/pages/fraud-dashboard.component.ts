@@ -284,12 +284,10 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   // Exposition des signaux du service — defensive for SSR/white-screen
   public filteredAlerts = computed(() => {
     try {
-      if (this.analysisMode() === 'supabase') {
-        const supa = this.supabaseResults();
-        return supa ? this.mapTransactionData(supa) : [];
-      }
-      const alerts = this.alertsService.alerts();
-      return Array.isArray(alerts) ? alerts : [];
+      const rawAlerts = this.alertsService.alerts();
+      const list = Array.isArray(rawAlerts) ? rawAlerts : [];
+      if (list.length === 0) return [];
+      return this.mapTransactionData(list);
     } catch {
       return [];
     }
@@ -302,7 +300,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   public supabaseResults = signal<TransactionOutput[] | null>(null);
 
   // Helper method to map TransactionOutput to TransactionOutputExtended
-  private mapTransactionData(items: TransactionOutput[]): TransactionOutputExtended[] {
+  private mapTransactionData(items: TransactionOutput[] | TransactionOutputExtended[]): TransactionOutputExtended[] {
     const cfg = this.editableThresholds();
     const seuil_high = cfg?.SEUIL_CONFIDENCE_HIGH ?? 85;
     const seuil_medium = cfg?.SEUIL_CONFIDENCE_MEDIUM ?? 70;
@@ -336,7 +334,17 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
       // Derive status: use backend isFraud, but also check auto-block rule
       const autoBlockEnabled = cfg?.AUTO_BLOCK_ENABLED ?? false;
       const seuilMl = cfg?.SEUIL_ML ?? 50;
-      const isFraudFinal = tx.isFraud || (autoBlockEnabled && score >= seuilMl);
+      const isBlocked = autoBlockEnabled && score >= seuilMl;
+      const isFraudFinal = tx.isFraud || isBlocked;
+
+      let derivedStatus: string;
+      if (isBlocked) {
+        derivedStatus = 'blocked';
+      } else if (isFraudFinal) {
+        derivedStatus = 'new';
+      } else {
+        derivedStatus = 'dismissed';
+      }
 
       return {
         ...tx,
@@ -347,7 +355,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         severity: derivedSeverity,
         beneficiary: beneficiaryVal,
         fraudScore: score,
-        status: isFraudFinal ? 'new' : 'dismissed',
+        status: derivedStatus,
         isFraud: isFraudFinal,
         fraudProbability: tx.fraudProbability ?? 0,
         reconciliationStatus: tx.reconciliationStatus ?? 'PENDING',

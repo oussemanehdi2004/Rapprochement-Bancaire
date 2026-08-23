@@ -99,6 +99,7 @@ export class FraudAlertsService {
         beneficiary: beneficiaryDisplay,
         fraudScore: score,
         status: tx.isFraud ? 'new' : 'dismissed',
+        isFraud: tx.isFraud ?? false,
         explainability: {
           ...tx.explainability,
           shap_contributions: tx.explainability?.shap_contributions || []
