@@ -752,12 +752,17 @@ async def analyze_transactions_secure(
                 for r in results:
                     if r.transaction_reference in existing_refs:
                         continue
-                    supabase.table("fraud_alerts").insert({
+                    insert_row = {
                         "tenant_id": r.tenant_id, "transaction_reference": r.transaction_reference, "transaction_id": r.id,
                         "date": r.date, "amount": r.amount, "is_fraud": r.isFraud, "fraud_probability": r.fraudProbability,
                         "score": r.score, "reconciliation_status": r.reconciliationStatus, "rule_category": r.ruleCategory, "explainability": r.explainability.model_dump(),
-                        "beneficiary": r.beneficiary, "beneficiary_iban": r.beneficiary_iban, "description": r.description,
-                    }).execute()
+                        "description": r.description,
+                    }
+                    if r.beneficiary:
+                        insert_row["beneficiary"] = r.beneficiary
+                    if r.beneficiary_iban:
+                        insert_row["beneficiary_iban"] = r.beneficiary_iban
+                    supabase.table("fraud_alerts").insert(insert_row).execute()
             except Exception as database_error:
                 raise HTTPException(status_code=502, detail="Échec de la sauvegarde des résultats.") from database_error
 
@@ -1149,9 +1154,11 @@ async def create_transaction(payload: TransactionCreatePayload, token_payload: d
         "reconciliation_status": (payload.reconciliationStatus or "UNMATCHED").upper(),
         "rule_category": payload.ruleCategory or "NON_CATEGORISE",
         "explainability": {"summary": "Créée manuellement", "factors": [], "shap_contributions": []},
-        "beneficiary": payload.beneficiary or payload.beneficiary_iban,
-        "beneficiary_iban": payload.beneficiary_iban or payload.beneficiary,
     }
+    if payload.beneficiary:
+        row["beneficiary"] = payload.beneficiary
+    if payload.beneficiary_iban:
+        row["beneficiary_iban"] = payload.beneficiary_iban
     try:
         res = db.table("fraud_alerts").insert(row).execute()
         inserted = res.data[0] if isinstance(res.data, list) and res.data else row

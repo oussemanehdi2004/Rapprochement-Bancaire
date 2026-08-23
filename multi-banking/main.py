@@ -272,12 +272,25 @@ async def parse_file(
             detail="Le fichier est vide",
         )
 
-    transactions = parse_content(
-        content=content,
-        normalized_format=normalized_format,
-        tenant_id=tenant_id,
-        bank_id=bank_id,
-    )
+    try:
+        transactions = parse_content(
+            content=content,
+            normalized_format=normalized_format,
+            tenant_id=tenant_id,
+            bank_id=bank_id,
+        )
+    except HTTPException:
+        raise
+    except KeyError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Colonne manquante dans le fichier : {e}. Vérifiez que le CSV contient les colonnes requises (account_iban, value_date, label, amount).",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Erreur lors de l'analyse du fichier : {e}",
+        )
 
     return {
         "success": True,
@@ -312,12 +325,25 @@ async def validate_file(
             detail="Le fichier est vide",
         )
 
-    transactions = parse_content(
-        content=content,
-        normalized_format=normalized_format,
-        tenant_id=tenant_id,
-        bank_id=bank_id,
-    )
+    try:
+        transactions = parse_content(
+            content=content,
+            normalized_format=normalized_format,
+            tenant_id=tenant_id,
+            bank_id=bank_id,
+        )
+    except HTTPException:
+        raise
+    except KeyError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Colonne manquante dans le fichier : {e}. Vérifiez que le CSV contient les colonnes requises (account_iban, value_date, label, amount).",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Erreur lors de l'analyse du fichier : {e}",
+        )
 
     validation_result = validate_transactions(transactions)
 
@@ -346,17 +372,30 @@ async def ingest_file(
             detail="Le fichier est vide",
         )
 
-    transactions = parse_content(
-        content=content,
-        normalized_format=normalized_format,
-        tenant_id=tenant_id,
-        bank_id=bank_id,
-    )
+    try:
+        transactions = parse_content(
+            content=content,
+            normalized_format=normalized_format,
+            tenant_id=tenant_id,
+            bank_id=bank_id,
+        )
+    except HTTPException:
+        raise
+    except KeyError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Colonne manquante dans le fichier : {e}. Vérifiez que le CSV contient les colonnes requises (account_iban, value_date, label, amount).",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Erreur lors de l'analyse du fichier : {e}",
+        )
 
     if not transactions:
         raise HTTPException(
             status_code=400,
-            detail="Aucune transaction n'a pou être extraite du fichier",
+            detail="Aucune transaction n'a pu être extraite du fichier",
         )
 
     fraud_payload = build_fraud_payload(transactions)

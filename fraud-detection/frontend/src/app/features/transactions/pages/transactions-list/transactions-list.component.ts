@@ -227,12 +227,21 @@ export class TransactionsListComponent {
     if (err && typeof err === 'object') {
       const e = err as Record<string, unknown>;
 
-      // Case 1: Angular HttpErrorResponse with parsed JSON body — e.g. { error: { detail: "..." } }
+      // Case 1: Angular HttpErrorResponse with parsed JSON body
       if (e['error'] && typeof e['error'] === 'object') {
         const errorBody = e['error'] as Record<string, unknown>;
+        // FastAPI default: { detail: "..." }
         if (typeof errorBody['detail'] === 'string' && errorBody['detail']) {
           return errorBody['detail'];
         }
+        // Custom handler: { success: false, error: { code, message } }
+        if (errorBody['error'] && typeof errorBody['error'] === 'object') {
+          const nested = errorBody['error'] as Record<string, unknown>;
+          if (typeof nested['message'] === 'string' && nested['message']) {
+            return nested['message'];
+          }
+        }
+        // Top-level message
         if (typeof errorBody['message'] === 'string' && errorBody['message']) {
           return errorBody['message'];
         }
@@ -243,16 +252,15 @@ export class TransactionsListComponent {
         try {
           const parsed = JSON.parse(e['error']);
           if (parsed?.detail) return String(parsed.detail);
+          if (parsed?.error?.message) return String(parsed.error.message);
           if (parsed?.message) return String(parsed.message);
         } catch {
-          // Not JSON — return the raw string if it looks meaningful
           const raw = (e['error'] as string).trim();
           if (raw.length > 0 && raw.length < 500) return raw;
         }
       }
 
       // Case 3: Angular HttpErrorResponse.message (generic "Http failure response for…")
-      // Only use as last resort — prefer the actual body
       if (typeof e['message'] === 'string' && e['message'] && !e['message'].startsWith('Http failure')) {
         return e['message'];
       }

@@ -181,14 +181,37 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
         throw new Error('Échec du traitement du fichier');
       }
     } catch (error: unknown) {
-      const raw = error instanceof Error ? error.message : String(error);
-      let userMsg = 'Une erreur inattendue est survenue lors de l’ingestion.';
+      let raw = 'Une erreur inattendue est survenue lors de l\'ingestion.';
+      if (error && typeof error === 'object') {
+        const e = error as Record<string, any>;
+        // Angular HttpErrorResponse: error.error contains the parsed body
+        if (e['error'] && typeof e['error'] === 'object') {
+          const body = e['error'];
+          raw = body.detail || body.message
+            || (body.error && typeof body.error === 'object' ? body.error.message : null)
+            || JSON.stringify(body);
+        } else if (e['error'] && typeof e['error'] === 'string') {
+          try {
+            const parsed = JSON.parse(e['error']);
+            raw = parsed.detail || parsed.message
+              || (parsed.error && typeof parsed.error === 'object' ? parsed.error.message : null)
+              || e['error'];
+          } catch { raw = e['error']; }
+        } else if (e['message'] && !String(e['message']).startsWith('Http failure')) {
+          raw = String(e['message']);
+        } else if (e['detail']) {
+          raw = String(e['detail']);
+        }
+      } else if (error instanceof Error) {
+        raw = error.message;
+      } else {
+        raw = String(error);
+      }
+      let userMsg = raw;
       if (raw.includes('Failed to fetch') || raw.includes('Http failure') || raw.includes('0 Unknown') || raw.includes('NetworkError')) {
-        userMsg = 'Service d’ingestion indisponible. Vérifiez que le backend Multi-Banking est démarré et accessible, puis réessayez.';
+        userMsg = 'Service d\'ingestion indisponible. Vérifiez que le backend Multi-Banking est démarré et accessible, puis réessayez.';
       } else if (raw.toLowerCase().includes('format') || raw.toLowerCase().includes('parse')) {
         userMsg = 'Format de fichier non pris en charge ou fichier corrompu. Vérifiez le format sélectionné (PAIN.001, CAMT.053, MT940, CSV).';
-      } else if (raw) {
-        userMsg = raw;
       }
       this.error = userMsg;
       this.stats.failed++;
