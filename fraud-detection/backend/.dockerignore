@@ -3,4 +3,11 @@ __pycache__/
 *.csv
 .git/
 thresholds.json
+.pytest_cache/
+.ruff.toml
+archive/
+sample_data/
+node_modules/
+venv/
+*.md
 

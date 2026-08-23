@@ -208,13 +208,26 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
         raw = String(error);
       }
       let userMsg = raw;
-      if (raw.includes('Failed to fetch') || raw.includes('Http failure') || raw.includes('0 Unknown') || raw.includes('NetworkError')) {
+
+      // Clean up raw JSON artifacts that may leak from backend error formatting
+      try {
+        const possibleJson = userMsg.match(/\{[\s\S]*\}/);
+        if (possibleJson) {
+          const parsed = JSON.parse(possibleJson[0]);
+          userMsg = parsed.detail || parsed.message
+            || (parsed.error && typeof parsed.error === 'object' ? parsed.error.message : null)
+            || userMsg;
+        }
+      } catch { /* not JSON, keep as-is */ }
+
+      if (userMsg.includes('Failed to fetch') || userMsg.includes('Http failure') || userMsg.includes('0 Unknown') || userMsg.includes('NetworkError')) {
         userMsg = 'Service d\'ingestion indisponible. Vérifiez que le backend Multi-Banking est démarré et accessible, puis réessayez.';
-      } else if (raw.toLowerCase().includes('format') || raw.toLowerCase().includes('parse')) {
+      } else if (userMsg.toLowerCase().includes('format') || userMsg.toLowerCase().includes('parse')) {
         userMsg = 'Format de fichier non pris en charge ou fichier corrompu. Vérifiez le format sélectionné (PAIN.001, CAMT.053, MT940, CSV).';
+      } else if (userMsg.toLowerCase().includes('service de fraude') || userMsg.toLowerCase().includes('fraud service')) {
+        userMsg = 'Le service de détection de fraude a retourné une erreur. Les données ont été parsées mais l\'analyse a échoué. Vérifiez la connexion au service de fraude.';
       }
       this.error = userMsg;
-      this.stats.failed++;
       this.toastService.error('Échec de l’ingestion', userMsg);
       
       this.recentUploads.unshift({
@@ -230,7 +243,8 @@ export class MultiBankingDashboardComponent implements OnInit, AfterViewInit {
       this.cdr.detectChanges();
     } finally {
       this.uploading = false;
-      this.cdr.detectChanges(); // Force UI update after completion
+      this.loadStats();
+      this.loadRecentUploads();
     }
   }
 

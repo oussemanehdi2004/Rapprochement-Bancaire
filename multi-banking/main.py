@@ -423,6 +423,7 @@ async def ingest_file(
     max_retries = 3
     backoff_seconds = 0.5
     response = None
+    fraud_error_msg = None
 
     async with httpx.AsyncClient() as client:
         for attempt in range(1, max_retries + 1):
@@ -448,29 +449,36 @@ async def ingest_file(
 
             except (httpx.RequestError, httpx.TimeoutException) as exc:
                 if attempt == max_retries:
-                    raise HTTPException(
-                        status_code=502,
-                        detail=f"Fraud service unreachable after {max_retries} retries: {exc}",
-                    )
+                    fraud_error_msg = f"Service de fraude indisponible après {max_retries} tentatives"
+                    logger.error(f"Fraud service unreachable: {exc}")
+                    break
                 logger.warning(
                     f"Fraud service request failed ({exc}). Retry {attempt}/{max_retries}..."
                 )
                 await asyncio.sleep(backoff_seconds * (2 ** (attempt - 1)))
 
-    if response is None or response.status_code != 200:
-        error_detail = response.text if response else "No response"
-        raise HTTPException(
-            status_code=502,
-            detail=f"Fraud service error: {error_detail}",
-        )
+    fraud_result = None
+    upload_status = "completed"
 
-    try:
-        fraud_result = response.json()
-    except ValueError:
-        raise HTTPException(
-            status_code=502,
-            detail="Fraud service returned an invalid JSON response",
-        )
+    if response is not None and response.status_code == 200:
+        try:
+            fraud_result = response.json()
+        except ValueError:
+            fraud_error_msg = "Réponse invalide du service de fraude"
+    elif fraud_error_msg is None:
+        # Service returned non-200 status
+        if response is not None:
+            try:
+                error_body = response.json()
+                fraud_error_msg = (
+                    error_body.get("detail")
+                    or (error_body.get("error", {}).get("message") if isinstance(error_body.get("error"), dict) else None)
+                    or f"Erreur HTTP {response.status_code} du service de fraude"
+                )
+            except (ValueError, AttributeError):
+                fraud_error_msg = f"Erreur HTTP {response.status_code} du service de fraude"
+        else:
+            fraud_error_msg = "Aucune réponse du service de fraude"
 
     bankmatch_result = None
 
@@ -507,14 +515,14 @@ async def ingest_file(
             )
             bankmatch_result = {"error": str(exc)}
 
-    # Update statistics
+    # Update statistics (always, regardless of fraud service result)
     upload_stats["total_files"] += 1
     upload_stats["total_transactions"] += len(transactions)
-    
-    # Determine status based on fraud_result
-    upload_status = "completed"
-    if fraud_result and isinstance(fraud_result, dict):
-        # Check if there were any errors in fraud analysis
+
+    if fraud_error_msg:
+        upload_status = "failed"
+        upload_stats["failed"] += 1
+    elif fraud_result and isinstance(fraud_result, dict):
         if fraud_result.get("error"):
             upload_status = "failed"
             upload_stats["failed"] += 1
@@ -522,8 +530,7 @@ async def ingest_file(
             upload_stats["successful"] += 1
     else:
         upload_stats["successful"] += 1
-    
-    # Store recent upload
+
     upload_record = {
         "id": str(uuid.uuid4()),
         "filename": file.filename,
@@ -532,13 +539,18 @@ async def ingest_file(
         "status": upload_status,
         "transaction_count": len(transactions),
         "uploaded_at": datetime.datetime.now().isoformat(),
-        "error_message": None if upload_status == "completed" else "Processing error"
+        "error_message": fraud_error_msg,
     }
-    
+
     recent_uploads.insert(0, upload_record)
-    # Keep only last 100 uploads
     if len(recent_uploads) > 100:
         recent_uploads.pop()
+
+    if fraud_error_msg:
+        raise HTTPException(
+            status_code=502,
+            detail=fraud_error_msg,
+        )
 
     return {
         "success": True,

@@ -207,6 +207,40 @@ else:
     supabase_admin = None
 
 
+_fraud_alerts_columns: set[str] = set()
+
+def _discover_fraud_alerts_columns() -> set[str]:
+    """Découvre les colonnes existantes de la table fraud_alerts au démarrage."""
+    global _fraud_alerts_columns
+    db = supabase_admin or supabase
+    if db is None:
+        return set()
+    try:
+        result = db.table("fraud_alerts").select("*").limit(1).execute()
+        if result.data:
+            _fraud_alerts_columns = set(result.data[0].keys())
+        else:
+            _fraud_alerts_columns = {
+                "id", "tenant_id", "transaction_id", "transaction_reference",
+                "date", "amount", "is_fraud", "fraud_probability", "score",
+                "reconciliation_status", "rule_category", "explainability",
+                "description", "created_at", "mongo_transaction_id",
+            }
+        logger.info(f"Colonnes fraud_alerts détectées: {sorted(_fraud_alerts_columns)}")
+    except Exception as e:
+        logger.warning(f"Impossible de découvrir le schéma fraud_alerts: {e}")
+        _fraud_alerts_columns = {
+            "id", "tenant_id", "transaction_id", "transaction_reference",
+            "date", "amount", "is_fraud", "fraud_probability", "score",
+            "reconciliation_status", "rule_category", "explainability",
+            "description", "created_at",
+        }
+    return _fraud_alerts_columns
+
+if supabase is not None or supabase_admin is not None:
+    _discover_fraud_alerts_columns()
+
+
 def _extract_supabase_error(exc: Exception) -> str:
     """Extrait un message utilisateur lisible depuis une exception Supabase."""
     msg = str(exc)
@@ -736,19 +770,16 @@ async def analyze_transactions_secure(
                     refs_to_check = [r.transaction_reference for r in results if r.transaction_reference]
                     if refs_to_check:
                         if use_payload_tenant:
-                            # Multi-tenant test : vérifie sans filtre tenant, ou par lot de tenants du payload
                             existing_q = supabase.table("fraud_alerts").select("transaction_reference,tenant_id").in_("transaction_reference", refs_to_check).execute()
                             if existing_q.data:
                                 existing_refs = { (row.get("tenant_id"), row.get("transaction_reference")) for row in existing_q.data if row.get("transaction_reference") }
-                                # Pour compatibilité avec la boucle dessous qui attendait un set de refs seules en mode prod
-                                # On garde un set de refs globales pour le cas mono-tenant, mais on filtrera par tuple en mode multi
                         else:
                             existing_q = supabase.table("fraud_alerts").select("transaction_reference").in_("transaction_reference", refs_to_check).eq("tenant_id", auth_tenant_id).execute()
                             if existing_q.data:
                                 existing_refs = { row.get("transaction_reference") for row in existing_q.data if row.get("transaction_reference") }
                 except Exception:
-                    # If dedup check fails, proceed without dedup (best effort)
                     pass
+                insert_errors = []
                 for r in results:
                     if r.transaction_reference in existing_refs:
                         continue
@@ -762,9 +793,17 @@ async def analyze_transactions_secure(
                         insert_row["beneficiary"] = r.beneficiary
                     if r.beneficiary_iban:
                         insert_row["beneficiary_iban"] = r.beneficiary_iban
-                    supabase.table("fraud_alerts").insert(insert_row).execute()
+                    if _fraud_alerts_columns:
+                        insert_row = {k: v for k, v in insert_row.items() if k in _fraud_alerts_columns}
+                    try:
+                        supabase.table("fraud_alerts").insert(insert_row).execute()
+                    except Exception as insert_err:
+                        insert_errors.append(str(insert_err))
+                        logger.warning(f"Échec d'insertion Supabase pour la transaction {r.id}: {insert_err}")
+                if insert_errors:
+                    logger.warning(f"{len(insert_errors)} échec(s) d'insertion Supabase sur {len(results)} transaction(s)")
             except Exception as database_error:
-                raise HTTPException(status_code=502, detail="Échec de la sauvegarde des résultats.") from database_error
+                logger.error(f"Erreur lors de la sauvegarde Supabase (non bloquante): {database_error}")
 
         logger.info(f"Temps de traitement : {(time.perf_counter() - start_time) * 1000:.2f} ms pour {len(results)} transaction(s)")
         return APIResponse(success=True, data=results)
@@ -1159,6 +1198,8 @@ async def create_transaction(payload: TransactionCreatePayload, token_payload: d
         row["beneficiary"] = payload.beneficiary
     if payload.beneficiary_iban:
         row["beneficiary_iban"] = payload.beneficiary_iban
+    if _fraud_alerts_columns:
+        row = {k: v for k, v in row.items() if k in _fraud_alerts_columns}
     try:
         res = db.table("fraud_alerts").insert(row).execute()
         inserted = res.data[0] if isinstance(res.data, list) and res.data else row
