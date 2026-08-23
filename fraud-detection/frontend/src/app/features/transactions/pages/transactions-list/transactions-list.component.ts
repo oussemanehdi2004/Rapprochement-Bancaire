@@ -241,6 +241,17 @@ export class TransactionsListComponent {
     };
 
     const id = this.editingId();
+    const originalList = [...this.transactions()];
+    
+    // Optimistic UI update
+    if (this.isCreating()) {
+      const tempId = `temp-${Date.now()}`;
+      const tempItem = { id: tempId, ...payload, transaction_reference: `REF-${Date.now()}`, tenant_id: 'default', isFraud: false, fraudProbability: 0 } as TransactionListItem;
+      this.transactions.update(list => [tempItem, ...list]);
+    } else if (id) {
+      this.transactions.update(list => list.map(t => t.id === id ? { ...t, ...payload } as TransactionListItem : t));
+    }
+    
     const req$ = this.isCreating() ? this.transactionsService.createTransaction(payload) : this.transactionsService.updateTransaction(id!, payload);
 
     req$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -248,13 +259,18 @@ export class TransactionsListComponent {
         this.ngZone.run(() => {
           this.saving.set(false);
           if (this.isCreating()) {
-            // Ajoute en tête de liste
-            const newItem = saved?.id ? saved : ({ id: `TX-${Date.now()}`, ...payload, transaction_reference: `REF-${Date.now()}`, tenant_id: 'default', isFraud: false, fraudProbability: 0 } as TransactionListItem);
-            this.transactions.update(list => [newItem, ...list]);
-            this.toastService.success('Succès', 'Transaction créée');
+            // Replace temp item with real data from server
+            const newItem = saved as TransactionListItem;
+            this.transactions.update(list => {
+              const filtered = list.filter(t => !t.id.startsWith('temp-'));
+              return [newItem, ...filtered];
+            });
+            this.toastService.success('Succès', 'Transaction créée et sauvegardée');
           } else {
-            this.transactions.update(list => list.map(t => t.id === id ? { ...t, ...payload, id: id! } as TransactionListItem : t));
-            this.toastService.success('Succès', 'Transaction mise à jour');
+            // Update with real data from server
+            const updatedItem = saved as TransactionListItem;
+            this.transactions.update(list => list.map(t => t.id === id ? updatedItem : t));
+            this.toastService.success('Succès', 'Transaction mise à jour et sauvegardée');
           }
           this.showEditModal.set(false);
           this.cdr.detectChanges();
@@ -263,19 +279,11 @@ export class TransactionsListComponent {
       error: (err: unknown) => {
         this.ngZone.run(() => {
           this.saving.set(false);
+          // Revert optimistic update on error
+          this.transactions.set(originalList);
           const msg = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde';
           this.toastService.error('Erreur', msg);
-          // Optimistic fallback même en erreur
-          if (this.isCreating()) {
-            const newItem = { id: `TX-${Date.now()}`, transaction_reference: `REF-${Date.now()}`, tenant_id: 'default', date: payload.date || new Date().toISOString(), description: payload.description!, amount: payload.amount!, isFraud: false, fraudProbability: 0, reconciliationStatus: payload.reconciliationStatus! } as TransactionListItem;
-            this.transactions.update(list => [newItem, ...list]);
-            this.showEditModal.set(false);
-            this.cdr.detectChanges();
-          } else if (id) {
-            this.transactions.update(list => list.map(t => t.id === id ? { ...t, ...payload } as TransactionListItem : t));
-            this.showEditModal.set(false);
-            this.cdr.detectChanges();
-          }
+          this.cdr.detectChanges();
         });
       }
     });
@@ -285,27 +293,27 @@ export class TransactionsListComponent {
     if (typeof window !== 'undefined' && !window.confirm(`Supprimer la transaction "${tx.description}" (${tx.amount} €) ?`)) {
       return;
     }
+    // Optimistic UI update - remove immediately
+    const originalList = [...this.transactions()];
+    this.transactions.update(list => list.filter(t => t.id !== tx.id));
+    
     this.transactionsService.deleteTransaction(tx.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.ngZone.run(() => {
-          this.transactions.update(list => list.filter(t => t.id !== tx.id));
           // Ajuste la pagination si page vide
           if (this.paginatedTransactions().length === 0 && this.currentPage() > 1) {
             this.currentPage.update(v => v - 1);
           }
-          this.toastService.success('Supprimé', 'Transaction supprimée');
+          this.toastService.success('Supprimé', 'Transaction supprimée avec succès');
           this.cdr.detectChanges();
         });
       },
       error: (err: unknown) => {
         this.ngZone.run(() => {
-          // Optimistic delete même si API échoue
-          this.transactions.update(list => list.filter(t => t.id !== tx.id));
-          if (this.paginatedTransactions().length === 0 && this.currentPage() > 1) {
-            this.currentPage.update(v => v - 1);
-          }
-          const msg = err instanceof Error ? err.message : 'Suppression locale effectuée (API non disponible)';
-          this.toastService.warning('Suppression locale', msg);
+          // Revert optimistic update on error
+          this.transactions.set(originalList);
+          const msg = err instanceof Error ? err.message : 'Erreur lors de la suppression';
+          this.toastService.error('Erreur', msg);
           this.cdr.detectChanges();
         });
       }

@@ -6,7 +6,10 @@
     "timeout": 30000,
     "proxyTimeout": 30000,
     "logLevel": "debug",
-    "xfwd": true
+    "xfwd": true,
+    "pathRewrite": {
+      "^/api": "/fraud/api"
+    }
   },
   "/api/analyze": {
     "target": "http://127.0.0.1:8006",
@@ -15,7 +18,10 @@
     "timeout": 30000,
     "proxyTimeout": 30000,
     "logLevel": "debug",
-    "xfwd": true
+    "xfwd": true,
+    "pathRewrite": {
+      "^/api": "/fraud/api"
+    }
   },
   "/api/config": {
     "target": "http://127.0.0.1:8006",
@@ -23,7 +29,10 @@
     "changeOrigin": true,
     "timeout": 10000,
     "proxyTimeout": 10000,
-    "logLevel": "debug"
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api": "/fraud/api"
+    }
   },
   "/api/graph": {
     "target": "http://127.0.0.1:8006",
@@ -31,7 +40,10 @@
     "changeOrigin": true,
     "timeout": 15000,
     "proxyTimeout": 15000,
-    "logLevel": "debug"
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api": "/fraud/api"
+    }
   },
   "/api/fraud": {
     "target": "http://127.0.0.1:8006",
@@ -39,7 +51,10 @@
     "changeOrigin": true,
     "timeout": 15000,
     "proxyTimeout": 15000,
-    "logLevel": "debug"
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api": "/fraud/api"
+    }
   },
   "/api/banking": {
     "target": "http://127.0.0.1:8010",
@@ -60,7 +75,10 @@
     "timeout": 0,
     "proxyTimeout": 0,
     "logLevel": "debug",
-    "ws": true
+    "ws": true,
+    "pathRewrite": {
+      "^/api": "/fraud/api"
+    }
   },
   "/api": {
     "target": "http://127.0.0.1:8006",
@@ -69,6 +87,9 @@
     "timeout": 15000,
     "proxyTimeout": 15000,
     "logLevel": "debug",
-    "xfwd": true
+    "xfwd": true,
+    "pathRewrite": {
+      "^/api": "/fraud/api"
+    }
   }
 }

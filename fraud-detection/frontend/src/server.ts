@@ -167,7 +167,9 @@ app.use('/api', async (req: Request, res: Response, next: NextFunction) => {
   }
 
   try {
-    const targetUrl = `${FRAUD_API_URL}${req.originalUrl}`;
+    // Rewrite path to include /fraud prefix for FastAPI root_path
+    const targetPath = req.originalUrl.replace('/api', '/fraud/api');
+    const targetUrl = `${FRAUD_API_URL}${targetPath}`;
 
     // Vérification du Token — utilise FRAUD_INTERNAL_SECRET pour les routes fraud
     const rawAuth = req.headers['authorization'];

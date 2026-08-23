@@ -63,14 +63,9 @@ export class TransactionsService {
   }
 
   deleteTransaction(id: string): Observable<void> {
-    // Essaye l'API, fallback local si 404/non implémenté
     return this.http.delete<{ success: boolean }>(`${this.baseUrl}/${id}`).pipe(
       map(() => void 0),
       catchError(err => {
-        // Si backend ne gère pas DELETE, on considère succès local et on laisse le composant gérer l'optimistic UI
-        if (err?.status === 404 || err?.status === 405 || err?.status === 0) {
-          return of(void 0);
-        }
         return throwError(() => err);
       })
     );
@@ -80,10 +75,6 @@ export class TransactionsService {
     return this.http.put<{ success: boolean; data: TransactionListItem }>(`${this.baseUrl}/${id}`, patch).pipe(
       map(res => res.data),
       catchError(err => {
-        if (err?.status === 404 || err?.status === 405 || err?.status === 0) {
-          // Fallback local : on renvoie le patch comme succès
-          return of({ id, ...patch } as TransactionListItem);
-        }
         return throwError(() => err);
       })
     );
@@ -93,23 +84,6 @@ export class TransactionsService {
     return this.http.post<{ success: boolean; data: TransactionListItem }>(this.baseUrl, payload).pipe(
       map(res => res.data),
       catchError(err => {
-        if (err?.status === 404 || err?.status === 405 || err?.status === 0) {
-          const newItem: TransactionListItem = {
-            id: `TX-${Date.now()}`,
-            transaction_reference: `REF-${Date.now()}`,
-            tenant_id: 'default',
-            date: new Date().toISOString(),
-            description: payload.description || 'Nouvelle transaction',
-            amount: payload.amount ?? 0,
-            isFraud: false,
-            fraudProbability: 0,
-            reconciliationStatus: (payload.reconciliationStatus as any) || 'UNMATCHED',
-            ruleCategory: payload.ruleCategory,
-            explainability: payload.explainability || null,
-            ...(payload as object)
-          } as TransactionListItem;
-          return of(newItem);
-        }
         return throwError(() => err);
       })
     );

@@ -36,6 +36,8 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:4200,http://127.0.0.1:4200}
       - RATE_LIMIT_REQUESTS=30
       - RATE_LIMIT_PERIOD=60
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
     depends_on:
       - neo4j_db
     networks:
