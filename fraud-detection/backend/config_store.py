@@ -42,6 +42,16 @@ DEFAULT_THRESHOLDS: dict[str, Any] = {
         "CASINO", "PARIS", "POKER", "BET", "PARI",
         "OFFSHORE", "CRYPTO", "BITCOIN", "HAVEN"
     ],
+    # Seuils configurables depuis l'UI Config Seuils
+    "SEUIL_ML": 50.0,                        # Seuil d'alerte ML (0-100)
+    "MONTANT_ANORMAL": 10_000.0,             # Montant anormal (EUR)
+    "SEUIL_MONTANT_CRITIQUE": 3_000.0,       # Seuil de montant critique (EUR)
+    "AUTO_BLOCK_ENABLED": False,             # Bloquer immédiatement si Score > seuil
+    "SEUIL_ACTION_BLOCKED": 70,              # Score >= ce seuil => BLOCKED
+    "SEUIL_ACTION_REVIEW": 40,               # Score >= ce seuil => REVIEW_NEEDED
+    "SEUIL_CONFIDENCE_HIGH": 85,             # Score >= ce seuil => confidence HIGH
+    "SEUIL_CONFIDENCE_MEDIUM": 70,           # Score >= ce seuil => confidence MEDIUM
+    "SEUIL_RECONCILIATION": 5_000.0,         # Montant > ce seuil => UNMATCHED
 }
 
 _lock = threading.Lock()
@@ -116,6 +126,8 @@ def update_thresholds(patch: dict[str, Any]) -> dict[str, Any]:
                     valid_updates[key] = float(val)
                 elif expected_type is int:
                     valid_updates[key] = int(val)
+                elif expected_type is bool:
+                    valid_updates[key] = bool(val)
                 elif expected_type is list:
                     valid_updates[key] = list(val)
                 else:

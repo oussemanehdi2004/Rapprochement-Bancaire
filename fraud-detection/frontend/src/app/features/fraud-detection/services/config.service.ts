@@ -17,6 +17,15 @@ export interface ThresholdsConfig {
   RATIO_MONTANT_INHABITUEL: number;
   SEUIL_JOURS_COMPTE_DORMANT: number;
   MOTS_CLES_SENSIBLES: string[];
+  SEUIL_ML: number;
+  MONTANT_ANORMAL: number;
+  SEUIL_MONTANT_CRITIQUE: number;
+  AUTO_BLOCK_ENABLED: boolean;
+  SEUIL_ACTION_BLOCKED: number;
+  SEUIL_ACTION_REVIEW: number;
+  SEUIL_CONFIDENCE_HIGH: number;
+  SEUIL_CONFIDENCE_MEDIUM: number;
+  SEUIL_RECONCILIATION: number;
 }
 
 export type ThresholdsModel = ThresholdsConfig;

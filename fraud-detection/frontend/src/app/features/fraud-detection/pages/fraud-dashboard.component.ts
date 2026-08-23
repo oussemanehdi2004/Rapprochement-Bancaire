@@ -303,12 +303,15 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
 
   // Helper method to map TransactionOutput to TransactionOutputExtended
   private mapTransactionData(items: TransactionOutput[]): TransactionOutputExtended[] {
+    const cfg = this.editableThresholds();
+    const seuil_high = cfg?.SEUIL_CONFIDENCE_HIGH ?? 85;
+    const seuil_medium = cfg?.SEUIL_CONFIDENCE_MEDIUM ?? 70;
     return items.map(tx => {
       const score = tx.fraudProbability ? Math.round(tx.fraudProbability * 100) : 0;
 
       let derivedConfidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
-      if (score >= 85) derivedConfidence = 'HIGH';
-      else if (score >= 70) derivedConfidence = 'MEDIUM';
+      if (score >= seuil_high) derivedConfidence = 'HIGH';
+      else if (score >= seuil_medium) derivedConfidence = 'MEDIUM';
       else derivedConfidence = 'LOW';
 
       let derivedSeverity: 'critical' | 'high' | 'medium' | 'low' = 'low';
@@ -330,6 +333,11 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
       const beneficiaryRaw = (rawAny['beneficiary_iban'] as string) || (rawAny['beneficiary'] as string) || (rawAny['receiver_account'] as string) || (rawAny['counterparty_iban'] as string) || null;
       const beneficiaryVal = beneficiaryRaw && String(beneficiaryRaw).trim().length > 0 ? String(beneficiaryRaw) : '—';
 
+      // Derive status: use backend isFraud, but also check auto-block rule
+      const autoBlockEnabled = cfg?.AUTO_BLOCK_ENABLED ?? false;
+      const seuilMl = cfg?.SEUIL_ML ?? 50;
+      const isFraudFinal = tx.isFraud || (autoBlockEnabled && score >= seuilMl);
+
       return {
         ...tx,
         tenantId: tx.tenant_id,
@@ -339,8 +347,8 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         severity: derivedSeverity,
         beneficiary: beneficiaryVal,
         fraudScore: score,
-        status: tx.isFraud ? 'new' : 'dismissed',
-        isFraud: tx.isFraud ?? false,
+        status: isFraudFinal ? 'new' : 'dismissed',
+        isFraud: isFraudFinal,
         fraudProbability: tx.fraudProbability ?? 0,
         reconciliationStatus: tx.reconciliationStatus ?? 'PENDING',
         explainability: {
@@ -423,6 +431,11 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     const newThreshold = Number(this.mlThreshold);
     this.appliedMlThreshold.set(newThreshold);
     this.currentSimulation.set({ mlProbability: newThreshold, abnormalAmount: this.currentSimulation().abnormalAmount });
+    // Sync with editableThresholds so next saveThresholds() picks up the value
+    const cfg = this.editableThresholds();
+    if (cfg) {
+      this.editableThresholds.set({ ...cfg, SEUIL_ML: newThreshold, MONTANT_ANORMAL: this.currentSimulation().abnormalAmount });
+    }
     if (this.alertsService.alerts().length > 0) {
       this.alertsService.updateStats(this.alertsService.alerts());
     }
@@ -457,6 +470,8 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     COLLUSION_SUSPECTE: 'Collusion suspecte (graphe)',
     DONNEE_INVALIDE: 'Donnée invalide',
     NON_CATEGORISE: 'Non catégorisé',
+    MONTANT_ANORMAL: 'Montant anormal (seuil configuré)',
+    SEUIL_MONTANT_CRITIQUE: 'Seuil montant critique dépassé',
   };
 
   public ruleCategoryLabel(cat: string): string {
@@ -679,6 +694,15 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.configService.getThresholds().subscribe({
       next: (cfg) => {
         this.editableThresholds.set(cfg);
+        // Sync local UI variables from backend config
+        this.mlThreshold = cfg.SEUIL_ML ?? 50.0;
+        this.appliedMlThreshold.set(this.mlThreshold);
+        this.criticalAmountThreshold = cfg.SEUIL_MONTANT_CRITIQUE ?? 3000;
+        this.autoBlockEnabled = cfg.AUTO_BLOCK_ENABLED ?? false;
+        this.currentSimulation.set({
+          mlProbability: this.mlThreshold,
+          abnormalAmount: cfg.MONTANT_ANORMAL ?? 10000
+        });
         this.configLoading.set(false);
       },
       error: (err) => {
@@ -689,27 +713,50 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   }
 
   public saveThresholds(): void {
-    const cfg = this.editableThresholds();
+    let cfg = this.editableThresholds();
     if (!cfg) return;
+    // Push local UI values to the config before saving
+    cfg = {
+      ...cfg,
+      SEUIL_ML: this.mlThreshold,
+      MONTANT_ANORMAL: this.currentSimulation().abnormalAmount,
+      SEUIL_MONTANT_CRITIQUE: this.criticalAmountThreshold,
+      AUTO_BLOCK_ENABLED: this.autoBlockEnabled,
+    };
+    this.editableThresholds.set(cfg);
     this.configError.set(null);
     this.configSaved.set(false);
     this.configLoading.set(true);
     this.configService.updateThresholds(cfg).subscribe({
       next: (updated) => {
         this.editableThresholds.set(updated);
+        // Sync local UI variables from saved config
+        this.mlThreshold = updated.SEUIL_ML ?? this.mlThreshold;
+        this.appliedMlThreshold.set(this.mlThreshold);
+        this.criticalAmountThreshold = updated.SEUIL_MONTANT_CRITIQUE ?? this.criticalAmountThreshold;
+        this.autoBlockEnabled = updated.AUTO_BLOCK_ENABLED ?? this.autoBlockEnabled;
+        this.currentSimulation.set({
+          mlProbability: this.mlThreshold,
+          abnormalAmount: updated.MONTANT_ANORMAL ?? this.currentSimulation().abnormalAmount
+        });
         this.configLoading.set(false);
         this.configSaved.set(true);
-        // Forcer recalcul des graphiques après changement de seuils backend (APPROVED/BLOCKED)
-        // On relance une analyse légère si des données existent pour refléter le nouveau scoring côté backend
-        if (this.alertsService.alerts().length > 0) {
-          // On déclenche un re-render via la simulation courante
-          this.appliedMlThreshold.set(this.appliedMlThreshold());
-          this.alertsService.updateStats(this.alertsService.alerts());
+        // Re-analyze existing data to reflect new thresholds
+        if (this.alertsService.alerts().length > 0 || this.supabaseResults()?.length) {
+          if (this.analysisMode() === 'supabase') {
+            this.loadSupabasePersistedData();
+          } else {
+            this.analyze();
+          }
+        } else {
+          this.ngZone.run(() => {
+            this.cdr.detectChanges();
+            setTimeout(() => this.cdr.detectChanges(), 50);
+          });
         }
-        this.ngZone.run(() => {
-          this.cdr.detectChanges();
-          setTimeout(() => this.cdr.detectChanges(), 50);
-        });
+        if (isPlatformBrowser(this.platformId)) {
+          setTimeout(() => this.configSaved.set(false), 3000);
+        }
       },
       error: (err) => {
         this.configLoading.set(false);

@@ -63,7 +63,9 @@ RULE_WEIGHTS = {
     "PAIEMENT_REPETITIF": 60,
     "PAIEMENT_DUPLIQUE": 30,
     "CHANGEMENT_DEVICE": 70,
-    "CHANGEMENT_GEOLOC": 85
+    "CHANGEMENT_GEOLOC": 85,
+    "MONTANT_ANORMAL": 75,
+    "SEUIL_MONTANT_CRITIQUE": 55,
 }
 
 # Cache en mémoire pour la vélocité (à remplacer par Redis si plusieurs workers FastAPI)
@@ -167,6 +169,8 @@ def apply_business_rules(
     ratio_montant_inhabituel = cfg.get("RATIO_MONTANT_INHABITUEL", RATIO_MONTANT_INHABITUEL)
     seuil_jours_dormant = cfg.get("SEUIL_JOURS_COMPTE_DORMANT", SEUIL_JOURS_COMPTE_DORMANT)
     keyword_patterns = _build_keyword_patterns(cfg.get("MOTS_CLES_SENSIBLES", PATTERNS_MOTS_CLES_SENSIBLES))
+    montant_anormal = cfg.get("MONTANT_ANORMAL", 10_000.0)
+    seuil_montant_critique = cfg.get("SEUIL_MONTANT_CRITIQUE", 3_000.0)
 
     amount = float(transaction.get("amount", 0))
     description = str(transaction.get("description", ""))
@@ -203,6 +207,18 @@ def apply_business_rules(
         score += RULE_WEIGHTS["RETRAIT_CASH_IMPORTANT"]
         triggered_categories.append("RETRAIT_CASH_IMPORTANT")
         factors.append("Retrait cash important")
+
+    # Règle : Montant anormal (seuil configuré depuis l'UI)
+    if amount > montant_anormal:
+        score += RULE_WEIGHTS["MONTANT_EXCEPTIONNEL"]
+        triggered_categories.append("MONTANT_ANORMAL")
+        factors.append(f"Montant anormal détecté ({amount:,.0f} € > seuil {montant_anormal:,.0f} €)")
+
+    # Règle : Seuil montant critique (seuil configuré depuis l'UI)
+    if amount > seuil_montant_critique:
+        score += RULE_WEIGHTS["SEUIL_APPROCHE"]
+        triggered_categories.append("SEUIL_MONTANT_CRITIQUE")
+        factors.append(f"Montant critique dépassé ({amount:,.0f} € > seuil {seuil_montant_critique:,.0f} €)")
 
     desc_upper = description.upper()
     for pattern in keyword_patterns:
@@ -272,12 +288,21 @@ def apply_business_rules(
     # --- ÉVALUATION FINALE ---
     final_score = min(score, 100)
     
-    if final_score >= 70:
+    seuil_blocked = cfg.get("SEUIL_ACTION_BLOCKED", 70)
+    seuil_review = cfg.get("SEUIL_ACTION_REVIEW", 40)
+    auto_block_enabled = cfg.get("AUTO_BLOCK_ENABLED", False)
+    seuil_ml = cfg.get("SEUIL_ML", 50.0)
+    
+    if final_score >= seuil_blocked:
         action = "BLOCKED"
-    elif final_score >= 40:
+    elif final_score >= seuil_review:
         action = "REVIEW_NEEDED"
     else:
         action = "APPROVED"
+
+    # Auto-block : si activé et score >= seuil_ml, forcer BLOCKED
+    if auto_block_enabled and final_score >= seuil_ml:
+        action = "BLOCKED"
 
     if not triggered_categories:
         triggered_categories.append("NON_CATEGORISE")
@@ -346,15 +371,19 @@ def _detect_fractionnement(transactions: list[dict], findings: dict[str, dict]) 
 def _ajouter_finding(findings: dict[str, dict], tx_id: str | None, categorie: str, message: str) -> None:
     if not tx_id:
         return
+    cfg = get_thresholds()
     entry = findings[tx_id]
     poids = RULE_WEIGHTS.get(categorie, 50)
     
     nouveau_score = min(entry["score"] + poids, 100)
     entry["score"] = nouveau_score
     
-    if nouveau_score >= 70:
+    seuil_blocked = cfg.get("SEUIL_ACTION_BLOCKED", 70)
+    seuil_review = cfg.get("SEUIL_ACTION_REVIEW", 40)
+    
+    if nouveau_score >= seuil_blocked:
         entry["action"] = "BLOCKED"
-    elif nouveau_score >= 40:
+    elif nouveau_score >= seuil_review:
         entry["action"] = "REVIEW_NEEDED"
         
     if categorie not in entry["categories"]:

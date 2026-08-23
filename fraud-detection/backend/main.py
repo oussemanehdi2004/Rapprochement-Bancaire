@@ -236,6 +236,7 @@ RULE_SEVERITY_WEIGHTS = {
     "SEUIL_REGLEMENTAIRE": 0.95, "MOTCLE_SENSIBLE": 0.90, "FRACTIONNEMENT_SUSPECT": 0.85,
     "RETRAIT_CASH_IMPORTANT": 0.80, "MONTANT_EXCEPTIONNEL": 0.75, "PAIEMENT_DUPLIQUE": 0.60,
     "NOUVEL_IBAN": 0.55, "COMPTE_RAREMENT_UTILISE": 0.50, "SEUIL_APPROCHE": 0.45,
+    "MONTANT_ANORMAL": 0.78, "SEUIL_MONTANT_CRITIQUE": 0.65,
 }
 
 def fuse_scores(ml_probability: float, rule_category: Optional[str], is_blocked: bool, isolation_anomaly_score: float = 0.0, batch_probability: float = 0.0) -> float:
@@ -303,10 +304,14 @@ class TransactionOutput(BaseModel):
     beneficiary_iban: Optional[str] = None
     explainability: ExplainabilityOutput
 
-def probability_to_confidence(probability: float) -> dict:
+def probability_to_confidence(probability: float, cfg: dict | None = None) -> dict:
     score = round(probability * 100)
-    if score >= 85: confidence = "HIGH"
-    elif score >= 70: confidence = "MEDIUM"
+    if cfg is None:
+        cfg = get_thresholds()
+    seuil_high = cfg.get("SEUIL_CONFIDENCE_HIGH", 85)
+    seuil_medium = cfg.get("SEUIL_CONFIDENCE_MEDIUM", 70)
+    if score >= seuil_high: confidence = "HIGH"
+    elif score >= seuil_medium: confidence = "MEDIUM"
     else: confidence = "LOW"
     return {"score": score, "confidence": confidence}
 
@@ -492,6 +497,7 @@ def extract_rule_evaluation(tx: TransactionInput, batch_finding: Optional[dict] 
     return rule_flag, rule_reason, rule_category, rule_factors, batch_score, individual_rule_score
 
 def build_transaction_output(tx: TransactionInput, batch_finding: Optional[dict] = None, account_aggregate: Optional[dict] = None, beneficiary_history: Optional[List[dict]] = None) -> TransactionOutput:
+    cfg = get_thresholds()
     rule_flag, rule_reason, rule_category, factors_from_rules, batch_score, individual_rule_score = extract_rule_evaluation(tx, batch_finding, account_aggregate, beneficiary_history)
 
     model_flag, raw_ml_probability = False, 0.0
@@ -548,14 +554,14 @@ def build_transaction_output(tx: TransactionInput, batch_finding: Optional[dict]
     else: summary_text = "Aucune anomalie détectée par l'IA ou les filtres métiers."
 
     if is_fraud: rec_status = "SUSPICIOUS"
-    elif tx.amount > 5000: rec_status = "UNMATCHED"
+    elif tx.amount > cfg.get("SEUIL_RECONCILIATION", 5000): rec_status = "UNMATCHED"
     else: rec_status = "MATCHED"
 
     beneficiary_val = tx.beneficiary_iban or tx.receiver_account or None
     return TransactionOutput(
         tenant_id=tx.tenant_id, transaction_reference=tx.transaction_reference, id=tx.id, date=tx.date, description=tx.description, amount=tx.amount,
-        isFraud=is_fraud, fraudProbability=final_fraud_probability, score=probability_to_confidence(final_fraud_probability)["score"],
-        confidence=probability_to_confidence(final_fraud_probability)["confidence"], reconciliationStatus=rec_status, ruleCategory=rule_category,
+        isFraud=is_fraud, fraudProbability=final_fraud_probability, score=probability_to_confidence(final_fraud_probability, cfg)["score"],
+        confidence=probability_to_confidence(final_fraud_probability, cfg)["confidence"], reconciliationStatus=rec_status, ruleCategory=rule_category,
         beneficiary=beneficiary_val, beneficiary_iban=beneficiary_val,
         explainability=ExplainabilityOutput(summary=summary_text, factors=factors_text, shap_contributions=shap_contributions_list)
     )
@@ -727,6 +733,15 @@ class ThresholdsModel(BaseModel):
     RATIO_MONTANT_INHABITUEL: float
     SEUIL_JOURS_COMPTE_DORMANT: int
     MOTS_CLES_SENSIBLES: List[str]
+    SEUIL_ML: float = 50.0
+    MONTANT_ANORMAL: float = 10_000.0
+    SEUIL_MONTANT_CRITIQUE: float = 3_000.0
+    AUTO_BLOCK_ENABLED: bool = False
+    SEUIL_ACTION_BLOCKED: int = 70
+    SEUIL_ACTION_REVIEW: int = 40
+    SEUIL_CONFIDENCE_HIGH: int = 85
+    SEUIL_CONFIDENCE_MEDIUM: int = 70
+    SEUIL_RECONCILIATION: float = 5_000.0
 
 class ThresholdsPatch(BaseModel):
     SEUIL_REGLEMENTAIRE: Optional[float] = None
@@ -736,6 +751,15 @@ class ThresholdsPatch(BaseModel):
     RATIO_MONTANT_INHABITUEL: Optional[float] = None
     SEUIL_JOURS_COMPTE_DORMANT: Optional[int] = None
     MOTS_CLES_SENSIBLES: Optional[List[str]] = None
+    SEUIL_ML: Optional[float] = None
+    MONTANT_ANORMAL: Optional[float] = None
+    SEUIL_MONTANT_CRITIQUE: Optional[float] = None
+    AUTO_BLOCK_ENABLED: Optional[bool] = None
+    SEUIL_ACTION_BLOCKED: Optional[int] = None
+    SEUIL_ACTION_REVIEW: Optional[int] = None
+    SEUIL_CONFIDENCE_HIGH: Optional[int] = None
+    SEUIL_CONFIDENCE_MEDIUM: Optional[int] = None
+    SEUIL_RECONCILIATION: Optional[float] = None
 
 @app.get("/api/config/thresholds", response_model=APIResponse[ThresholdsModel])
 async def get_config_thresholds(token_payload: dict = Depends(get_optional_context)):

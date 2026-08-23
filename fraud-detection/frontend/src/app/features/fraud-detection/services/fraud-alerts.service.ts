@@ -122,7 +122,7 @@ export class FraudAlertsService {
       map((res) => this.mapTransactionData(res.data)),
       tap((data) => {
         const newAlerts = Array.isArray(data) ? data : [data];
-        this.alerts.set([...newAlerts, ...this.alerts()]);
+        this.alerts.set(newAlerts);
         this.updateStats(this.alerts());
         this.loading.set(false);
       }),
