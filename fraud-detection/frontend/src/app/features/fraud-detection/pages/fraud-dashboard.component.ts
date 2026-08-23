@@ -287,6 +287,8 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
 
   // Analysis mode to track data source
   public analysisMode = signal<'local' | 'supabase'>('local');
+  private lastImportedTransactions = signal<CsvTransaction[] | null>(null);
+  private lastImportedTenantId = signal<string | null>(null);
 
   // Exposition des signaux du service — defensive for SSR/white-screen
   public filteredAlerts = computed(() => {
@@ -760,6 +762,9 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         if (this.alertsService.alerts().length > 0 || this.supabaseResults()?.length) {
           if (this.analysisMode() === 'supabase') {
             this.loadSupabasePersistedData();
+          } else if (this.lastImportedTransactions()) {
+            // Réutiliser les transactions CSV importées plutôt que les données démo
+            this.runAnalysis(this.lastImportedTransactions()!);
           } else {
             this.analyze();
           }
@@ -963,6 +968,8 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.importError.set(null);
     this.importedFileName.set(null);
     this.supabaseResults.set(null);
+    this.lastImportedTransactions.set(null);
+    this.lastImportedTenantId.set(null);
     this.analysisMode.set('local');
     this.resetLocalAlerts();
     this.analyze();
@@ -974,6 +981,10 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.supabaseResults.set(null);
     this.analysisMode.set('local');
     this.resetLocalAlerts();
+
+    // Sauvegarder les transactions importées pour réutilisation après modification des seuils
+    this.lastImportedTransactions.set(transactions);
+    this.lastImportedTenantId.set(this.graphTenantId());
 
     // Générer un tenant_id unique pour cet import CSV afin d'isoler le graphe
     const currentUser = this.authService?.getCurrentUser();
