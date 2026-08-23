@@ -125,6 +125,13 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
       });
       this.hasLoadError.set(false);
       this.errorMessage.set(null);
+
+      // Sync graphTenantId from auth service (now loaded eagerly in constructor)
+      const currentUser = this.authService?.getCurrentUser();
+      if (currentUser?.tenantId) {
+        this.graphTenantId.set(currentUser.tenantId);
+      }
+
       // Abonnement au rafraîchissement global (Multi-Banking ingest ou Fraud CSV)
       this.dataRefreshService.refresh$
         .pipe(takeUntilDestroyed(this.destroyRef))
@@ -781,7 +788,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ===== ÉTAT DU GRAPHE =====
-  public graphTenantId = signal<string>(this.authService?.getCurrentUser()?.tenantId || 'default');
+  public graphTenantId = signal<string>('default');
   public topAccounts = signal<GraphAccountNode[]>([]);
   public selectedIban = signal<string | null>(null);
   public networkData = signal<GraphNetworkResponse | null>(null);
@@ -968,15 +975,17 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.analysisMode.set('local');
     this.resetLocalAlerts();
 
-    // Mettre à jour le tenant_id du graphe avec celui du CSV importé
-    const tenantId = transactions.length > 0 && transactions[0].tenant_id 
-      ? transactions[0].tenant_id 
-      : this.graphTenantId();
+    // Générer un tenant_id unique pour cet import CSV afin d'isoler le graphe
+    const currentUser = this.authService?.getCurrentUser();
+    const baseTenant = currentUser?.tenantId || 'default';
+    const csvTenantId = transactions.length > 0 && transactions[0].tenant_id && transactions[0].tenant_id !== 'default'
+      ? transactions[0].tenant_id
+      : `${baseTenant}_import_${Date.now()}`;
     
-    this.graphTenantId.set(tenantId);
-    console.log(`Graph tenant ID updated to: ${tenantId}`);
+    this.graphTenantId.set(csvTenantId);
+    console.log(`Graph tenant ID updated to: ${csvTenantId}`);
 
-    this.alertsService.analyzeTransactions(transactions, tenantId).subscribe({
+    this.alertsService.analyzeTransactions(transactions, csvTenantId).subscribe({
       next: (res) => {
         console.log('Import CSV analysé avec succès', res);
         this.ngZone.run(() => {
@@ -1166,18 +1175,19 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.saveCurrentAsPrevious();
     this.resetLocalAlerts();
 
-    // Utiliser le tenant_id de l'utilisateur connecté
+    // Générer un tenant_id unique par session de démo pour isoler chaque graphe
     const currentUser = this.authService?.getCurrentUser();
-    const tenantId = currentUser?.tenantId || this.graphTenantId();
+    const baseTenant = currentUser?.tenantId || 'default';
+    const sessionTenantId = `${baseTenant}_session_${Date.now()}`;
     
     // Mettre à jour le tenant_id du graphe
-    this.graphTenantId.set(tenantId);
-    console.log(`Graph tenant ID updated to: ${tenantId}`);
+    this.graphTenantId.set(sessionTenantId);
+    console.log(`Graph tenant ID updated to: ${sessionTenantId}`);
 
-    // Appliquer le tenant_id aux transactions mock si nécessaire
-    const transactionsWithTenant = this.getMockTransactionsToAnalyze(tenantId);
+    // Appliquer le tenant_id aux transactions mock
+    const transactionsWithTenant = this.getMockTransactionsToAnalyze(sessionTenantId);
 
-    this.alertsService.analyzeTransactions(transactionsWithTenant, tenantId).subscribe({
+    this.alertsService.analyzeTransactions(transactionsWithTenant, sessionTenantId).subscribe({
       next: (resultats: TransactionOutputExtended[]) => {
         this.ngZone.run(() => {
           console.log('Analyse démo terminée avec succès', resultats);
@@ -1237,9 +1247,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     this.hasLoadError.set(false);
     this.errorMessage.set(null);
     
-    // Utiliser le tenant_id de l'utilisateur connecté
-    const currentUser = this.authService?.getCurrentUser();
-    const tenantId = currentUser?.tenantId || this.graphTenantId();
+    const tenantId = this.graphTenantId();
     
     const mockAlerts: TransactionOutputExtended[] = [
       {
@@ -1402,13 +1410,15 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
     // Save current data as previous for trend calculation
     this.saveCurrentAsPrevious();
 
-    // Utiliser le tenant_id de l'utilisateur connecté
+    // Générer un tenant_id unique pour cette session Supabase
     const currentUser = this.authService?.getCurrentUser();
-    const tenantId = currentUser?.tenantId || this.graphTenantId();
+    const baseTenant = currentUser?.tenantId || 'default';
+    const sessionTenantId = `${baseTenant}_supabase_${Date.now()}`;
+    this.graphTenantId.set(sessionTenantId);
 
     const transactionsSupabase = [
       {
-        tenant_id: tenantId,
+        tenant_id: sessionTenantId,
         transaction_reference: "mongo_supa_001",
         id: "tx_montant_except",
         date: "2026-08-13T09:00:00Z",
@@ -1423,7 +1433,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         beneficiary_iban: "FR76-BENEF-A1"
       },
       {
-        tenant_id: tenantId,
+        tenant_id: sessionTenantId,
         transaction_reference: "mongo_supa_002",
         id: "tx_compte_dormant",
         date: "2026-08-14T09:05:00Z",
@@ -1438,7 +1448,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
         beneficiary_iban: "FR76-BENEF-B1"
       },
       {
-        tenant_id: tenantId,
+        tenant_id: sessionTenantId,
         transaction_reference: "mongo_supa_003",
         id: "tx_nouvel_iban",
         date: "2026-08-15T09:10:00Z",
@@ -1515,9 +1525,7 @@ export class FraudDashboardComponent implements OnInit, OnDestroy {
   }
 
   private useMockSupabaseData(): void {
-    // Utiliser le tenant_id de l'utilisateur connecté
-    const currentUser = this.authService?.getCurrentUser();
-    const tenantId = currentUser?.tenantId || this.graphTenantId();
+    const tenantId = this.graphTenantId();
 
     const mockSupabaseResults: TransactionOutput[] = [
       {

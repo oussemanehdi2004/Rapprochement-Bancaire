@@ -964,27 +964,21 @@ if not IS_PRODUCTION:
     @app.post("/api/analyze-demo", response_model=APIResponse[List[TransactionOutput]])
     async def analyze_transactions_demo(transactions: List[TransactionInput], tenant_id: Optional[str] = None):
         """Endpoint de démonstration sans authentification pour le développement."""
-        logger.info(f"Accès API démo (sans authentification). Tenant ID: {tenant_id or 'non spécifié'}")
+        # Priorité: payload tenant_id > query param tenant_id > 'default'
+        effective_tenant_id = tenant_id or 'default'
+        if transactions and transactions[0].tenant_id and transactions[0].tenant_id != 'default':
+            effective_tenant_id = transactions[0].tenant_id
+        logger.info(f"Accès API démo (sans authentification). Tenant ID effectif: {effective_tenant_id}")
         start_time = time.perf_counter()
         
         try:
-            # Appliquer le tenant_id aux transactions si fourni
-            if tenant_id:
-                for tx in transactions:
-                    if not tx.tenant_id or tx.tenant_id == "default":
-                        tx.tenant_id = tenant_id
+            # S'assurer que toutes les transactions ont le bon tenant_id
+            for tx in transactions:
+                if not tx.tenant_id or tx.tenant_id == "default":
+                    tx.tenant_id = effective_tenant_id
             
+            # analyze_batch synchronise déjà avec Neo4j via graph_engine.sync_transaction
             results = analyze_batch(transactions)
-            
-            # Synchroniser avec Neo4j pour les graphes (comme dans l'endpoint principal)
-            if graph_engine is not None:
-                for tx, result in zip(transactions, results):
-                    tx_dict = tx.model_dump()
-                    try: 
-                        graph_engine.sync_transaction(tx_dict, result.isFraud, result.ruleCategory)
-                        logger.info(f"Transaction {tx_dict.get('id')} synchronisée avec Neo4j (tenant: {tx_dict.get('tenant_id')})")
-                    except Exception as e:
-                        logger.warning(f"Échec de synchronisation Neo4j pour transaction {tx_dict.get('id')}: {e}")
             
             logger.info(f"Temps de traitement démo : {(time.perf_counter() - start_time) * 1000:.2f} ms pour {len(results)} transaction(s)")
             return APIResponse(success=True, data=results)

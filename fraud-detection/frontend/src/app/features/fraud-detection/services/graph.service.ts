@@ -57,12 +57,12 @@ export class GraphService {
       actualDepth = ibanOrDepth;
     }
 
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set('iban', iban)
       .set('depth', actualDepth.toString());
 
     if (tenantId) {
-      params.set('tenant_id', tenantId);
+      params = params.set('tenant_id', tenantId);
     }
 
     return this.http
@@ -74,10 +74,10 @@ export class GraphService {
   }
 
   getTopFlaggedAccounts(tenantId?: string, limit = 10): Observable<TopAccount[]> {
-    const params = new HttpParams().set('limit', limit.toString());
+    let params = new HttpParams().set('limit', limit.toString());
 
     if (tenantId) {
-      params.set('tenant_id', tenantId);
+      params = params.set('tenant_id', tenantId);
     }
 
     return this.http

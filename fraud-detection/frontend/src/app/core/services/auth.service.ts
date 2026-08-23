@@ -45,7 +45,9 @@ export class AuthService {
 
   private apiUrl = '/api';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    this.loadUserFromSession();
+  }
 
   private loadUserFromSession(): void {
     if (!isPlatformBrowser(this.platformId)) {
