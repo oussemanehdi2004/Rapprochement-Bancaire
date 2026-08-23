@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import datetime
+import hashlib
 import io
 import json
 import logging
@@ -774,44 +775,63 @@ async def put_config_thresholds(patch: ThresholdsPatch, token_payload: dict = De
 class GraphEdge(BaseModel): source: str; target: str; amount: float; is_fraud: bool; tx_id: str
 class GraphNetworkResponse(BaseModel): center_iban: str; nodes: List[str]; edges: List[GraphEdge]
 
+def _mock_ibans_for_tenant(tenant_id: str, count: int = 3) -> list[str]:
+    """Génère des IBANs mock déterministes uniques par tenant_id."""
+    ibans = []
+    for i in range(count):
+        seed = hashlib.sha256(f"{tenant_id}:account:{i}".encode()).hexdigest()
+        digits = ''.join(c for c in seed if c.isdigit())[:23]
+        ibans.append(f"FR76{digits}")
+    return ibans
+
+def _mock_top_accounts_for_tenant(tenant_id: str, limit: int = 3) -> list[dict]:
+    ibans = _mock_ibans_for_tenant(tenant_id, count=min(limit, 5))
+    categories_pool = [
+        ["SEUIL_REGLEMENTAIRE", "MOTCLE_SENSIBLE"],
+        ["SEUIL_REGLEMENTAIRE"],
+        ["FRACTIONNEMENT_SUSPECT"],
+        ["COMPTE_MULE"],
+        ["RESEAU_FRAUDE", "SEUIL_REGLEMENTAIRE"],
+    ]
+    return [
+        {"iban": iban, "alert_count": max(1, 4 - i), "categories": categories_pool[i % len(categories_pool)]}
+        for i, iban in enumerate(ibans)
+    ]
+
 @app.get("/api/graph/top-accounts")
 async def get_top_flagged_accounts(tenant_id: Optional[str] = None, limit: int = 10, token_payload: dict = Depends(get_optional_context)):
     effective_tenant_id = tenant_id or token_payload.get("tenant_id", "default")
-    
-    # Données mockées pour le développement quand Neo4j n'est pas disponible
+
     if graph_engine is None:
-        mock_data = [
-            {"iban": "FR7612345678901234567890123", "alert_count": 3, "categories": ["SEUIL_REGLEMENTAIRE", "MOTCLE_SENSIBLE"]},
-            {"iban": "FR7698765432109876543210987", "alert_count": 1, "categories": ["SEUIL_REGLEMENTAIRE"]},
-            {"iban": "FR7611111111111111111111111", "alert_count": 1, "categories": ["SEUIL_REGLEMENTAIRE"]}
-        ]
-        return APIResponse(success=True, data=mock_data)
-    
+        logger.warning("Neo4j indisponible — données mockées pour top-accounts (tenant=%s)", effective_tenant_id)
+        return APIResponse(success=True, data=_mock_top_accounts_for_tenant(effective_tenant_id, limit))
+
     try:
         if hasattr(graph_engine, "get_top_flagged_accounts"): data = graph_engine.get_top_flagged_accounts(tenant_id=effective_tenant_id, limit=limit)
         elif hasattr(graph_engine, "get_top_accounts"): data = graph_engine.get_top_accounts(tenant_id=effective_tenant_id, limit=limit)
         else: data = []
         return APIResponse(success=True, data=data)
-    except Exception: 
-        mock_data = [{"iban": "FR7612345678901234567890123", "alert_count": 3, "categories": ["SEUIL_REGLEMENTAIRE"]}]
-        return APIResponse(success=True, data=mock_data)
+    except Exception:
+        return APIResponse(success=True, data=_mock_top_accounts_for_tenant(effective_tenant_id, limit))
 
 @app.get("/api/graph/network", response_model=APIResponse[GraphNetworkResponse])
 async def get_account_network(iban: str, tenant_id: Optional[str] = None, token_payload: dict = Depends(get_optional_context)):
     effective_tenant_id = tenant_id or token_payload.get("tenant_id", "default")
-    
-    # Données mockées pour le développement quand Neo4j n'est pas disponible
+
     if graph_engine is None:
+        logger.warning("Neo4j indisponible — données mockées pour network (tenant=%s, iban=%s)", effective_tenant_id, iban)
+        neighbors = _mock_ibans_for_tenant(effective_tenant_id, count=2)
+        amounts = [15000.0, 9500.0]
         mock_data = GraphNetworkResponse(
             center_iban=iban,
-            nodes=[iban, "FR7698765432109876543210987", "FR7611111111111111111111111"],
+            nodes=[iban, *neighbors],
             edges=[
-                GraphEdge(source=iban, target="FR7698765432109876543210987", amount=15000.0, is_fraud=True, tx_id="tx_001"),
-                GraphEdge(source=iban, target="FR7611111111111111111111111", amount=9500.0, is_fraud=True, tx_id="tx_002")
+                GraphEdge(source=iban, target=neighbors[i], amount=amounts[i % len(amounts)], is_fraud=True, tx_id=f"tx_mock_{i}")
+                for i in range(len(neighbors))
             ]
         )
         return APIResponse(success=True, data=mock_data)
-    
+
     try:
         data = graph_engine.get_account_network(effective_tenant_id, iban)
         if data is None: raise HTTPException(status_code=404, detail="Compte introuvable.")
@@ -832,11 +852,12 @@ async def get_mule_accounts(
     """
     effective_tenant_id = tenant_id or token_payload.get("tenant_id", "default")
     
-    # Pour test : retourner mock data si Neo4j n'est pas connecté OU en mode test
     if graph_engine is None:
+        logger.warning("Neo4j indisponible — données mockées pour mule-accounts (tenant=%s)", effective_tenant_id)
+        ibans = _mock_ibans_for_tenant(effective_tenant_id, count=2)
         mock_data = [
-            {"iban": "FR7612345678901234567890123", "in_count": 10, "out_count": 9, "in_out_ratio": 0.9, "avg_delay_hours": 2.5},
-            {"iban": "FR7698765432109876543210987", "in_count": 7, "out_count": 6, "in_out_ratio": 0.86, "avg_delay_hours": 4.1}
+            {"iban": ibans[0], "in_count": 10, "out_count": 9, "in_out_ratio": 0.9, "avg_delay_hours": 2.5},
+            {"iban": ibans[1], "in_count": 7, "out_count": 6, "in_out_ratio": 0.86, "avg_delay_hours": 4.1}
         ]
         return APIResponse(success=True, data=mock_data)
     
@@ -865,9 +886,11 @@ async def get_pagerank(
     effective_tenant_id = tenant_id or token_payload.get("tenant_id", "default")
     
     if graph_engine is None:
+        logger.warning("Neo4j indisponible — données mockées pour pagerank (tenant=%s)", effective_tenant_id)
+        ibans = _mock_ibans_for_tenant(effective_tenant_id, count=2)
         mock_data = [
-            {"iban": "FR7612345678901234567890123", "pagerank_score": 15.5, "out_degree": 8, "in_degree": 12},
-            {"iban": "FR7698765432109876543210987", "pagerank_score": 12.3, "out_degree": 5, "in_degree": 9}
+            {"iban": ibans[0], "pagerank_score": 15.5, "out_degree": 8, "in_degree": 12},
+            {"iban": ibans[1], "pagerank_score": 12.3, "out_degree": 5, "in_degree": 9}
         ]
         return APIResponse(success=True, data=mock_data)
     
@@ -894,8 +917,10 @@ async def get_communities(
     effective_tenant_id = tenant_id or token_payload.get("tenant_id", "default")
     
     if graph_engine is None:
+        logger.warning("Neo4j indisponible — données mockées pour communities (tenant=%s)", effective_tenant_id)
+        ibans = _mock_ibans_for_tenant(effective_tenant_id, count=3)
         mock_data = [
-            {"center_account": "FR7612345678901234567890123", "community_members": ["FR7698765432109876543210987", "FR7611111111111111111111111"], "community_size": 3}
+            {"center_account": ibans[0], "community_members": ibans[1:], "community_size": len(ibans)}
         ]
         return APIResponse(success=True, data=mock_data)
     
