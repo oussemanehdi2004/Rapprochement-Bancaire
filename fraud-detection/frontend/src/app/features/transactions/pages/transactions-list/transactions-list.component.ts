@@ -127,7 +127,7 @@ export class TransactionsListComponent {
             this.transactions.set([]);
             this.currentPage.set(1);
             this.loading.set(false);
-            const message = err instanceof Error ? err.message : 'Impossible de charger les transactions';
+            const message = this.extractErrorMessage(err);
             this.errorMessage.set(`Erreur: ${message}`);
             this.cdr.detectChanges();
           });
@@ -221,6 +221,54 @@ export class TransactionsListComponent {
     this.cdr.detectChanges();
   }
 
+  private extractErrorMessage(err: unknown): string {
+    console.error('[Transactions] Raw error:', err);
+
+    if (err && typeof err === 'object') {
+      const e = err as Record<string, unknown>;
+
+      // Case 1: Angular HttpErrorResponse with parsed JSON body — e.g. { error: { detail: "..." } }
+      if (e['error'] && typeof e['error'] === 'object') {
+        const errorBody = e['error'] as Record<string, unknown>;
+        if (typeof errorBody['detail'] === 'string' && errorBody['detail']) {
+          return errorBody['detail'];
+        }
+        if (typeof errorBody['message'] === 'string' && errorBody['message']) {
+          return errorBody['message'];
+        }
+      }
+
+      // Case 2: Angular HttpErrorResponse where error is a raw string body
+      if (typeof e['error'] === 'string' && e['error']) {
+        try {
+          const parsed = JSON.parse(e['error']);
+          if (parsed?.detail) return String(parsed.detail);
+          if (parsed?.message) return String(parsed.message);
+        } catch {
+          // Not JSON — return the raw string if it looks meaningful
+          const raw = (e['error'] as string).trim();
+          if (raw.length > 0 && raw.length < 500) return raw;
+        }
+      }
+
+      // Case 3: Angular HttpErrorResponse.message (generic "Http failure response for…")
+      // Only use as last resort — prefer the actual body
+      if (typeof e['message'] === 'string' && e['message'] && !e['message'].startsWith('Http failure')) {
+        return e['message'];
+      }
+
+      // Case 4: plain Error
+      if (e instanceof Error) {
+        return e.message;
+      }
+    }
+
+    if (err instanceof Error) {
+      return err.message;
+    }
+    return 'Erreur lors de la sauvegarde';
+  }
+
   saveEdit(): void {
     const desc = this.editDescription().trim();
     const amt = Number(this.editAmount());
@@ -281,7 +329,7 @@ export class TransactionsListComponent {
           this.saving.set(false);
           // Revert optimistic update on error
           this.transactions.set(originalList);
-          const msg = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde';
+          const msg = this.extractErrorMessage(err);
           this.toastService.error('Erreur', msg);
           this.cdr.detectChanges();
         });
@@ -312,7 +360,7 @@ export class TransactionsListComponent {
         this.ngZone.run(() => {
           // Revert optimistic update on error
           this.transactions.set(originalList);
-          const msg = err instanceof Error ? err.message : 'Erreur lors de la suppression';
+          const msg = this.extractErrorMessage(err);
           this.toastService.error('Erreur', msg);
           this.cdr.detectChanges();
         });

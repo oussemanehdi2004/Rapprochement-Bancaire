@@ -165,7 +165,9 @@ async def log_requests(request, call_next):
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 supabase = None
+supabase_admin = None
 _supabase_attempted = False
 
 def _get_supabase():
@@ -187,10 +189,49 @@ _supabase_attempted = False
 if SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        logger.info("✅ Supabase connecté avec succès")
+        logger.info("✅ Supabase connecté avec succès (anon)")
     except Exception as e:
         logger.warning(f"⚠️ Supabase non disponible ({type(e).__name__}): le système fonctionnera sans persistance. Connexion différée activée.")
         supabase = None
+
+if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    try:
+        supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        logger.info("✅ Supabase admin (service_role) connecté — les opérations CRUD contourneront RLS")
+    except Exception as e:
+        logger.warning(f"⚠️ Supabase admin non disponible ({type(e).__name__}): les opérations CRUD utiliseront la clé anon (RLS actif).")
+        supabase_admin = None
+else:
+    if SUPABASE_URL:
+        logger.warning("⚠️ SUPABASE_SERVICE_ROLE_KEY non définie. Les opérations CRUD (INSERT) peuvent être bloquées par RLS.")
+    supabase_admin = None
+
+
+def _extract_supabase_error(exc: Exception) -> str:
+    """Extrait un message utilisateur lisible depuis une exception Supabase."""
+    msg = str(exc)
+    if "row-level security" in msg.lower() or "violates row-level security" in msg.lower():
+        return (
+            "Erreur de sécurité Supabase (RLS) : la politique de sécurité "
+            "sur la table 'fraud_alerts' bloque l'opération. "
+            "Vérifiez les policies INSERT dans le dashboard Supabase ou utilisez "
+            "la clé SUPABASE_SERVICE_ROLE_KEY."
+        )
+    if "violates not-null constraint" in msg.lower():
+        return "Erreur : une colonne obligatoire n'est pas renseignée dans la table."
+    if "violates unique constraint" in msg.lower():
+        return "Erreur : une transaction avec la même référence existe déjà."
+    if "invalid input value for" in msg.lower():
+        return f"Erreur de type de donnée : {msg}"
+    if "permission denied" in msg.lower():
+        return "Erreur de permission : l'accès à la table est refusé."
+    return f"Erreur Supabase : {msg[:200]}"
+
+
+def _get_supabase_for_crud():
+    """Retourne le client Supabase admin (service_role) si disponible, sinon le client anon."""
+    return supabase_admin or supabase
+
 
 MODEL_PATH = "model_fraud_calibrated.pkl" if os.path.exists("model_fraud_calibrated.pkl") else "model_fraud.pkl"
 ISOLATION_FOREST_PATH = "model_isolation_forest.pkl"
@@ -1089,7 +1130,8 @@ class TransactionUpdatePayload(BaseModel):
 
 @app.post("/api/transactions", response_model=APIResponse[TransactionListItem])
 async def create_transaction(payload: TransactionCreatePayload, token_payload: dict = Depends(get_optional_context)):
-    if supabase is None:
+    db = _get_supabase_for_crud()
+    if db is None:
         raise HTTPException(status_code=503, detail="Supabase non disponible")
     effective_tenant_id = token_payload.get("tenant_id", "default")
     new_id = str(uuid.uuid4())
@@ -1111,12 +1153,12 @@ async def create_transaction(payload: TransactionCreatePayload, token_payload: d
         "beneficiary_iban": payload.beneficiary_iban or payload.beneficiary,
     }
     try:
-        res = supabase.table("fraud_alerts").insert(row).execute()
-        # Supabase peut renvoyer une liste
+        res = db.table("fraud_alerts").insert(row).execute()
         inserted = res.data[0] if isinstance(res.data, list) and res.data else row
     except Exception as e:
         logger.error(f"Create transaction failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        user_msg = _extract_supabase_error(e)
+        raise HTTPException(status_code=500, detail=user_msg)
     item = TransactionListItem(
         id=str(inserted.get("transaction_id") or new_id), tenant_id=inserted.get("tenant_id") or effective_tenant_id,
         transaction_reference=inserted.get("transaction_reference") or new_id, date=str(inserted.get("date") or now),
@@ -1130,7 +1172,8 @@ async def create_transaction(payload: TransactionCreatePayload, token_payload: d
 
 @app.put("/api/transactions/{transaction_id}", response_model=APIResponse[TransactionListItem])
 async def update_transaction(transaction_id: str, payload: TransactionUpdatePayload, token_payload: dict = Depends(get_optional_context)):
-    if supabase is None:
+    db = _get_supabase_for_crud()
+    if db is None:
         raise HTTPException(status_code=503, detail="Supabase non disponible")
     effective_tenant_id = token_payload.get("tenant_id", "default")
     updates: dict[str, Any] = {}
@@ -1154,21 +1197,22 @@ async def update_transaction(transaction_id: str, payload: TransactionUpdatePayl
         raise HTTPException(status_code=400, detail="Aucun champ à mettre à jour")
     try:
         # Vérifie existence
-        existing = supabase.table("fraud_alerts").select("*").eq("transaction_id", transaction_id).eq("tenant_id", effective_tenant_id).execute()
+        existing = db.table("fraud_alerts").select("*").eq("transaction_id", transaction_id).eq("tenant_id", effective_tenant_id).execute()
         if not existing.data:
             # Fallback sans filtre tenant pour compatibilité
-            existing = supabase.table("fraud_alerts").select("*").eq("transaction_id", transaction_id).execute()
+            existing = db.table("fraud_alerts").select("*").eq("transaction_id", transaction_id).execute()
             if not existing.data:
                 raise HTTPException(status_code=404, detail="Transaction introuvable")
-        supabase.table("fraud_alerts").update(updates).eq("transaction_id", transaction_id).execute()
+        db.table("fraud_alerts").update(updates).eq("transaction_id", transaction_id).execute()
         # Relit
-        refreshed = supabase.table("fraud_alerts").select("*").eq("transaction_id", transaction_id).execute()
+        refreshed = db.table("fraud_alerts").select("*").eq("transaction_id", transaction_id).execute()
         row = refreshed.data[0] if refreshed.data else {"transaction_id": transaction_id, **updates, "tenant_id": effective_tenant_id}
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Update transaction failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        user_msg = _extract_supabase_error(e)
+        raise HTTPException(status_code=500, detail=user_msg)
     item = TransactionListItem(
         id=str(row.get("transaction_id") or transaction_id), tenant_id=row.get("tenant_id") or effective_tenant_id,
         transaction_reference=row.get("transaction_reference") or transaction_id, date=str(row.get("date") or ""),
@@ -1182,18 +1226,19 @@ async def update_transaction(transaction_id: str, payload: TransactionUpdatePayl
 
 @app.delete("/api/transactions/{transaction_id}", response_model=APIResponse[dict])
 async def delete_transaction(transaction_id: str, token_payload: dict = Depends(get_optional_context)):
-    if supabase is None:
+    db = _get_supabase_for_crud()
+    if db is None:
         raise HTTPException(status_code=503, detail="Supabase non disponible")
     effective_tenant_id = token_payload.get("tenant_id", "default")
     try:
         # Supprime avec filtre tenant, fallback sans si non trouvé
-        res = supabase.table("fraud_alerts").delete().eq("transaction_id", transaction_id).eq("tenant_id", effective_tenant_id).execute()
+        res = db.table("fraud_alerts").delete().eq("transaction_id", transaction_id).eq("tenant_id", effective_tenant_id).execute()
         if not res.data:
             # Fallback
-            res = supabase.table("fraud_alerts").delete().eq("transaction_id", transaction_id).execute()
+            res = db.table("fraud_alerts").delete().eq("transaction_id", transaction_id).execute()
             if not res.data:
                 # Vérifie si existe encore
-                check = supabase.table("fraud_alerts").select("transaction_id").eq("transaction_id", transaction_id).execute()
+                check = db.table("fraud_alerts").select("transaction_id").eq("transaction_id", transaction_id).execute()
                 if not check.data:
                     raise HTTPException(status_code=404, detail="Transaction introuvable")
         # Invalide aussi le graphe Neo4j si présent (suppression logique)
@@ -1207,7 +1252,8 @@ async def delete_transaction(transaction_id: str, token_payload: dict = Depends(
         raise
     except Exception as e:
         logger.error(f"Delete transaction failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        user_msg = _extract_supabase_error(e)
+        raise HTTPException(status_code=500, detail=user_msg)
     return APIResponse(success=True, data={"deleted": transaction_id})
 
 # ===== REPORTS ENDPOINTS =====
