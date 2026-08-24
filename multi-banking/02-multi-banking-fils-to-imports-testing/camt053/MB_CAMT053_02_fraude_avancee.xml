@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+  <BkToCstmrStmt>
+    <GrpHdr>
+      <MsgId>MSG-CAMT-FRAUDE-002</MsgId>
+      <CreDtTm>2026-08-23T10:00:00</CreDtTm>
+    </GrpHdr>
+    <Stmt>
+      <Id>STMT002</Id>
+      <Acct>
+        <Id>
+          <IBAN>FR7630001007941234567890185</IBAN>
+        </Id>
+      </Acct>
+      <Bal>
+        <Tp><CdOrPrtry><Cd>OPBD</Cd></CdOrPrtry></Tp>
+        <Amt Ccy="EUR">20000.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+      </Bal>
+      <Ntry>
+        <Amt Ccy="EUR">15000.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-08-23</Dt></BookgDt>
+        <ValDt><Dt>2026-08-23</Dt></ValDt>
+        <AcctSvcrRef>REF-CAMT-SEUIL-01</AcctSvcrRef>
+        <AddtlNtryInf>VIREMENT FOURNISSEUR OFFSHORE SEUIL REGLEMENTAIRE</AddtlNtryInf>
+        <NtryDtls>
+          <TxDtls>
+            <RltdPties><CdtrAcct><Id><IBAN>FR7630006000019999999999999</IBAN></Id></CdtrAcct></RltdPties>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">2500.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-08-23</Dt></BookgDt>
+        <ValDt><Dt>2026-08-23</Dt></ValDt>
+        <AcctSvcrRef>REF-CAMT-DUP-01</AcctSvcrRef>
+        <AddtlNtryInf>PAIEMENT FOURNISSEUR ABC</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">2500.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-08-23</Dt></BookgDt>
+        <ValDt><Dt>2026-08-23</Dt></ValDt>
+        <AcctSvcrRef>REF-CAMT-DUP-02</AcctSvcrRef>
+        <AddtlNtryInf>PAIEMENT FOURNISSEUR ABC</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">250.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-08-24</Dt></BookgDt>
+        <ValDt><Dt>2026-08-24</Dt></ValDt>
+        <AcctSvcrRef>REF-CAMT-CASINO-01</AcctSvcrRef>
+        <AddtlNtryInf>VIREMENT CASINO EN LIGNE</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">4000.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-08-25</Dt></BookgDt>
+        <ValDt><Dt>2026-08-25</Dt></ValDt>
+        <AcctSvcrRef>REF-CAMT-FRAC-01</AcctSvcrRef>
+        <AddtlNtryInf>VIREMENT PARTIEL A</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">4000.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-08-25</Dt></BookgDt>
+        <ValDt><Dt>2026-08-25</Dt></ValDt>
+        <AcctSvcrRef>REF-CAMT-FRAC-02</AcctSvcrRef>
+        <AddtlNtryInf>VIREMENT PARTIEL B</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">3500.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-08-25</Dt></BookgDt>
+        <ValDt><Dt>2026-08-25</Dt></ValDt>
+        <AcctSvcrRef>REF-CAMT-FRAC-03</AcctSvcrRef>
+        <AddtlNtryInf>VIREMENT PARTIEL C</AddtlNtryInf>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>

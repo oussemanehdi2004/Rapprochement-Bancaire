@@ -5,6 +5,12 @@ info:
     API pour l'ingestion et le traitement de fichiers bancaires multi-format.
     Supporte les formats: PAIN.001, CAMT.053, MT940, CSV.
     Intégration avec le service de détection de fraude et BankMatch.
+    
+    **IMPORTANT NOTES FOR BANKMATCH INTEGRATION:**
+    - TODO: Confirm final BankMatch API endpoints (/api/import, /reconciliation/sessions/:id/matching/start)
+    - TODO: Validate service-to-service authentication contract with BankMatch team
+    - TODO: Confirm transaction_reference field format (currently using source_line_hash SHA-256)
+    - Current implementation uses DISABLE_INTERNAL_AUTH for development - NEVER enable in production
   version: 1.1.0
   contact:
     name: API Support

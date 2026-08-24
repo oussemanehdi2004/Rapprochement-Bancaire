@@ -3,11 +3,17 @@ import jwt
 import httpx
 from datetime import datetime, timedelta, timezone
 
+# BankMatch API Configuration
+# TODO: Confirm production URL with BankMatch team
+# TODO: Ensure HTTPS in production environment
 BANKMATCH_BASE_URL = os.getenv(
     "BANKMATCH_BASE_URL",
     "http://localhost:4090/api"
 )
 
+# Service Authentication Secret
+# CRITICAL: Use strong secrets (32+ characters) in production
+# TODO: Confirm secret rotation strategy with BankMatch team
 MULTI_BANKING_SERVICE_SECRET = os.getenv(
     "MULTI_BANKING_SERVICE_SECRET",
     "multi_banking_dev_secret"

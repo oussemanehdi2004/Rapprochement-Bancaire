@@ -7,6 +7,12 @@ info:
     - Règles métier (horaires, vélocité, device, géolocalisation)
     - Analyse de graphe (Neo4j - réseaux, comptes mules, PageRank)
     - Notifications temps réel (SSE)
+    
+    **IMPORTANT NOTES FOR BANKMATCH INTEGRATION:**
+    - TODO: Confirm final authentication pattern with BankMatch team
+    - TODO: Validate transaction_reference field handling from Multi-Banking integration
+    - Current implementation uses DISABLE_INTERNAL_AUTH for development - NEVER enable in production
+    - Field renamed: mongo_transaction_id → transaction_reference (completed)
   version: 2.2.0
   contact:
     name: API Support

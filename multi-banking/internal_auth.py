@@ -5,14 +5,23 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 # Load environment variables from .env file
+# CRITICAL: DISABLE_INTERNAL_AUTH must be false in production
+# CRITICAL: Use strong secrets (32+ characters) in production
 from dotenv import load_dotenv
 load_dotenv()
 
+# Internal Service Authentication Secret
+# CRITICAL: This secret is used to validate internal service-to-service tokens
+# TODO: Implement secret rotation strategy for production
 INTERNAL_SERVICE_SECRET = os.getenv(
     "INTERNAL_SERVICE_SECRET",
     "internal_dev_secret",
 )
 
+# Development Mode Toggle
+# CRITICAL: NEVER set to true in production environment
+# When true: bypasses authentication for standalone development
+# When false: enforces JWT validation for all requests
 DISABLE_INTERNAL_AUTH = (
     os.getenv("DISABLE_INTERNAL_AUTH", "false").lower() == "true"
 )

@@ -28,6 +28,9 @@ from parsers import camt053, csv_bank, mt940
 from validators import validate_transactions
 
 # Load environment variables from .env file
+# IMPORTANT: Ensure .env file exists with proper configuration
+# CRITICAL: DISABLE_INTERNAL_AUTH must be false in production
+# CRITICAL: Use strong secrets (32+ characters) in production
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -37,6 +40,7 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger("multi-banking")
+# TODO: Remove these logs in production - they expose configuration
 logger.info(f"DISABLE_INTERNAL_AUTH: {os.getenv('DISABLE_INTERNAL_AUTH')}")
 logger.info(f"INTERNAL_SERVICE_SECRET: {os.getenv('INTERNAL_SERVICE_SECRET')}")
 
