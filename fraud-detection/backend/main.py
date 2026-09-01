@@ -1090,6 +1090,45 @@ if not IS_PRODUCTION:
             # analyze_batch synchronise déjà avec Neo4j via graph_engine.sync_transaction
             results = analyze_batch(transactions)
             
+            # Persister les résultats dans Supabase pour le mode "Lancer Cas Supabase"
+            if supabase is not None:
+                try:
+                    # Deduplicate before insert: fetch existing refs for this tenant to avoid duplicate rows
+                    existing_refs: set[str] = set()
+                    try:
+                        refs_to_check = [r.transaction_reference for r in results if r.transaction_reference]
+                        if refs_to_check:
+                            existing_q = supabase.table("fraud_alerts").select("transaction_reference").eq("tenant_id", effective_tenant_id).in_("transaction_reference", refs_to_check).execute()
+                            if existing_q.data:
+                                existing_refs = { row.get("transaction_reference") for row in existing_q.data if row.get("transaction_reference") }
+                    except Exception:
+                        pass
+                    insert_errors = []
+                    for r in results:
+                        if r.transaction_reference in existing_refs:
+                            continue
+                        insert_row = {
+                            "tenant_id": r.tenant_id, "transaction_reference": r.transaction_reference, "transaction_id": r.id,
+                            "date": r.date, "amount": r.amount, "is_fraud": r.isFraud, "fraud_probability": r.fraudProbability,
+                            "score": r.score, "reconciliation_status": r.reconciliationStatus, "rule_category": r.ruleCategory, "explainability": r.explainability.model_dump(),
+                            "description": r.description,
+                        }
+                        if r.beneficiary:
+                            insert_row["beneficiary"] = r.beneficiary
+                        if r.beneficiary_iban:
+                            insert_row["beneficiary_iban"] = r.beneficiary_iban
+                        if _fraud_alerts_columns:
+                            insert_row = {k: v for k, v in insert_row.items() if k in _fraud_alerts_columns}
+                        try:
+                            supabase.table("fraud_alerts").insert(insert_row).execute()
+                        except Exception as insert_err:
+                            insert_errors.append(str(insert_err))
+                            logger.warning(f"Échec d'insertion Supabase pour la transaction {r.id}: {insert_err}")
+                    if insert_errors:
+                        logger.warning(f"{len(insert_errors)} échec(s) d'insertion Supabase sur {len(results)} transaction(s)")
+                except Exception as database_error:
+                    logger.error(f"Erreur lors de la sauvegarde Supabase (non bloquante): {database_error}")
+            
             logger.info(f"Temps de traitement démo : {(time.perf_counter() - start_time) * 1000:.2f} ms pour {len(results)} transaction(s)")
             return APIResponse(success=True, data=results)
         except HTTPException: raise
