@@ -1,0 +1,24 @@
+\babel@toc {french}{}\relax 
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Visualisation des résultats dans l'interface globale du projet}}{3}{figure.1.1}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Architecture globale de la plateforme SaaS d'intelligence financière avec microservices}}{7}{figure.2.1}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Pipeline d'ingestion et de traitement implémenté}}{8}{figure.2.2}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Flux d'intégration : phase actuelle (Fraud) et intégration prévue (BankMatch)}}{12}{figure.3.1}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Interface d'import d'un fichier bancaire dans le module Multi-Banking}}{15}{figure.4.1}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Approche hybride combinant règles métier, machine learning et analyse de graphes}}{18}{figure.5.1}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Analyse d'explicabilité des alertes générées par le moteur de fraude}}{18}{figure.5.2}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Interface de configuration des seuils de détection}}{19}{figure.5.3}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Impact de la modification des seuils sur le comportement du moteur de règles}}{19}{figure.5.4}%
+\contentsline {figure}{\numberline {5.5}{\ignorespaces Règles métier déclenchées et scores de risque associés aux transactions analysées}}{20}{figure.5.5}%
+\contentsline {figure}{\numberline {5.6}{\ignorespaces Pipeline de chargement des modèles ML avec logique de priorité}}{21}{figure.5.6}%
+\contentsline {figure}{\numberline {5.7}{\ignorespaces Fusion des scores ML, Isolation Forest, Batch Rules et Règles métier}}{23}{figure.5.7}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }

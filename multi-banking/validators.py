@@ -98,20 +98,6 @@ def filter_unique_transactions(
         
         # 1. Vérification par hash exact
         if tx.source_line_hash in existing_hashes:
-            is_duplicate = True
-        else:
-            # 2. Vérification par tolérance de montant
-            for existing_hash, existing_amount in historical_amounts.items():
-                if abs(tx.amount - existing_amount) <= AMOUNT_TOLERANCE:
-                    # Vérifier si c'est le même hash de base
-                    tx_hash_base = tx.source_line_hash.rsplit("_", 1)[0]
-                    existing_hash_base = existing_hash.rsplit("_", 1)[0]
-                    
-                    if tx_hash_base == existing_hash_base:
-                        is_duplicate = True
-                        break
-        
-        if is_duplicate:
             duplicate_txs.append(tx)
         else:
             unique_txs.append(tx)

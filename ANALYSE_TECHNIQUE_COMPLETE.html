@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Analyse technique et fonctionnelle complète</title>
+<style>
+@page { size: A4; margin: 18mm 16mm 20mm; }
+body { font-family: "Segoe UI", Arial, sans-serif; color: #243447; line-height: 1.48; font-size: 10.5pt; max-width: 920px; margin: 0 auto; }
+h1 { color: #123b5d; font-size: 25pt; border-bottom: 3px solid #2f7d9b; padding-bottom: 10px; page-break-before: always; }
+h1:first-of-type { page-break-before: avoid; text-align: center; margin-top: 22mm; padding: 28mm 10mm; background: #eaf4f7; border: 1px solid #b7d5df; }
+h2 { color: #1e607b; font-size: 17pt; border-bottom: 1px solid #9ec3cf; padding-bottom: 5px; margin-top: 20px; page-break-after: avoid; }
+h3 { color: #2b5368; font-size: 13pt; page-break-after: avoid; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 9pt; page-break-inside: avoid; }
+th { background: #1e607b; color: white; text-align: left; }
+th, td { border: 1px solid #c7d7dd; padding: 6px 8px; vertical-align: top; }
+tr:nth-child(even) { background: #f3f7f8; }
+pre { background: #f1f5f6; border-left: 4px solid #2f7d9b; padding: 10px; white-space: pre-wrap; font-size: 8.5pt; page-break-inside: avoid; }
+code { background: #eef3f5; padding: 1px 3px; font-family: Consolas, monospace; font-size: 0.9em; }
+blockquote { margin: 14px 0; padding: 10px 14px; background: #f4f8f9; border-left: 4px solid #d28b35; }
+li { margin: 3px 0; }
+a { color: #1e607b; }
+hr { border: 0; border-top: 1px solid #c7d7dd; margin: 20px 0; }
+</style>
+</head>
+<body>
+<h1 data-number="1"
+id="analyse-technique-et-fonctionnelle-complète"><span
+class="header-section-number">1</span> Analyse technique et
+fonctionnelle complète</h1>
+<h2 data-number="1.1"
+id="projet-rapprochement-bancaire-multi-banking-et-fraud-detection"><span
+class="header-section-number">1.1</span> Projet Rapprochement bancaire,
+Multi-Banking et Fraud Detection</h2>
+<p><strong>Version du rapport :</strong> 1.0<br />
+<strong>Date de l’analyse :</strong> 15 septembre 2026<br />
+<strong>Mode d’analyse :</strong> lecture seule du repository<br />
+<strong>Périmètre :</strong> code source, configuration, tests,
+infrastructure et documentation disponibles localement</p>
+<blockquote>
+<p><strong>Note méthodologique</strong> : ce rapport décrit
+l’implémentation réellement trouvée dans le repository. Les éléments
+absents, externes ou non vérifiables sont explicitement signalés.</p>
+</blockquote>
+<hr />
+<h2 data-number="1.2" id="sommaire"><span
+class="header-section-number">1.2</span> Sommaire</h2>
+<ol type="1">
+<li><a href="#1-résumé-exécutif">Résumé exécutif</a></li>
+<li><a href="#2-architecture-du-repository">Architecture du
+repository</a></li>
+<li><a href="#3-technologies-et-stack">Technologies et stack</a></li>
+<li><a href="#4-architecture-globale-et-points-dentrée">Architecture
+globale et points d’entrée</a></li>
+<li><a href="#5-analyse-des-modules-et-du-code">Analyse des modules et
+du code</a></li>
+<li><a href="#6-rapprochement-bancaire-et-matching">Rapprochement
+bancaire et matching</a></li>
+<li><a href="#7-flux-de-données-de-bout-en-bout">Flux de données de bout
+en bout</a></li>
+<li><a href="#8-api-et-frontend">API et frontend</a></li>
+<li><a href="#9-modèle-de-données-et-persistance">Modèle de données et
+persistance</a></li>
+<li><a href="#10-authentification-et-autorisation">Authentification et
+autorisation</a></li>
+<li><a href="#11-import-export-et-reporting">Import, export et
+reporting</a></li>
+<li><a href="#12-tests-qualité-et-performances">Tests, qualité et
+performances</a></li>
+<li><a href="#13-audit-de-sécurité">Audit de sécurité</a></li>
+<li><a
+href="#14-fonctionnalités-et-cartographie-fonctionnalité-code">Fonctionnalités
+et cartographie fonctionnalité-code</a></li>
+<li><a href="#15-scénarios-de-soutenance">Scénarios de
+soutenance</a></li>
+<li><a href="#16-limites-et-plan-de-priorités">Limites et plan de
+priorités</a></li>
+<li><a href="#17-questions-et-réponses-de-soutenance">Questions et
+réponses de soutenance</a></li>
+<li><a href="#18-conclusion">Conclusion</a></li>
+</ol>
+<hr />
+<h2 data-number="1.3" id="résumé-exécutif"><span
+class="header-section-number">1.3</span> 1. Résumé exécutif</h2>
+<p>Le repository contient une plateforme composée de deux services
+principaux :</p>
+<ul>
+<li><strong>Multi-Banking</strong> : import, parsing, normalisation et
+validation de fichiers bancaires ;</li>
+<li><strong>Fraud Detection</strong> : analyse hybride par règles
+métier, modèles ML, explicabilité SHAP et graphe Neo4j.</li>
+</ul>
+<p>Le frontend est une application Angular avec SSR, servie par Express.
+Express agit également comme gateway vers les deux APIs FastAPI.</p>
+<p>Le flux principal est :</p>
+<pre class="text"><code>Fichier bancaire
+    -&gt; Angular / Express
+    -&gt; Multi-Banking
+    -&gt; PivotTransaction
+    -&gt; Fraud Detection
+    -&gt; Supabase / Neo4j
+    -&gt; Dashboard, transactions et rapports</code></pre>
+<p><strong>Conclusion fonctionnelle majeure :</strong> le moteur de
+rapprochement bancaire complet n’est pas implémenté localement.
+L’intégration prévue appelle un service externe BankMatch via
+<code>POST /api/import</code>, puis
+<code>/reconciliation/sessions/{session_id}/matching/start</code>.</p>
+<p>Le champ local <code>reconciliationStatus</code> ne provient pas d’un
+matching réel. Il est calculé heuristiquement à partir du risque de
+fraude et d’un seuil de montant.</p>
+<hr />
+<h2 data-number="1.4" id="architecture-du-repository"><span
+class="header-section-number">1.4</span> 2. Architecture du
+repository</h2>
+<h3 data-number="1.4.1" id="arborescence-logique"><span
+class="header-section-number">1.4.1</span> 2.1 Arborescence logique</h3>
+<pre class="text"><code>rapprochement-bancaire/
+├── fraud-detection/
+│   ├── backend/                 API FastAPI, règles, ML, Neo4j
+│   ├── frontend/                Angular SSR et gateway Express
+│   ├── e2e/                     Tests end-to-end
+│   ├── monitoring/              Prometheus
+│   └── docker-compose.yml       Stack Docker
+├── multi-banking/               Service d&#39;ingestion FastAPI
+│   ├── parsers/                 CSV, CAMT.053, MT940, pain.001
+│   ├── tests/                   Tests des parseurs et intégration
+│   ├── scripts/                 Scripts utilitaires
+│   └── bankmatch_client.py      Client BankMatch externe
+├── docs/                        Documentation technique et intégration
+├── documents/                   Guides, checklist et rapports
+├── jeux-de-donnees-import/     Jeux de données et guides d&#39;import
+├── assets/, images/             Captures et ressources
+└── scripts et tests racine      Conversion, données et vérifications</code></pre>
+<h3 data-number="1.4.2" id="dossiers-importants"><span
+class="header-section-number">1.4.2</span> 2.2 Dossiers importants</h3>
+<table>
+<thead>
+<tr>
+<th>Dossier</th>
+<th>Rôle réel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>multi-banking</code></td>
+<td>Ingestion et normalisation bancaire</td>
+</tr>
+<tr>
+<td><code>fraud-detection/backend</code></td>
+<td>API et logique de détection de fraude</td>
+</tr>
+<tr>
+<td><code>fraud-detection/frontend</code></td>
+<td>Interface Angular, SSR et gateway</td>
+</tr>
+<tr>
+<td><code>fraud-detection/e2e</code></td>
+<td>Tests d’intégration de la stack</td>
+</tr>
+<tr>
+<td><code>fraud-detection/monitoring</code></td>
+<td>Configuration Prometheus</td>
+</tr>
+<tr>
+<td><code>docs</code>, <code>documents</code></td>
+<td>Documentation et préparation d’intégration</td>
+</tr>
+<tr>
+<td><code>jeux-de-donnees-import</code></td>
+<td>Données et consignes d’import</td>
+</tr>
+</tbody>
+</table>
+<h3 data-number="1.4.3" id="absences-importantes"><span
+class="header-section-number">1.4.3</span> 2.3 Absences importantes</h3>
+<ul>
+<li>Aucun backend BankMatch central trouvé.</li>
+<li>Aucun schéma SQL Supabase versionné trouvé.</li>
+<li>Aucune migration Supabase complète trouvée.</li>
+<li>Aucun moteur local de matching entre relevés et écritures
+trouvé.</li>
+<li>Aucun repository applicatif classique séparé dans le backend : une
+grande partie des responsabilités est concentrée dans
+<code>fraud-detection/backend/main.py</code>.</li>
+</ul>
+<hr />
+<h2 data-number="1.5" id="technologies-et-stack"><span
+class="header-section-number">1.5</span> 3. Technologies et stack</h2>
+<h3 data-number="1.5.1" id="backend-multi-banking"><span
+class="header-section-number">1.5.1</span> 3.1 Backend
+Multi-Banking</h3>
+<p>Confirmé dans <code>multi-banking/requirements.txt</code> :</p>
+<ul>
+<li>Python 3.11 ;</li>
+<li>FastAPI et Uvicorn ;</li>
+<li>Pydantic ;</li>
+<li>HTTPX ;</li>
+<li>PyJWT ;</li>
+<li><code>python-multipart</code> ;</li>
+<li><code>lxml</code> ;</li>
+<li>Pytest et <code>pytest-asyncio</code> ;</li>
+<li>Prometheus FastAPI Instrumentator.</li>
+</ul>
+<h3 data-number="1.5.2" id="backend-fraud-detection"><span
+class="header-section-number">1.5.2</span> 3.2 Backend Fraud
+Detection</h3>
+<p>Confirmé dans <code>fraud-detection/backend/requirements.txt</code>
+:</p>
+<ul>
+<li>FastAPI et Uvicorn ;</li>
+<li>Supabase ;</li>
+<li>Neo4j ;</li>
+<li>NumPy et Pandas ;</li>
+<li>scikit-learn ;</li>
+<li>XGBoost ;</li>
+<li>SHAP ;</li>
+<li>Joblib ;</li>
+<li>PyJWT ;</li>
+<li>PyOTP ;</li>
+<li>SlowAPI ;</li>
+<li>Prometheus.</li>
+</ul>
+<h3 data-number="1.5.3" id="frontend"><span
+class="header-section-number">1.5.3</span> 3.3 Frontend</h3>
+<p>Confirmé dans <code>fraud-detection/frontend/package.json</code>
+:</p>
+<ul>
+<li>Angular 21 ;</li>
+<li>TypeScript 5.9 ;</li>
+<li>Angular SSR ;</li>
+<li>Express 5 ;</li>
+<li>RxJS ;</li>
+<li>Axios ;</li>
+<li>Chart.js ;</li>
+<li>Vis Network ;</li>
+<li>jsPDF et AutoTable ;</li>
+<li>Multer ;</li>
+<li>Tailwind CSS ;</li>
+<li>Vitest.</li>
+</ul>
+<h3 data-number="1.5.4" id="infrastructure"><span
+class="header-section-number">1.5.4</span> 3.4 Infrastructure</h3>
+<p>Confirmé dans <code>fraud-detection/docker-compose.yml</code> :</p>
+<ul>
+<li>Docker Compose ;</li>
+<li>Nginx ;</li>
+<li>Neo4j 5.26 ;</li>
+<li>Prometheus ;</li>
+<li>Grafana ;</li>
+<li>Supabase externe.</li>
+</ul>
+<hr />
+<h2 data-number="1.6" id="architecture-globale-et-points-dentrée"><span
+class="header-section-number">1.6</span> 4. Architecture globale et
+points d’entrée</h2>
+<h3 data-number="1.6.1" id="architecture-réelle"><span
+class="header-section-number">1.6.1</span> 4.1 Architecture réelle</h3>
+<pre class="text"><code>Navigateur Angular
+       |
+       v
+Express SSR / Gateway :4200
+       |------------------------------|
+       v                              v
+Fraud Detection :8006          Multi-Banking :8010
+       |                              |
+       v                              v
+Supabase / Neo4j              Parseurs / BankMatch externe</code></pre>
+<p>Nginx fournit également un routage vers les deux services dans
+<code>fraud-detection/nginx.conf</code>.</p>
+<h3 data-number="1.6.2" id="points-dentrée"><span
+class="header-section-number">1.6.2</span> 4.2 Points d’entrée</h3>
+<h4 data-number="1.6.2.1" id="multi-banking"><span
+class="header-section-number">1.6.2.1</span> Multi-Banking</h4>
+<p>Fichier : <code>multi-banking/main.py</code><br />
+Objet : <code>app = FastAPI(...)</code><br />
+Port local : <code>8010</code></p>
+<p>Fonctions principales :</p>
+<ul>
+<li><code>parse_content()</code> ;</li>
+<li><code>build_fraud_payload()</code> ;</li>
+<li><code>parse_file()</code> ;</li>
+<li><code>validate_file()</code> ;</li>
+<li><code>ingest_file()</code>.</li>
+</ul>
+<h4 data-number="1.6.2.2" id="fraud-detection"><span
+class="header-section-number">1.6.2.2</span> Fraud Detection</h4>
+<p>Fichier : <code>fraud-detection/backend/main.py</code><br />
+Objet : <code>app = FastAPI(...)</code><br />
+<code>root_path = "/fraud"</code><br />
+Port Docker : <code>8006</code></p>
+<p>Fonctions principales :</p>
+<ul>
+<li><code>get_service_context()</code> ;</li>
+<li><code>preprocess_transaction()</code> ;</li>
+<li><code>extract_rule_evaluation()</code> ;</li>
+<li><code>build_transaction_output()</code> ;</li>
+<li><code>analyze_batch()</code> ;</li>
+<li><code>analyze_transactions_secure()</code>.</li>
+</ul>
+<h4 data-number="1.6.2.3" id="frontend-1"><span
+class="header-section-number">1.6.2.3</span> Frontend</h4>
+<ul>
+<li><code>fraud-detection/frontend/src/main.ts</code> : bootstrap
+Angular ;</li>
+<li><code>fraud-detection/frontend/src/main.server.ts</code> : bootstrap
+SSR ;</li>
+<li><code>fraud-detection/frontend/src/server.ts</code> : Express SSR et
+gateway.</li>
+</ul>
+<h3 data-number="1.6.3" id="routes-angular"><span
+class="header-section-number">1.6.3</span> 4.3 Routes Angular</h3>
+<p>Définies dans
+<code>fraud-detection/frontend/src/app/app.routes.ts</code> :</p>
+<ul>
+<li><code>/fraud-detection</code> ;</li>
+<li><code>/transactions</code> ;</li>
+<li><code>/reports</code> ;</li>
+<li><code>/multi-banking</code> ;</li>
+<li><code>/use-cases</code>.</li>
+</ul>
+<hr />
+<h2 data-number="1.7" id="analyse-des-modules-et-du-code"><span
+class="header-section-number">1.7</span> 5. Analyse des modules et du
+code</h2>
+<h3 data-number="1.7.1" id="multi-banking-1"><span
+class="header-section-number">1.7.1</span> 5.1 Multi-Banking</h3>
+<p><code>multi-banking/main.py</code> orchestre le service :</p>
+<ol type="1">
+<li>réception du multipart ;</li>
+<li>authentification interservice ;</li>
+<li>lecture du fichier ;</li>
+<li>sélection du parseur ;</li>
+<li>normalisation ;</li>
+<li>validation ou transmission ;</li>
+<li>appel Fraud Detection ;</li>
+<li>appel BankMatch optionnel ;</li>
+<li>mise à jour des statistiques mémoire.</li>
+</ol>
+<h3 data-number="1.7.2" id="modèle-pivot"><span
+class="header-section-number">1.7.2</span> 5.2 Modèle pivot</h3>
+<p><code>multi-banking/models.py</code> définit
+<code>PivotTransaction</code> avec :</p>
+<ul>
+<li><code>tenant_id</code> ;</li>
+<li><code>bank_id</code> ;</li>
+<li><code>account_iban</code> ;</li>
+<li><code>value_date</code> ;</li>
+<li><code>label</code> ;</li>
+<li><code>amount</code> ;</li>
+<li><code>currency</code> ;</li>
+<li><code>counterparty_iban</code> ;</li>
+<li><code>reference</code> ;</li>
+<li><code>source_format</code> ;</li>
+<li><code>balance_before</code> et <code>balance_after</code>.</li>
+</ul>
+<p><code>compute_hash()</code> produit un SHA-256 basé sur le tenant, le
+compte, la date, le montant, le libellé et la référence.</p>
+<h3 data-number="1.7.3" id="parseurs"><span
+class="header-section-number">1.7.3</span> 5.3 Parseurs</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Fichier</th>
+<th>Logique</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>parsers/csv_bank.py</code></td>
+<td>Lit les colonnes CSV et crée les transactions</td>
+</tr>
+<tr>
+<td><code>parsers/camt053.py</code></td>
+<td>Namespace XML, IBAN, solde <code>OPBD</code>, entrées
+<code>Ntry</code></td>
+</tr>
+<tr>
+<td><code>parsers/mt940.py</code></td>
+<td>Tags <code>:25:</code>, <code>:60F:</code>, <code>:61:</code>,
+<code>:86:</code></td>
+</tr>
+<tr>
+<td><code>parsers/pain001.py</code></td>
+<td>Ordres ISO 20022, IBAN, montant et référence</td>
+</tr>
+</tbody>
+</table>
+<p>CAMT.053 et MT940 reconstruisent les soldes. pain.001 représente
+surtout des ordres de virement et ne fournit pas nécessairement de
+solde.</p>
+<h3 data-number="1.7.4" id="validation"><span
+class="header-section-number">1.7.4</span> 5.4 Validation</h3>
+<p><code>multi-banking/validators.py</code> expose :</p>
+<ul>
+<li><code>validate_transactions()</code> ;</li>
+<li><code>filter_unique_transactions()</code>.</li>
+</ul>
+<p>Contrôles :</p>
+<ul>
+<li>IBAN obligatoire ;</li>
+<li>date ISO ;</li>
+<li>montant non nul ;</li>
+<li>doublon exact ;</li>
+<li>doublon historique ;</li>
+<li>tolérance de montant de <code>0,02 €</code>.</li>
+</ul>
+<p>La validation historique n’est pas alimentée par l’endpoint courant
+<code>validate_file()</code>, qui appelle la fonction sans historique
+externe.</p>
+<h3 data-number="1.7.5" id="fraud-detection-1"><span
+class="header-section-number">1.7.5</span> 5.5 Fraud Detection</h3>
+<p><code>fraud-detection/backend/main.py</code> combine :</p>
+<ul>
+<li>règles métier de <code>rules_engine.py</code> ;</li>
+<li>features de <code>features.py</code> ;</li>
+<li>modèle supervisé ;</li>
+<li>Isolation Forest ;</li>
+<li>SHAP ;</li>
+<li>Neo4j ;</li>
+<li>Supabase ;</li>
+<li>notifications SSE.</li>
+</ul>
+<h3 data-number="1.7.6" id="moteur-de-règles"><span
+class="header-section-number">1.7.6</span> 5.6 Moteur de règles</h3>
+<p><code>rules_engine.py</code> contient notamment :</p>
+<ul>
+<li><code>apply_business_rules()</code> ;</li>
+<li><code>apply_batch_rules()</code> ;</li>
+<li><code>check_atypical_time()</code> ;</li>
+<li><code>check_abnormal_velocity()</code> ;</li>
+<li><code>check_device_change()</code> ;</li>
+<li><code>check_geolocation_change()</code> ;</li>
+<li><code>validate_transaction_sanity()</code>.</li>
+</ul>
+<p>Règles : seuil réglementaire, montant proche du seuil, cash-out,
+montant anormal, mots-clés sensibles, compte dormant, nouvel IBAN,
+horaire atypique, vélocité, device, géolocalisation, doublons et
+fractionnement.</p>
+<h3 data-number="1.7.7" id="graphe-neo4j"><span
+class="header-section-number">1.7.7</span> 5.7 Graphe Neo4j</h3>
+<p><code>graph_engine.py</code> définit <code>GraphEngine</code> et gère
+:</p>
+<ul>
+<li>synchronisation des comptes et transactions ;</li>
+<li>réseaux de fraude ;</li>
+<li>cycles ;</li>
+<li>flux réciproques ;</li>
+<li>comptes mules ;</li>
+<li>comptes les plus signalés ;</li>
+<li>réseau d’un compte ;</li>
+<li>approximation PageRank ;</li>
+<li>communautés approximatives.</li>
+</ul>
+<h3 data-number="1.7.8" id="frontend-2"><span
+class="header-section-number">1.7.8</span> 5.8 Frontend</h3>
+<p>Services principaux :</p>
+<ul>
+<li><code>MultiBankingService</code> ;</li>
+<li><code>FraudAlertsService</code> ;</li>
+<li><code>TransactionsService</code> ;</li>
+<li><code>ReportsService</code> ;</li>
+<li><code>NotificationsService</code> ;</li>
+<li><code>AuthService</code> ;</li>
+<li><code>DataRefreshService</code>.</li>
+</ul>
+<hr />
+<h2 data-number="1.8" id="rapprochement-bancaire-et-matching"><span
+class="header-section-number">1.8</span> 6. Rapprochement bancaire et
+matching</h2>
+<h3 data-number="1.8.1" id="ce-qui-est-réellement-implémenté"><span
+class="header-section-number">1.8.1</span> 6.1 Ce qui est réellement
+implémenté</h3>
+<p>Le flux local est :</p>
+<pre class="text"><code>Fichier
+  -&gt; parsing
+  -&gt; normalisation
+  -&gt; validation
+  -&gt; analyse fraude
+  -&gt; appel BankMatch optionnel</code></pre>
+<h3 data-number="1.8.2" id="matching-externe"><span
+class="header-section-number">1.8.2</span> 6.2 Matching externe</h3>
+<p>Dans <code>multi-banking/bankmatch_client.py</code> :</p>
+<pre class="text"><code>POST {BANKMATCH_BASE_URL}/import
+       -&gt; session_id
+POST {BANKMATCH_BASE_URL}/reconciliation/sessions/{session_id}/matching/start</code></pre>
+<p>Le service BankMatch central et son algorithme ne sont pas présents
+dans le repository.</p>
+<h3 data-number="1.8.3" id="statut-local-de-rapprochement"><span
+class="header-section-number">1.8.3</span> 6.3 Statut local de
+rapprochement</h3>
+<p>Dans <code>build_transaction_output()</code> :</p>
+<pre class="text"><code>is_fraud = true                 -&gt; SUSPICIOUS
+sinon montant &gt; 5 000 €         -&gt; UNMATCHED
+sinon                           -&gt; MATCHED</code></pre>
+<p>Ce statut n’est donc pas calculé par comparaison avec une écriture
+comptable.</p>
+<h3 data-number="1.8.4" id="non-trouvé-dans-le-repository"><span
+class="header-section-number">1.8.4</span> 6.4 Non trouvé dans le
+repository</h3>
+<ul>
+<li>matching exact ;</li>
+<li>matching fuzzy ;</li>
+<li>score de similarité ;</li>
+<li>comparaison date/référence/libellé ;</li>
+<li>résolution de conflits ;</li>
+<li><code>PARTIAL_MATCH</code> calculé ;</li>
+<li>validation humaine locale ;</li>
+<li>table locale de rapprochements.</li>
+</ul>
+<hr />
+<h2 data-number="1.9" id="flux-de-données-de-bout-en-bout"><span
+class="header-section-number">1.9</span> 7. Flux de données de bout en
+bout</h2>
+<h3 data-number="1.9.1" id="import-bancaire"><span
+class="header-section-number">1.9.1</span> 7.1 Import bancaire</h3>
+<pre class="text"><code>Utilisateur
+  -&gt; MultiBankingDashboardComponent.uploadFile()
+  -&gt; MultiBankingService.ingestFile()
+  -&gt; Express/Multer
+  -&gt; multi-banking.ingest_file()
+  -&gt; parse_content()
+  -&gt; PivotTransaction
+  -&gt; build_fraud_payload()
+  -&gt; Fraud Detection /api/analyze
+  -&gt; Supabase fraud_alerts
+  -&gt; réponse frontend
+  -&gt; DataRefreshService.trigger()</code></pre>
+<h3 data-number="1.9.2" id="analyse-fraude"><span
+class="header-section-number">1.9.2</span> 7.2 Analyse fraude</h3>
+<pre class="text"><code>TransactionInput
+  -&gt; apply_batch_rules()
+  -&gt; agrégats Supabase
+  -&gt; historique bénéficiaires
+  -&gt; apply_business_rules()
+  -&gt; preprocess_transaction()
+  -&gt; modèle ML / SHAP / Isolation Forest
+  -&gt; synchronisation Neo4j
+  -&gt; TransactionOutput</code></pre>
+<h3 data-number="1.9.3" id="rafraîchissement-ui"><span
+class="header-section-number">1.9.3</span> 7.3 Rafraîchissement UI</h3>
+<p>Après succès d’import :</p>
+<pre class="text"><code>DataRefreshService.trigger()
+  -&gt; FraudDashboardComponent
+  -&gt; TransactionsListComponent
+  -&gt; ReportsComponent</code></pre>
+<h3 data-number="1.9.4" id="erreurs"><span
+class="header-section-number">1.9.4</span> 7.4 Erreurs</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Résultat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fichier vide</td>
+<td>HTTP 400</td>
+</tr>
+<tr>
+<td>Format inconnu</td>
+<td>HTTP 400</td>
+</tr>
+<tr>
+<td>Parser invalide</td>
+<td>HTTP 400</td>
+</tr>
+<tr>
+<td>Fraud Detection indisponible</td>
+<td>retries puis HTTP 502</td>
+</tr>
+<tr>
+<td>Supabase absent</td>
+<td>résultat non persisté ou liste vide</td>
+</tr>
+<tr>
+<td>Neo4j absent</td>
+<td>graphe désactivé ou données mockées</td>
+</tr>
+<tr>
+<td>BankMatch en erreur</td>
+<td>résultat BankMatch en erreur, fraude potentiellement conservée</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 data-number="1.10" id="api-et-frontend"><span
+class="header-section-number">1.10</span> 8. API et frontend</h2>
+<h3 data-number="1.10.1" id="api-fraud-detection"><span
+class="header-section-number">1.10.1</span> 8.1 API Fraud Detection</h3>
+<p>Routes principales :</p>
+<ul>
+<li><code>POST /api/analyze</code> ;</li>
+<li><code>POST /api/analyze-demo</code> ;</li>
+<li><code>GET/PUT /api/config/thresholds</code> ;</li>
+<li><code>GET /api/graph/*</code> ;</li>
+<li><code>GET/POST/PUT/DELETE /api/transactions</code> ;</li>
+<li><code>GET /api/reports/*</code> ;</li>
+<li><code>GET /api/notifications</code> ;</li>
+<li><code>GET /api/notifications/stream</code> ;</li>
+<li><code>POST/GET /api/2fa/*</code> ;</li>
+<li><code>GET /api/user/me</code>.</li>
+</ul>
+<h3 data-number="1.10.2" id="api-multi-banking"><span
+class="header-section-number">1.10.2</span> 8.2 API Multi-Banking</h3>
+<ul>
+<li><code>GET /health</code> ;</li>
+<li><code>GET /banking/stats</code> ;</li>
+<li><code>GET /banking/uploads</code> ;</li>
+<li><code>POST /banking/api/multi-banking/parse</code> ;</li>
+<li><code>POST /banking/api/multi-banking/validate</code> ;</li>
+<li><code>POST /banking/api/multi-banking/ingest</code>.</li>
+</ul>
+<h3 data-number="1.10.3" id="proxy"><span
+class="header-section-number">1.10.3</span> 8.3 Proxy</h3>
+<p><code>frontend/src/server.ts</code> réécrit :</p>
+<pre class="text"><code>/api/banking/* -&gt; /banking/* -&gt; Multi-Banking :8010
+/api/*         -&gt; /fraud/api/* -&gt; Fraud Detection :8006</code></pre>
+<p><code>frontend/proxy.conf.json</code> fournit le routage équivalent
+en développement Angular.</p>
+<h3 data-number="1.10.4" id="écarts-de-contrat"><span
+class="header-section-number">1.10.4</span> 8.4 Écarts de contrat</h3>
+<ul>
+<li>plusieurs documents mentionnent encore <code>8005</code> alors que
+Docker et gateway utilisent <code>8006</code> ;</li>
+<li><code>FraudAlertsService</code> appelle
+<code>/api/analyze-demo</code> ;</li>
+<li>le client OpenAPI appelle <code>/api/analyze</code> ;</li>
+<li><code>AuthService.getUserFromAPI()</code> semble lire une réponse
+utilisateur directe alors que le backend enveloppe la réponse dans
+<code>data</code> ;</li>
+<li>l’E2E utilise parfois une route sans préfixe
+<code>/banking</code>.</li>
+</ul>
+<hr />
+<h2 data-number="1.11" id="modèle-de-données-et-persistance"><span
+class="header-section-number">1.11</span> 9. Modèle de données et
+persistance</h2>
+<h3 data-number="1.11.1" id="supabase"><span
+class="header-section-number">1.11.1</span> 9.1 Supabase</h3>
+<p>Tables déduites du code :</p>
+<ul>
+<li><code>fraud_alerts</code> ;</li>
+<li><code>account_aggregates</code> ;</li>
+<li><code>beneficiary_history</code> ;</li>
+<li><code>bank_statement_lines</code> ;</li>
+<li><code>accounting_entries</code>.</li>
+</ul>
+<p>Le schéma SQL exact, les contraintes, les index et les politiques RLS
+ne sont pas présents localement.</p>
+<h3 data-number="1.11.2" id="fraud_alerts"><span
+class="header-section-number">1.11.2</span> 9.2
+<code>fraud_alerts</code></h3>
+<p>Champs utilisés :</p>
+<ul>
+<li><code>tenant_id</code> ;</li>
+<li><code>transaction_id</code> ;</li>
+<li><code>transaction_reference</code> ;</li>
+<li><code>date</code> ;</li>
+<li><code>amount</code> ;</li>
+<li><code>is_fraud</code> ;</li>
+<li><code>fraud_probability</code> ;</li>
+<li><code>score</code> ;</li>
+<li><code>reconciliation_status</code> ;</li>
+<li><code>rule_category</code> ;</li>
+<li><code>explainability</code> ;</li>
+<li><code>description</code> ;</li>
+<li>bénéficiaire.</li>
+</ul>
+<h3 data-number="1.11.3" id="neo4j"><span
+class="header-section-number">1.11.3</span> 9.3 Neo4j</h3>
+<p>Nœuds : <code>Account</code>, <code>Transaction</code>,
+<code>Alert</code>.<br />
+Relations : <code>SENT</code>, <code>RECEIVED_BY</code>,
+<code>FLAGS</code>.</p>
+<p>Les requêtes utilisent généralement <code>tenant_id</code> dans les
+motifs Cypher.</p>
+<h3 data-number="1.11.4" id="états-mémoire"><span
+class="header-section-number">1.11.4</span> 9.4 États mémoire</h3>
+<ul>
+<li><code>upload_stats</code> et <code>recent_uploads</code> ;</li>
+<li>caches vélocité/device/géolocalisation ;</li>
+<li>connexions SSE ;</li>
+<li>secrets 2FA.</li>
+</ul>
+<p>Ils sont perdus au redémarrage et non partagés entre workers.</p>
+<h3 data-number="1.11.5" id="cohérence-multi-bases"><span
+class="header-section-number">1.11.5</span> 9.5 Cohérence
+multi-bases</h3>
+<p>Aucune transaction distribuée Supabase/Neo4j n’a été trouvée. Une
+suppression Supabase ne supprime pas nécessairement le graphe Neo4j.</p>
+<hr />
+<h2 data-number="1.12" id="authentification-et-autorisation"><span
+class="header-section-number">1.12</span> 10. Authentification et
+autorisation</h2>
+<h3 data-number="1.12.1" id="frontend-3"><span
+class="header-section-number">1.12.1</span> 10.1 Frontend</h3>
+<p><code>auth.interceptor.ts</code> ajoute un Bearer token provenant de
+<code>localStorage</code> ou d’une session Supabase.</p>
+<h3 data-number="1.12.2" id="multi-banking-2"><span
+class="header-section-number">1.12.2</span> 10.2 Multi-Banking</h3>
+<p><code>internal_auth.py</code> vérifie :</p>
+<ul>
+<li>Bearer ;</li>
+<li>signature HS256 ;</li>
+<li><code>type = internal</code> ;</li>
+<li><code>tenantId</code>.</li>
+</ul>
+<p>Le mode <code>DISABLE_INTERNAL_AUTH=true</code> contourne cette
+vérification.</p>
+<h3 data-number="1.12.3" id="fraud-detection-2"><span
+class="header-section-number">1.12.3</span> 10.3 Fraud Detection</h3>
+<p><code>get_service_context()</code> vérifie le JWT interne avec
+<code>FRAUD_INTERNAL_SECRET</code>.</p>
+<p><code>get_optional_context()</code> accepte l’absence ou l’invalidité
+d’un token et retourne un contexte de développement.</p>
+<h3 data-number="1.12.4" id="fa"><span
+class="header-section-number">1.12.4</span> 10.4 2FA</h3>
+<p><code>TwoFactorAuthService</code> gère TOTP et codes de secours en
+mémoire. La liaison à une authentification utilisateur obligatoire n’est
+pas confirmée.</p>
+<hr />
+<h2 data-number="1.13" id="import-export-et-reporting"><span
+class="header-section-number">1.13</span> 11. Import, export et
+reporting</h2>
+<h3 data-number="1.13.1" id="imports"><span
+class="header-section-number">1.13.1</span> 11.1 Imports</h3>
+<p>Formats confirmés :</p>
+<ul>
+<li>CSV ;</li>
+<li>CAMT.053 ;</li>
+<li>MT940 ;</li>
+<li>pain.001.</li>
+</ul>
+<h3 data-number="1.13.2" id="exports"><span
+class="header-section-number">1.13.2</span> 11.2 Exports</h3>
+<ul>
+<li>CSV via <code>/api/reports/csv</code> ;</li>
+<li>HTML compatible impression PDF via
+<code>/api/reports/pdf</code>.</li>
+</ul>
+<p>L’endpoint nommé PDF ne produit pas un PDF binaire natif : il renvoie
+du HTML.</p>
+<h3 data-number="1.13.3" id="rapports"><span
+class="header-section-number">1.13.3</span> 11.3 Rapports</h3>
+<p><code>/api/reports</code> calcule :</p>
+<ul>
+<li>total transactions ;</li>
+<li>nombre de fraudes ;</li>
+<li>taux de fraude ;</li>
+<li>montant bloqué ;</li>
+<li>catégories ;</li>
+<li>séries temporelles.</li>
+</ul>
+<p>Les données sont lues depuis <code>fraud_alerts</code> et
+dédupliquées par référence.</p>
+<hr />
+<h2 data-number="1.14" id="tests-qualité-et-performances"><span
+class="header-section-number">1.14</span> 12. Tests, qualité et
+performances</h2>
+<h3 data-number="1.14.1" id="tests-présents"><span
+class="header-section-number">1.14.1</span> 12.1 Tests présents</h3>
+<ul>
+<li>tests parseurs Multi-Banking ;</li>
+<li>règles métier ;</li>
+<li>API backend ;</li>
+<li>ML et fusion des scores ;</li>
+<li>persistance mockée ;</li>
+<li>graphes mockés ;</li>
+<li>authentification ;</li>
+<li>2FA ;</li>
+<li>services Angular ;</li>
+<li>tests E2E.</li>
+</ul>
+<h3 data-number="1.14.2" id="lacunes"><span
+class="header-section-number">1.14.2</span> 12.2 Lacunes</h3>
+<ul>
+<li>Supabase réel non testé ;</li>
+<li>Neo4j réel non testé ;</li>
+<li>BankMatch réel non testé ;</li>
+<li>aucun test navigateur complet ;</li>
+<li>aucun test de charge ;</li>
+<li>pas de couverture minimale bloquante ;</li>
+<li>CI probablement mal placée dans les sous-dossiers ;</li>
+<li>incohérences de ports/routes dans E2E ;</li>
+<li>isolation tenant insuffisamment testée.</li>
+</ul>
+<h3 data-number="1.14.3" id="performance"><span
+class="header-section-number">1.14.3</span> 12.3 Performance</h3>
+<p>Validation des doublons : complexité potentielle :</p>
+<p><span
+class="math display"><em>O</em>(<em>n</em> × <em>m</em>)</span></p>
+<p>où <span class="math inline"><em>n</em></span> est le nombre de
+transactions entrantes et <span class="math inline"><em>m</em></span> la
+taille de l’historique.</p>
+<p>Autres coûts :</p>
+<ul>
+<li>fichier entier chargé en mémoire ;</li>
+<li>liste complète des transactions en mémoire ;</li>
+<li>appels Neo4j par transaction ;</li>
+<li>retries HTTP longs ;</li>
+<li>caches globaux sans TTL ;</li>
+<li>statistiques d’upload non persistantes.</li>
+</ul>
+<hr />
+<h2 data-number="1.15" id="audit-de-sécurité"><span
+class="header-section-number">1.15</span> 13. Audit de sécurité</h2>
+<h3 data-number="1.15.1" id="critique"><span
+class="header-section-number">1.15.1</span> 13.1 Critique</h3>
+<ol type="1">
+<li><code>get_optional_context()</code> permet des appels sans
+authentification.</li>
+<li><code>DISABLE_INTERNAL_AUTH=true</code> est présent dans
+Docker.</li>
+<li>Plusieurs endpoints acceptent <code>tenant_id</code> fourni par le
+client.</li>
+<li>Les fallbacks CRUD retirent le filtre tenant.</li>
+<li>Les routes 2FA ne montrent pas d’authentification obligatoire.</li>
+<li>Des secrets et mots de passe de développement sont présents dans les
+<code>.env</code>/Compose.</li>
+<li><code>INTERNAL_SERVICE_SECRET</code> est écrit dans les logs
+Multi-Banking.</li>
+</ol>
+<h3 data-number="1.15.2" id="élevé"><span
+class="header-section-number">1.15.2</span> 13.2 Élevé</h3>
+<ul>
+<li>tenant du formulaire non comparé au tenant JWT ;</li>
+<li>uploads non limités directement dans FastAPI ;</li>
+<li>notifications SSE globales ;</li>
+<li>données historiques consultées sans filtre tenant explicite dans
+<code>analyze_batch()</code> ;</li>
+<li>Neo4j, Grafana et Prometheus publiés par Docker ;</li>
+<li>client <code>service_role</code> Supabase possible.</li>
+</ul>
+<h3 data-number="1.15.3" id="moyen"><span
+class="header-section-number">1.15.3</span> 13.3 Moyen</h3>
+<ul>
+<li>CORS large avec credentials ;</li>
+<li>token de test activé hors production ;</li>
+<li>HTML d’export construit par interpolation ;</li>
+<li>dépendances non verrouillées ;</li>
+<li>images Docker <code>latest</code> ;</li>
+<li>rate limiting incomplet ;</li>
+<li>conteneurs sans utilisateur non-root visible.</li>
+</ul>
+<h3 data-number="1.15.4" id="non-confirmable-localement"><span
+class="header-section-number">1.15.4</span> 13.4 Non confirmable
+localement</h3>
+<ul>
+<li>politiques RLS Supabase réelles ;</li>
+<li>exposition Internet effective ;</li>
+<li>historique Git des secrets ;</li>
+<li>CVE précises sans scanner ;</li>
+<li>contrôles externes non présents.</li>
+</ul>
+<hr />
+<h2 data-number="1.16"
+id="fonctionnalités-et-cartographie-fonctionnalité-code"><span
+class="header-section-number">1.16</span> 14. Fonctionnalités et
+cartographie fonctionnalité-code</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Fonctionnalité</th>
+<th>Composant frontend</th>
+<th>API</th>
+<th>Code principal</th>
+<th>Stockage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Import CSV</td>
+<td><code>MultiBankingDashboardComponent</code></td>
+<td><code>/banking/api/multi-banking/ingest</code></td>
+<td><code>parse_csv()</code></td>
+<td><code>fraud_alerts</code> après analyse</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td><code>MultiBankingService</code></td>
+<td><code>/validate</code></td>
+<td><code>validate_transactions()</code></td>
+<td>aucun direct</td>
+</tr>
+<tr>
+<td>Analyse fraude</td>
+<td><code>FraudAlertsService</code></td>
+<td><code>/api/analyze</code></td>
+<td><code>analyze_batch()</code></td>
+<td><code>fraud_alerts</code></td>
+</tr>
+<tr>
+<td>Règles</td>
+<td>Dashboard fraude</td>
+<td><code>/api/analyze</code></td>
+<td><code>apply_business_rules()</code></td>
+<td><code>thresholds.json</code></td>
+</tr>
+<tr>
+<td>ML</td>
+<td>Dashboard fraude</td>
+<td><code>/api/analyze</code></td>
+<td><code>preprocess_transaction()</code></td>
+<td>fichiers <code>.pkl</code></td>
+</tr>
+<tr>
+<td>Graphe</td>
+<td><code>GraphService</code></td>
+<td><code>/api/graph/*</code></td>
+<td><code>GraphEngine</code></td>
+<td>Neo4j</td>
+</tr>
+<tr>
+<td>Transactions</td>
+<td><code>TransactionsService</code></td>
+<td><code>/api/transactions</code></td>
+<td>CRUD FastAPI</td>
+<td><code>fraud_alerts</code></td>
+</tr>
+<tr>
+<td>Rapports</td>
+<td><code>ReportsService</code></td>
+<td><code>/api/reports/*</code></td>
+<td>fonctions reports</td>
+<td><code>fraud_alerts</code></td>
+</tr>
+<tr>
+<td>Notifications</td>
+<td><code>NotificationsService</code></td>
+<td><code>/api/notifications*</code></td>
+<td><code>SSEManager</code></td>
+<td>mémoire</td>
+</tr>
+<tr>
+<td>Matching</td>
+<td>dashboard Multi-Banking</td>
+<td>BankMatch externe</td>
+<td>non présent localement</td>
+<td>BankMatch</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 data-number="1.17" id="scénarios-de-soutenance"><span
+class="header-section-number">1.17</span> 15. Scénarios de
+soutenance</h2>
+<h3 data-number="1.17.1" id="scénario-a-import-réussi"><span
+class="header-section-number">1.17.1</span> Scénario A — Import
+réussi</h3>
+<pre class="text"><code>Utilisateur
+ -&gt; composant Angular
+ -&gt; service Angular
+ -&gt; gateway Express
+ -&gt; parseur Multi-Banking
+ -&gt; PivotTransaction
+ -&gt; Fraud Detection
+ -&gt; Supabase
+ -&gt; réponse
+ -&gt; rafraîchissement global</code></pre>
+<h3 data-number="1.17.2" id="scénario-b-fraude-détectée"><span
+class="header-section-number">1.17.2</span> Scénario B — Fraude
+détectée</h3>
+<p>Une transaction dépassant le seuil réglementaire ou contenant un
+mot-clé sensible déclenche une règle. Le score est fusionné avec le ML.
+Le résultat peut être persisté dans Supabase, synchronisé dans Neo4j et
+diffusé par SSE.</p>
+<h3 data-number="1.17.3" id="scénario-c-aucun-match-bancaire"><span
+class="header-section-number">1.17.3</span> Scénario C — Aucun match
+bancaire</h3>
+<p>Le repository local ne réalise pas la recherche de correspondance. Le
+statut <code>UNMATCHED</code> peut seulement provenir du seuil de
+montant local ou du résultat BankMatch externe non visible ici.</p>
+<h3 data-number="1.17.4" id="scénario-d-plusieurs-candidats"><span
+class="header-section-number">1.17.4</span> Scénario D — Plusieurs
+candidats</h3>
+<p>Non trouvé dans le code local. La résolution doit être réalisée par
+BankMatch.</p>
+<h3 data-number="1.17.5" id="scénario-e-erreur-dimport"><span
+class="header-section-number">1.17.5</span> Scénario E — Erreur
+d’import</h3>
+<p>Le parseur lève une erreur, Multi-Banking renvoie <code>400</code>,
+le frontend traduit l’erreur et affiche un toast.</p>
+<hr />
+<h2 data-number="1.18" id="limites-et-plan-de-priorités"><span
+class="header-section-number">1.18</span> 16. Limites et plan de
+priorités</h2>
+<h3 data-number="1.18.1" id="priorité-1-sécurité"><span
+class="header-section-number">1.18.1</span> Priorité 1 — Sécurité</h3>
+<ul>
+<li>imposer l’authentification en production ;</li>
+<li>faire tourner les secrets ;</li>
+<li>supprimer les fallbacks sans tenant ;</li>
+<li>protéger la 2FA ;</li>
+<li>isoler SSE et historiques par tenant ;</li>
+<li>désactiver les modes développement.</li>
+</ul>
+<h3 data-number="1.18.2" id="priorité-2-contrats"><span
+class="header-section-number">1.18.2</span> Priorité 2 — Contrats</h3>
+<ul>
+<li>unifier <code>8005</code>/<code>8006</code> ;</li>
+<li>aligner OpenAPI, routes et frontend ;</li>
+<li>corriger les E2E ;</li>
+<li>finaliser le contrat BankMatch ;</li>
+<li>versionner le schéma Supabase.</li>
+</ul>
+<h3 data-number="1.18.3" id="priorité-3-robustesse"><span
+class="header-section-number">1.18.3</span> Priorité 3 — Robustesse</h3>
+<ul>
+<li>limite d’upload côté FastAPI ;</li>
+<li>streaming des gros fichiers ;</li>
+<li>persistance des uploads ;</li>
+<li>stratégie de cohérence Supabase/Neo4j ;</li>
+<li>suppression des mocks en production.</li>
+</ul>
+<h3 data-number="1.18.4" id="priorité-4-performance"><span
+class="header-section-number">1.18.4</span> Priorité 4 —
+Performance</h3>
+<ul>
+<li>index tenant ;</li>
+<li>déduplication structurée ;</li>
+<li>écritures Neo4j par lot ;</li>
+<li>Redis pour les caches ;</li>
+<li>tests de charge.</li>
+</ul>
+<h3 data-number="1.18.5" id="priorité-5-maintenabilité"><span
+class="header-section-number">1.18.5</span> Priorité 5 —
+Maintenabilité</h3>
+<ul>
+<li>découper <code>main.py</code> en routes/services/repositories ;</li>
+<li>mutualiser les contrats DTO ;</li>
+<li>ajouter CI frontend et Multi-Banking ;</li>
+<li>ajouter des tests d’intégration réels.</li>
+</ul>
+<hr />
+<h2 data-number="1.19" id="questions-et-réponses-de-soutenance"><span
+class="header-section-number">1.19</span> 17. Questions et réponses de
+soutenance</h2>
+<h3 data-number="1.19.1" id="pourquoi-deux-services-backend"><span
+class="header-section-number">1.19.1</span> Pourquoi deux services
+backend ?</h3>
+<p>Pour séparer l’ingestion des formats bancaires de l’analyse fraude.
+Multi-Banking produit un modèle pivot ; Fraud Detection consomme ce
+modèle standardisé.</p>
+<h3 data-number="1.19.2"
+id="le-projet-réalise-t-il-le-rapprochement"><span
+class="header-section-number">1.19.2</span> Le projet réalise-t-il le
+rapprochement ?</h3>
+<p>Il prépare et transmet les transactions à BankMatch. Le moteur de
+matching complet n’est pas local. <code>reconciliationStatus</code> est
+une classification heuristique locale.</p>
+<h3 data-number="1.19.3" id="pourquoi-un-modèle-pivot"><span
+class="header-section-number">1.19.3</span> Pourquoi un modèle pivot
+?</h3>
+<p>Pour découpler les formats CSV, CAMT.053, MT940 et pain.001 des
+consommateurs aval.</p>
+<h3 data-number="1.19.4" id="comment-le-score-est-il-calculé"><span
+class="header-section-number">1.19.4</span> Comment le score est-il
+calculé ?</h3>
+<p>Par fusion de règles métier, modèle supervisé, Isolation Forest et
+explicabilité SHAP.</p>
+<h3 data-number="1.19.5" id="à-quoi-sert-neo4j"><span
+class="header-section-number">1.19.5</span> À quoi sert Neo4j ?</h3>
+<p>À représenter et analyser les relations entre comptes et transactions
+: cycles, flux réciproques, réseaux et comptes mules.</p>
+<h3 data-number="1.19.6" id="où-sont-stockées-les-données"><span
+class="header-section-number">1.19.6</span> Où sont stockées les données
+?</h3>
+<p>Supabase conserve les alertes et historiques. Neo4j conserve le
+graphe. Les seuils sont dans <code>thresholds.json</code>. Plusieurs
+états opérationnels sont en mémoire.</p>
+<h3 data-number="1.19.7" id="quelles-sont-les-principales-limites"><span
+class="header-section-number">1.19.7</span> Quelles sont les principales
+limites ?</h3>
+<p>Matching externe, schéma Supabase absent, sécurité de développement
+permissive, états mémoire, tests externes mockés, incohérences de ports
+et absence de benchmark de charge.</p>
+<h3 data-number="1.19.8" id="quelle-amélioration-prioritaire"><span
+class="header-section-number">1.19.8</span> Quelle amélioration
+prioritaire ?</h3>
+<p>Rendre l’authentification et l’isolation tenant obligatoires avant
+toute exposition en production.</p>
+<hr />
+<h2 data-number="1.20" id="conclusion"><span
+class="header-section-number">1.20</span> 18. Conclusion</h2>
+<p>Le repository implémente une chaîne complète d’ingestion bancaire
+multi-format et d’analyse de fraude hybride, avec interface Angular,
+APIs FastAPI, persistance Supabase et analyse relationnelle Neo4j.</p>
+<p>La partie la plus aboutie localement est l’ingestion et l’analyse
+fraude. Le rapprochement bancaire réel reste une responsabilité externe
+de BankMatch. Cette distinction doit être présentée clairement lors
+d’une soutenance afin de ne pas attribuer au code local une
+fonctionnalité qu’il ne contient pas.</p>
+<p>Avant une mise en production, les travaux prioritaires sont la
+sécurité multi-tenant, la rotation des secrets, la cohérence des
+contrats, la persistance durable des états, les tests d’infrastructure
+et la mesure des performances.</p>
