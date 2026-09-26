@@ -35,6 +35,11 @@
 \renewcommand{\chaptermark}[1]{\markboth{#1}{#1}}
 \fancyhead[R]{\thepage}
 \fancyhead[L]{\chaptername\ \thechapter\ --\ \leftmark}
+\fancypagestyle{frontmatter}{
+    \fancyhf{}
+    \fancyhead[L]{\nouppercase{\leftmark}}
+    \fancyhead[R]{\thepage}
+}
 
 % Mathématiques
 \usepackage{amsmath, amssymb, amsthm, bm}
@@ -86,6 +91,8 @@
 \newlength\figureheight
 \newlength\figurewidth
 \renewcommand{\listalgorithmname}{Liste des Algorithmes} 
+\renewcommand{\listfigurename}{Liste des figures}
+\renewcommand{\listtablename}{Liste des tableaux}
 
 % --- Packages pour le code, la syntaxe et les graphiques (Ajoutés par Devin) ---
 \usepackage{xcolor}
@@ -183,42 +190,52 @@
 
 \begin{center}
 \begin{minipage}{0.88\textwidth}
-\setstretch{1.18}
+\setstretch{1.12}
+
+\noindent Ce stage a représenté une expérience particulièrement enrichissante, tant sur le plan professionnel que personnel. Il m'a permis de mettre en pratique mes connaissances, de découvrir les exigences du monde professionnel et de progresser à travers la réalisation d'un projet concret. Je souhaite ainsi exprimer ma sincère gratitude à toutes les personnes qui ont contribué, directement ou indirectement, au bon déroulement de cette expérience.
+
+\vspace{0.3cm}
+
+\noindent Je remercie tout particulièrement \textbf{Monsieur Hedi ZOUARI}, mon encadrant professionnel, pour sa disponibilité, son accompagnement et la qualité de ses conseils tout au long du stage. Ses remarques constructives et nos échanges m'ont aidé à mieux comprendre les problématiques rencontrées, à prendre du recul sur mes choix techniques et à améliorer progressivement mon travail.
+
+\vspace{0.3cm}
+
+\noindent J'adresse également mes remerciements à \textbf{l'équipe technique d'\mbox{ELITECOM}} pour son accueil, sa disponibilité et les échanges enrichissants qui m'ont permis de mieux appréhender les contraintes liées au développement d'une application dans un environnement professionnel. Les retours et les discussions partagés au cours du stage ont largement contribué à mon apprentissage.
+
+\vspace{0.3cm}
+
+\noindent Je tiens aussi à exprimer ma reconnaissance à \textbf{l'École Nationale des Sciences de l'Informatique (ENSI)} ainsi qu'à l'ensemble de mes enseignants pour la qualité de la formation reçue et pour les connaissances qui m'ont permis d'aborder ce stage avec les bases nécessaires.
+
+\vspace{0.3cm}
+
+\noindent Enfin, je remercie chaleureusement \textbf{ma famille et mes proches} pour leur soutien, leurs encouragements et leur présence tout au long de cette période.
+
+\vspace{0.3cm}
 
 \begin{center}
-\textit{Je remercie toutes les personnes qui m'ont accompagné pendant ce stage et qui ont contribué à la réalisation de ce projet.}
+\textit{À toutes celles et tous ceux qui ont contribué à rendre cette expérience possible et enrichissante, j'adresse mes plus sincères remerciements.}
 \end{center}
-
-\vspace{0.45cm}
-
-\noindent\textbf{À mon encadrant professionnel, Monsieur Hedi ZOUARI,} je remercie pour ses conseils sur l'architecture et les revues de code. Son accompagnement a été précieux pour corriger le parser MT940, clarifier le flux JWT inter-services et mieux structurer la validation des transactions.
-
-\vspace{0.35cm}
-
-\noindent\textbf{À l'équipe technique d'ELITECOM,} je remercie pour les échanges sur les modèles de données et les contraintes liées au traitement des fichiers bancaires.
-
-\vspace{0.35cm}
-
-\noindent\textbf{À l'École Nationale des Sciences de l'Informatique (ENSI),} je remercie pour la formation académique solide.
-
-\vspace{0.35cm}
-
-\noindent\textbf{Enfin, à ma famille et à mes proches,} je remercie pour leur soutien durant ce stage.
 
 \end{minipage}
 \end{center}
 \end{titlepage}
 \pagenumbering{roman}
+\pagestyle{frontmatter}
 \hypersetup{pageanchor=true}
 \tableofcontents
 \clearpage
 \listoffigures
 \clearpage
+\listoftables
+\clearpage
 
 \chapter*{Liste des acronymes}
 \addcontentsline{toc}{chapter}{Liste des acronymes}
 \markboth{Liste des acronymes}{Liste des acronymes}
-\begin{acronym}[SHAP] % Give the longest acronym here
+{\footnotesize
+\begin{acronym}[SHA-256]
+  \setlength{\itemsep}{-1pt}
+  \setlength{\parskip}{0pt}
   \acro{IA}{Intelligence artificielle}
   \acro{ML}{Machine Learning}
   \acro{API}{Application Programming Interface}
@@ -226,25 +243,46 @@
   \acro{SaaS}{Software as a Service}
   \acro{SHAP}{SHapley Additive exPlanations}
   \acro{JWT}{JSON Web Token}
+  \acro{HS256}{HMAC utilisant SHA-256}
+  \acro{SHA-256}{Secure Hash Algorithm 256 bits}
   \acro{CSV}{Comma-Separated Values}
+  \acro{XML}{Extensible Markup Language}
+  \acro{XXE}{XML External Entity}
+  \acro{JSON}{JavaScript Object Notation}
+  \acro{HTTP}{Hypertext Transfer Protocol}
+  \acro{UUID}{Universally Unique Identifier}
+  \acro{IBAN}{International Bank Account Number}
   \acro{CAMT}{Cash Management}
   \acro{MT940}{Standard de relevé bancaire SWIFT}
-  \acro{UI}{User Interface}
-  \acro{UX}{User Experience}
+  \acro{PAIN}{Payment Initiation}
+  \acro{SEPA}{Single Euro Payments Area}
+  \acro{SWIFT}{Society for Worldwide Interbank Financial Telecommunication}
+  \acro{ISO}{Organisation internationale de normalisation}
+  \acro{E2E}{End-to-End}
+  \acro{AUC-PR}{Area Under the Precision--Recall Curve}
+  \acro{RFC}{Request for Comments}
+  \acro{IETF}{Internet Engineering Task Force}
+  \acro{PSD2}{Payment Services Directive 2}
+  \acro{FATF}{Financial Action Task Force}
 \end{acronym}
+}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Corps du rapport (version réduite) %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \pagestyle{fancy}
-\cleardoublepage
+\clearpage
 \pagenumbering{arabic}
 
 % ==========================================================
 % CHAPITRE 1 : INTRODUCTION
 % ==========================================================
+\begingroup
+\let\clearpage\relax
+\let\cleardoublepage\relax
 \chapter{Introduction}
+\endgroup
 
 \section{Contexte du stage}
 
@@ -256,7 +294,14 @@ Le contexte du stage était technique : j'ai travaillé sur du code Python (Fast
 
 Le projet s'inscrit dans un contexte plus large de gestion financière intelligente et de détection des anomalies sur les mouvements bancaires. Mon périmètre a porté sur les services d'ingestion et de normalisation bancaire, ainsi que sur leur intégration avec le moteur de détection de fraude. J'ai dû comprendre l'architecture existante pour situer mon travail et éviter de casser les fonctionnalités déjà en place.
 
-La contribution personnelle peut être structurée comme suit (avec indication du statut de chaque élément) :
+La contribution personnelle peut être structurée comme suit (avec indication du statut de chaque élément). Convention utilisée dans ce rapport :
+\begin{itemize}
+    \item \textbf{Développé} : implémenté pendant le stage ;
+    \item \textbf{Modifié} : code existant adapté ;
+    \item \textbf{Intégré} : composant existant raccordé au flux ;
+    \item \textbf{Étudié} : analyse/compréhension sans développement principal ;
+    \item \textbf{Existant} : composant présent avant le stage.
+\end{itemize}
 
 \begin{table}[!htbp]
 \centering
@@ -289,7 +334,7 @@ E2E & -- & Non réalisé \\
 Le système repose sur deux modules principaux :
 
 \begin{itemize}
-    \item \textbf{Multi-Banking} : ingestion de fichiers bancaires (CSV, CAMT.053, MT940), parsing, normalisation vers un format pivot, validation (IBAN, dates, montants, doublons), et transmission au service Fraud Detection via API REST ;
+    \item \textbf{Multi-Banking} : ingestion de fichiers bancaires (CSV, CAMT.053, MT940), parsing, normalisation vers un format pivot, validation (IBAN, dates, montants, doublons), et transmission au service Fraud Detection via API REST ; 
     \item \textbf{Fraud Detection} : analyse des transactions normalisées, application de règles métier, score de risque basé sur les modèles existants et explicabilité via SHAP.
 \end{itemize}
 
@@ -309,8 +354,9 @@ L'intégration avec BankMatch est implémentée mais désactivée par défaut
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.82\textwidth]{dashboard_visualisation.png}
-    \caption{Visualisation des résultats dans l'interface globale du projet}
+    \includegraphics[width=0.96\textwidth]{dashboard_overview.png}
+    \caption{Vue d'ensemble de la plateforme BankMatch et de ses principaux modules}
+    \label{fig:bankmatch-overview}
 \end{figure}
 
 \section{Problématique}
@@ -379,7 +425,7 @@ Les besoins fonctionnels sont :
 
 Le projet est une plateforme modulaire. Mon travail s'est concentré sur deux services :
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
 \centering
 \resizebox{0.98\textwidth}{!}{%
 \begin{tikzpicture}[
@@ -445,7 +491,7 @@ Le projet est une plateforme modulaire. Mon travail s'est concentré sur deux se
 
 Les autres modules (trésorerie, reporting, AI Financial Copilot) existent mais n'étaient pas dans mon périmètre technique. Ces modules ont été développés par d'autres membres de l'équipe et s'intègrent dans l'architecture globale de la plateforme BankMatch.
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
     \centering
     \begin{tikzpicture}[
         font=\small,
@@ -495,115 +541,66 @@ Les autres modules (trésorerie, reporting, AI Financial Copilot) existent mais 
     \label{fig:architecture-overview}
 \end{figure}
 
-\section{Autres modules de la plateforme}
+\subsection{Flux fonctionnel global}
 
-Outre les modules Multi-Banking et Fraud Detection sur lesquels j'ai travaillé, la plateforme BankMatch comprend d'autres modules développés par l'équipe technique. Ces modules s'intègrent dans l'architecture globale pour offrir une solution complète d'intelligence financière.
+Le parcours principal d'une transaction, depuis son import jusqu'à l'analyse du risque, peut être résumé ainsi :
 
-\section{Module de gestion de trésorerie}
-
-Le module de gestion de trésorerie, développé par un autre membre de l'équipe, fournit une vue consolidée des soldes, des encaissements et des décaissements. Il présente également l'évolution prévisionnelle de la trésorerie, une zone d'incertitude et plusieurs indicateurs destinés à faciliter l'analyse financière. Cette interface est présentée pour situer le rôle des données produites par les services bancaires dans l'ensemble de la plateforme.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.72\textwidth,height=0.72\textheight,keepaspectratio]{moduletresorie.jpeg}
-    \caption{Tableau de bord du module de gestion de trésorerie}
-    \label{fig:module-tresorerie}
-\end{figure}
-
-\section{Module de reporting et d'analyse}
-
-Le module de reporting, réalisé par un collègue, permet de construire des rapports financiers à partir des données disponibles dans la plateforme. Il regroupe la configuration des rapports, la sélection des indicateurs et la visualisation des résultats sous forme de tableaux de bord et de graphiques analytiques.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.92\textwidth]{modulereporting.png}
-    \caption{Interface de création et de configuration d'un rapport financier}
-    \label{fig:module-reporting-creation}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.92\textwidth]{modulereporting_analys.png}
-    \caption{Tableau de bord analytique du module de reporting}
-    \label{fig:module-reporting-analyse}
-\end{figure}
-
-\section{Module AI Financial Copilot}
-
-Le module AI Financial Copilot, développé par un autre membre de l'équipe, propose une interface conversationnelle pour interroger les informations financières en langage naturel. Il synthétise les données disponibles, formule des recommandations et permet également de comparer plusieurs modèles au moyen d'un espace de benchmark.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.92\textwidth]{ai financial copilot_chat.png}
-    \caption{Interface conversationnelle du module AI Financial Copilot}
-    \label{fig:module-ai-copilot-chat}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.92\textwidth]{ai financial copilot_benchmarklab.png}
-    \caption{Espace de comparaison des modèles du module AI Financial Copilot}
-    \label{fig:module-ai-copilot-benchmark}
-\end{figure}
-
-\section{Architecture globale du système}
-
-\subsection{Pipeline d'ingestion et de traitement}
-
-Le flux de données implémenté dans mon travail est le suivant :
-
-\begin{figure}[H]
+\begin{figure}[!htbp]
 \centering
+\resizebox{0.96\textwidth}{!}{%
 \begin{tikzpicture}[
     font=\small,
     process/.style={rectangle, draw=blue!65!black, fill=blue!8, rounded corners,
         minimum width=2.8cm, minimum height=1cm, align=center},
-    decision/.style={diamond, draw=orange!70!black, fill=orange!10,
-        minimum width=2cm, minimum height=1cm, align=center},
-    service/.style={rectangle, draw=green!50!black, fill=green!8, rounded corners,
-        minimum width=2.8cm, minimum height=1cm, align=center},
     flow/.style={->, thick, >=Stealth}
 ]
-    \node[process] (upload) at (0,4) {Upload\\Fichier bancaire};
-    \node[process] (parse) at (0,2.5) {parse\_content()\\Parser format};
-    \node[process] (pivot) at (0,1) {PivotTransaction\\Normalisation};
-    \node[process] (validate) at (0,-0.5) {validate\_transactions()\\Validation + Doublons};
-    \node[process] (dedup) at (0,-2) {Déduplication\\SHA-256 + Tolérance};
-    \node[process] (payload) at (0,-3.5) {build\_fraud\_payload()\\Construction payload};
-    \node[process] (jwt) at (0,-5) {JWT Token\\Authentification interne};
-    \node[process] (http) at (0,-6.5) {HTTP + Retry\\Appel asynchrone};
-    \node[service] (fraud) at (0,-8) {Fraud Detection\\Service externe};
-    
-    \draw[flow] (upload) -- (parse);
-    \draw[flow] (parse) -- (pivot);
-    \draw[flow] (pivot) -- (validate);
-    \draw[flow] (validate) -- (dedup);
-    \draw[flow] (dedup) -- (payload);
-    \draw[flow] (payload) -- (jwt);
-    \draw[flow] (jwt) -- (http);
-    \draw[flow] (http) -- (fraud);
+    \node[process] (file) at (0,0) {Fichier bancaire};
+    \node[process] (multibanking) at (3.6,0) {Multi-Banking};
+    \node[process] (validation) at (7.2,0) {Validation};
+    \node[process] (fraud) at (10.8,0) {Fraud Detection};
+    \node[process] (analysis) at (14.4,0) {Analyse du risque};
+
+    \draw[flow] (file) -- (multibanking);
+    \draw[flow] (multibanking) -- (validation);
+    \draw[flow] (validation) -- (fraud);
+    \draw[flow] (fraud) -- (analysis);
 \end{tikzpicture}
-\caption{Pipeline d'ingestion et de traitement implémenté}
-\label{fig:ingestion-pipeline}
+}
+\caption{Vue fonctionnelle du flux de traitement}
+\label{fig:functional-flow}
 \end{figure}
 
-Le flux de données détaillé est le suivant :
+Le détail technique de l'architecture et du pipeline d'ingestion est présenté dans le chapitre suivant.
 
-\begin{spacing}{1.1}
-\begin{enumerate}
-    \setlength{\itemsep}{2pt}
-    \setlength{\parskip}{0pt}
-    \setlength{\parsep}{0pt}
-    \item Fichier bancaire (CSV/CAMT.053/MT940) téléversé via \path{POST /banking/api/multi-banking/ingest} ;
-    \item Parsing dans \path{parse_content()} selon le format, avec retour d'une liste de \texttt{PivotTransaction} ;
-    \item Validation dans \path{validate_transactions()} : vérification de l'IBAN, de la date ISO 8601, du montant et des doublons ;
-    \item Construction du payload Fraud Detection dans \path{build_fraud_payload()}, avec déduction des soldes ;
-    \item Génération d'un jeton JWT interne avec \texttt{jwt.encode()}, incluant le service et le locataire ;
-    \item Appel asynchrone à \texttt{POST /api/analyze} du service Fraud Detection avec retry exponentiel (3 tentatives) ;
-    \item Réception des résultats : score de risque, règles déclenchées, explicabilité SHAP ;
-    \item Stockage des statistiques d'upload en mémoire (total\_files, successful, failed, total\_transactions).
-\end{enumerate}
-\end{spacing}
+\section{Autres modules de la plateforme}
+
+La plateforme BankMatch comprend également des modules de gestion de trésorerie, de reporting et d'assistance financière. Ces composants ne faisant pas partie de mon périmètre d'intervention, ils sont présentés uniquement afin de situer les services Multi-Banking et Fraud Detection dans l'architecture globale.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.55\textwidth,height=0.42\textheight,keepaspectratio]{moduletresorie.jpeg}
+    \caption{Tableau de bord du module de gestion de trésorerie}
+    \label{fig:module-tresorerie}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.78\textwidth]{modulereporting.png}
+
+    \smallskip
+    {\small (a) Création et configuration d'un rapport financier}
+
+    \vspace{0.45cm}
+
+    \includegraphics[width=0.78\textwidth]{ai financial copilot_chat.png}
+
+    \smallskip
+    {\small (b) Interface conversationnelle de l'AI Financial Copilot}
+    \caption{Interfaces des modules Reporting et AI Financial Copilot}
+    \label{fig:module-reporting-copilot}
+\end{figure}
+
+\FloatBarrier
 
 
 % ==========================================================
@@ -637,7 +634,7 @@ Le découpage en microservices permet de développer Multi-Banking et Fraud Dete
 
 \begin{figure}[H]
 \centering
-\resizebox{0.98\textwidth}{!}{%
+\resizebox{0.95\textwidth}{!}{%
 \begin{tikzpicture}[
     font=\scriptsize,
     class/.style={rectangle, draw=blue!65!black, fill=blue!8, rounded corners,
@@ -673,18 +670,7 @@ Le découpage en microservices permet de développer Multi-Banking et Fraud Dete
 
 \section{Flux de traitement des données}
 
-Le flux implémenté dans \texttt{main.py} :
-
-\begin{enumerate}
-    \item Téléversement via \path{POST /banking/api/multi-banking/ingest}, avec les champs fichier, format, locataire et banque ;
-    \item Parsing via \texttt{parse\_content()} selon format (csv, camt053, mt940, pain001) ;
-    \item Validation via \texttt{validate\_transactions()} : vérifie IBAN, date ISO 8601, montant ≠ 0, doublons (hash SHA-256 + tolérance ±0.02 EUR) ;
-    \item Construction payload Fraud Detection via \texttt{build\_fraud\_payload()} : conversion vers format attendu avec déduction intelligente des soldes (balance\_before, balance\_after) ;
-    \item Génération d'un jeton JWT interne signé avec l'algorithme HS256 ;
-    \item Appel asynchrone de l'endpoint \path{POST FRAUD_SERVICE_URL/api/analyze}, avec trois tentatives et un délai exponentiel ;
-    \item Réception résultats : score de risque, règles déclenchées, explicabilité SHAP ;
-    \item Mise à jour statistiques upload en mémoire (total\_files, successful, failed, total\_transactions).
-\end{enumerate}
+Le flux technique détaillé est présenté dans le chapitre 4. Au niveau architectural, les étapes principales sont : parsing selon le format, normalisation vers PivotTransaction, validation avec détection de doublons, construction du payload Fraud Detection, authentification JWT, et appel asynchrone avec retry exponentiel.
 
 \section{Intégration des services}
 
@@ -740,9 +726,9 @@ Le format MT940 est un standard SWIFT [7] pour l'échange de relevés bancaires,
 
 \textbf{Monitoring} : Prometheus (métriques), Grafana (visualisation), Instrumentator (FastAPI Prometheus integration).
 
-\textbf{Réglementation} : Les règles de détection de fraude s'inspirent des directives PSD2 [14] et des standards FATF [15] pour la lutte contre le blanchiment et le financement du terrorisme. L'architecture globale du système est documentée dans les fichiers internes [16-19].
+\textbf{Réglementation} : Les règles de détection de fraude s'inspirent des directives PSD2 [20] et des standards FATF [21] pour la lutte contre le blanchiment et le financement du terrorisme. L'architecture globale du système est documentée dans les fichiers internes [22-25].
 
-\section{Justification des choix techniques}
+\section{Choix de conception}
 
 \subsection{Float vs Decimal pour les montants}
 
@@ -919,6 +905,44 @@ Originale : r":61:(\d{6})(\d{4})?([CD])(\w)?([\d,]+)"
 Corrigée  : r":61:(\d{6})(\d{4})?([CD])([A-Za-z])?([\d,]+)"
 \end{verbatim}
 
+\section{Résultats obtenus}
+
+Le travail réalisé a permis d'atteindre les résultats suivants :
+
+\begin{table}[!htbp]
+\centering
+\caption{Résultats obtenus par fonctionnalité}
+\label{tab:results-obtained}
+\small
+\begin{tabularx}{0.95\textwidth}{|
+    >{\raggedright\arraybackslash}p{3cm}|
+    >{\raggedright\arraybackslash}X|}
+\hline
+\textbf{Fonctionnalité} & \textbf{Résultat} \\
+\hline
+CSV Parser & Parsing opérationnel avec extraction des colonnes requises \\
+CAMT.053 Parser & Parsing opérationnel avec gestion de la structure XML hiérarchique \\
+MT940 Parser & Parsing opérationnel + correction du bug montant (1500.00 → 1500.00) \\
+PAIN.001 Parser & Parser développé, intégration partielle à valider \\
+Validation & IBAN, date ISO 8601, montant non nul \\
+Déduplication & Tolérance ±0.02 EUR pour écarts d'arrondi bancaire \\
+Intégration Fraud API & Communication JWT fonctionnelle avec retry exponentiel (3 tentatives) \\
+Tests & Cas nominaux + erreurs couverts par 33 tests Multi-Banking \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Difficultés techniques}
+
+Les principales difficultés techniques rencontrées ont été :
+
+\begin{itemize}
+    \item \textbf{Bug MT940} : Correction de la regex pour éviter la perte du premier chiffre du montant
+    \item \textbf{Intégration JWT} : Configuration de l'authentification inter-services avec gestion des secrets
+    \item \textbf{Tolérance de doublons} : Implémentation complexe de la détection avec tolérance ±0.02 EUR
+    \item \textbf{Travail sur code existant} : Compréhension des conventions et adaptation sans casser les fonctionnalités existantes
+\end{itemize}
+
 
 
 % ==========================================================
@@ -934,7 +958,8 @@ Ma contribution a principalement porté sur l'intégration et la sécurisation d
 
 \section{Approche hybride}
 
-L'approche retenue combine les règles métier et les modèles de Machine Learning. Les règles permettent de détecter rapidement certains cas, tandis que les modèles apportent une analyse complémentaire pour les situations plus complexes.
+En étudiant le moteur de fraude, j’ai constaté qu’il ne repose pas sur une seule méthode. Les règles métier permettent de repérer directement certains cas définis à l’avance, tandis que les modèles de Machine Learning apportent un autre niveau d’analyse pour les transactions plus difficiles à caractériser.
+
 
 Mon travail a principalement porté sur l'intégration des transactions normalisées dans cette chaîne de détection et sur la validation de son fonctionnement.
 
@@ -990,7 +1015,7 @@ Le moteur de fraude applique un ensemble de règles conçues pour détecter des 
     \item hausse anormale du montant par rapport à la moyenne du compte.
 \end{itemize}
 
-Ces règles ne sont pas seulement descriptives. Elles vont servir à calculer un score global et à hiérarchiser les alertes selon leur gravité. C'est une étape importante pour ne pas confondre analyse générale et signalement prioritaire.
+Ces règles alimentent le calcul du score global et permettent de hiérarchiser les alertes selon leur gravité.
 
 \begin{figure}[!htbp]
     \centering
@@ -999,246 +1024,73 @@ Ces règles ne sont pas seulement descriptives. Elles vont servir à calculer un
     \label{fig:fraud-business-rules}
 \end{figure}
 
-\section{Machine learning et explicabilité}
+\section{Machine Learning et explicabilité}
 
-Le système de détection de fraude combine plusieurs composants ML qui étaient déjà présents dans le projet au début de mon stage. Mon travail sur cette partie a consisté à observer et comprendre l'implémentation existante, à étudier le fonctionnement des différents modèles et à m'assurer que les données transmises depuis Multi-Banking respectaient le format attendu.
+Le système de détection de fraude repose sur plusieurs composants ML. J’ai principalement étudié leur fonctionnement et leur intégration, tout en vérifiant que les données provenant de Multi-Banking respectaient le format attendu.
 
-\subsection{Pipeline de chargement des modèles}
 
-Le fichier \texttt{main.py} implémente une logique de priorité pour le chargement des modèles :
+\subsection{Modèles et composants ML existants}
 
-\begin{verbatim}
-MODEL_PATH = "model_fraud_calibrated.pkl" if os.path.exists("model_fraud_calibrated.pkl") 
-             else "model_fraud.pkl"
-\end{verbatim}
+Le système utilise une approche hybride combinant plusieurs modèles de Machine Learning existants :
 
-Cela signifie que :
-\begin{itemize}
-    \item Si \texttt{model\_fraud\_calibrated.pkl} existe, il est chargé en priorité (XGBoost calibré)
-    \item Sinon, le système utilise \texttt{model\_fraud.pkl} comme fallback
-\end{itemize}
+\noindent\textbf{Pipeline de chargement} : \path{main.py} charge prioritairement \path{model_fraud_calibrated.pkl} (XGBoost calibré) et utilise \path{model_fraud.pkl} comme solution de repli.
 
-Cette logique a été observée dans le code existant et n'a pas été modifiée pendant le stage.
+\noindent\textbf{Random Forest} : Ce modèle sert de référence pour le benchmark. Il repose sur \path{RandomForestClassifier} avec les paramètres \path{n_estimators=150}, \path{max_depth=8} et \path{class_weight="balanced"}. Une expérimentation de calibration a également été menée avec \path{CalibratedClassifierCV} sur des données synthétiques.
 
-\begin{figure}[H]
-\centering
-\resizebox{0.98\textwidth}{!}{%
-\begin{tikzpicture}[
-    font=\normalsize,
-    process/.style={rectangle, draw=blue!65!black, fill=blue!8, rounded corners,
-        text width=3.4cm, minimum height=1.25cm, align=center},
-    data/.style={rectangle, draw=green!50!black, fill=green!8, rounded corners,
-        text width=3.4cm, minimum height=1.15cm, align=center},
-    decision/.style={diamond, draw=orange!70!black, fill=orange!10,
-        aspect=2.2, text width=2.5cm, inner sep=1pt, align=center},
-    flow/.style={->, thick, >=Stealth},
-    label/.style={font=\small\itshape, align=center}
-]
-    \node[data] (paysim_rf) at (0,5.3) {Dataset PaySim\\données de benchmark};
-    \node[data] (synthetic) at (4.8,5.3) {Données synthétiques\\10,000 échantillons};
-    \node[data] (paysim_xgb) at (9.6,5.3) {Dataset PaySim\\jusqu'à 1 million de lignes};
+\noindent\textbf{XGBoost calibré} : Ce modèle prioritaire est stocké dans \path{model_fraud_calibrated.pkl}. Ses principaux paramètres sont \path{n_estimators=300}, \path{max_depth=6} et \path{learning_rate=0.1}. Une calibration isotone est appliquée et le seuil optimal est déterminé par maximisation du F1-score.
 
-    \node[process] (rf) at (0,2.7) {Random Forest\\benchmark de référence};
-    \node[process] (rf_cal) at (4.8,2.7) {Random Forest calibré\\modèle expérimental};
-    \node[process] (xgb_cal) at (9.6,2.7) {XGBoost calibré\\modèle prioritaire};
+\noindent\textbf{Isolation Forest} : Algorithme de détection d'anomalies non supervisé, complémentaire aux modèles de classification supervisée.
 
-    \node[label] at (0,0.95) {benchmark uniquement\\non chargé};
-    \node[label] at (4.8,0.95) {expérimentation\\non chargée};
-    \node[decision] (check) at (9.6,0.15) {Le fichier calibré existe-t-il ?};
-    \node[process] (fallback) at (4.8,-2.4) {Modèle de secours\\\texttt{model\_fraud.pkl}};
-    \node[process] (loaded) at (9.6,-2.4) {Modèle chargé\\par le service};
+\noindent\textbf{SHAP} : Technique d'explicabilité qui identifie les variables influençant le plus la décision du modèle (montant, comportement du compte, fréquence des transactions).
 
-    \draw[flow] (paysim_rf) -- (rf);
-    \draw[flow] (synthetic) -- (rf_cal);
-    \draw[flow] (paysim_xgb) -- (xgb_cal);
-    \draw[flow] (xgb_cal) -- (check);
-    \draw[flow] (check) -- node[right, label] {oui} (loaded);
-    \draw[flow] (check) -- node[above, label] {non} (fallback);
-    \draw[flow] (fallback) -- (loaded);
-\end{tikzpicture}
-}
-\caption{Pipeline de chargement des modèles ML avec logique de priorité}
-\label{fig:ml-pipeline}
-\end{figure}
-
-\subsection{Random Forest : modèle de référence}
-
-Un modèle Random Forest a été utilisé comme benchmark pour la détection de fraude. Implémenté avec \texttt{RandomForestClassifier} dans \texttt{train\_calibrated\_model.py} :
-
-\begin{itemize}
-    \item \texttt{n\_estimators=150}
-    \item \texttt{max\_depth=8}
-    \item \texttt{min\_samples\_leaf=3}
-    \item \texttt{class\_weight="balanced"} pour gérer le déséquilibre de classes
-    \item \texttt{random\_state=42} pour la reproductibilité
-    \item \texttt{n\_jobs=-1} pour utiliser tous les cœurs CPU
-\end{itemize}
-
-Ce modèle a servi de référence pour comparer les performances avec XGBoost.
-
-\subsection{Random Forest calibré}
-
-Une expérimentation de calibration a été menée sur le Random Forest avec \texttt{CalibratedClassifierCV} dans \texttt{train\_calibrated\_model.py} :
-
-\begin{itemize}
-    \item Méthode de calibration : isotone (calibration monotone)
-    \item Cross-validation : \texttt{cv=5}
-    \item Données utilisées : données synthétiques générées par \texttt{generate\_synthetic\_data()}
-\end{itemize}
-
-Cette expérimentation est distincte du Random Forest benchmark et utilise des données synthétiques plutôt que le dataset PaySim. Elle a pour objectif d'améliorer la fiabilité des probabilités prédites par le modèle.
-
-\subsection{XGBoost calibré}
-
-Le modèle actuellement prioritaire dans le système est un XGBoost calibré, stocké dans \texttt{model\_fraud\_calibrated.pkl}. Selon \texttt{train\_xgboost\_calibrated.py}, il utilise les paramètres suivants :
-
-\begin{itemize}
-    \item \texttt{n\_estimators=300}
-    \item \texttt{max\_depth=6}
-    \item \texttt{learning\_rate=0.1}
-    \item \texttt{subsample=0.8}
-    \item \texttt{colsample\_bytree=0.8}
-    \item \texttt{scale\_pos\_weight} : calculé automatiquement pour gérer le déséquilibre de classes
-    \item \texttt{random\_state=42}
-    \item \texttt{n\_jobs=-1}
-\end{itemize}
-
-La calibration est effectuée avec \texttt{CalibratedClassifierCV} :
-\begin{itemize}
-    \item Méthode : isotone
-    \item Cross-validation : \texttt{StratifiedKFold(n\_splits=5, shuffle=True, random\_state=42)}
-\end{itemize}
-
-Le seuil optimal (0.4758) est enregistré dans \texttt{model\_metadata.pkl} et déterminé via maximisation du F1-score sur la courbe Precision-Recall.
-
-\subsection{Isolation Forest}
-
-Le système utilise également Isolation Forest, un algorithme de détection d'anomalies non supervisé [10]. Contrairement aux modèles de classification supervisée (Random Forest, XGBoost), Isolation Forest ne nécessite pas d'étiquettes de fraude et détecte des comportements atypiques basés sur l'isolation des instances dans l'espace des features.
-
-\subsection{SHAP : explicabilité}
-
-L'explicabilité repose sur SHAP (SHapley Additive exPlanations) [6], une méthode d'interprétation des modèles ML. SHAP n'est pas un modèle de prédiction mais une technique d'explicabilité qui identifie les variables qui influencent le plus la décision du modèle : montant, comportement du compte, fréquence des transactions, ou changement inhabituel dans les habitudes du client.
-
-\subsection{Rules Engine : règles métier}
-
-Le moteur de règles (\texttt{rules\_engine.py}) applique des règles métier déterministes, distinctes du Machine Learning. Ces règles sont basées sur des seuils et des mots-clés définis par l'équipe métier :
-
-\begin{itemize}
-    \item \textbf{SEUIL\_REGLEMENTAIRE} : montant > 10\_000.0 EUR (poids 100)
-    \item \textbf{MOTCLE\_SENSIBLE} : détection de mots-clés comme CASINO, PARIS, POKER (poids 100)
-    \item \textbf{FRACTIONNEMENT\_SUSPECT} : détection de paiements fractionnés (poids 90)
-    \item \textbf{RETRAIT\_CASH\_IMPORTANT} : retrait cash > 5\_000.0 EUR (poids 80)
-    \item \textbf{HORAIRE\_ATYPIQUE} : transaction entre 1h et 5h du matin (poids 25)
-    \item \textbf{VELOCITE\_ANORMALE} : >3 transactions en 15 minutes (poids 40)
-\end{itemize}
-
-Ces règles sont configurables via l'endpoint \texttt{/api/config/thresholds}.
+\noindent\textbf{Règles métier} : Le moteur de règles (\texttt{rules\_engine.py}) applique des règles déterministes basées sur des seuils et mots-clés (SEUIL\_REGLEMENTAIRE > 10\_000 EUR, MOTCLE\_SENSIBLE, FRACTIONNEMENT\_SUSPECT, etc.).
 
 \subsection{Fusion des scores}
 
-Le système fusionne les scores de différentes sources via la fonction \texttt{fuse\_scores()} de \texttt{main.py} :
-
-\begin{verbatim}
-base_score = ml_probability
-if isolation_anomaly_score > 0:
-    base_score = base_score + (isolation_anomaly_score * 0.3)
-if batch_probability > 0:
-    base_score = base_score + (batch_probability * 0.2)
-if is_blocked and rule_category:
-    rule_score = RULE_SEVERITY_WEIGHTS.get(rule_category, 0.70)
-    return round(1.0 - ((1.0 - base_score) * (1.0 - rule_score)), 4)
-\end{verbatim}
-
-La logique de fusion est la suivante :
+Pour obtenir un score de risque global, le système combine les scores issus des différentes sources de détection à l’aide de la fonction \texttt{fuse\_scores()}.
 \begin{itemize}
-    \item Score de base : probabilité ML (XGBoost calibré ou Random Forest)
-    \item Intégration Isolation Forest : +30\% du score d'anomalie (plafonné à 1.0)
-    \item Intégration batch rules : +20\% de la probabilité batch (plafonné à 1.0)
-    \item Fusion avec règles métier : formule 1 - (1 - base)(1 - rule) pour combiner les scores
+    \item Score de base : probabilité ML (XGBoost calibré ou Random Forest) ;
+    \item intégration d'Isolation Forest : ajout de 30\% du score d'anomalie, plafonné à 1 ;
+    \item intégration des règles de lot : ajout de 20\% de la probabilité calculée sur le lot, plafonné à 1 ;
+    \item fusion avec les règles métier : \(1-(1-\text{base})(1-\text{règle})\).
 \end{itemize}
-
-\begin{figure}[!htbp]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    source/.style={rectangle, draw=blue!65!black, fill=blue!8, rounded corners,
-        minimum width=2.8cm, minimum height=1cm, align=center},
-    process/.style={rectangle, draw=green!50!black, fill=green!8, rounded corners,
-        minimum width=2.5cm, minimum height=0.9cm, align=center},
-    operator/.style={circle, draw=orange!70!black, fill=orange!10,
-        minimum width=1.5cm, minimum height=1.5cm, align=center},
-    result/.style={rectangle, draw=red!60!black, fill=red!8, rounded corners,
-        minimum width=2.5cm, minimum height=1cm, align=center},
-    flow/.style={->, thick, >=Stealth},
-    weight/.style={font=\footnotesize\bfseries}
-]
-    \node[source] (ml) at (0,4) {ML Probability\\(XGBoost/RF)};
-    \node[source] (iso) at (3,4) {Isolation Forest\\(anomaly score)};
-    \node[source] (batch) at (6,4) {Batch Rules\\(probability)};
-    \node[source] (rules) at (9,4) {Business Rules\\(category)};
-    
-    \node[operator] (add1) at (1.5,2) {+};
-    \node[operator] (add2) at (4.5,2) {+};
-    \node[operator] (fuse) at (7.5,2) {×};
-    
-    \node[process] (base) at (1.5,0.5) {base\_score\\(plafond 1.0)};
-    \node[process] (inter) at (4.5,0.5) {intermédiaire\\(plafond 1.0)};
-    \node[process] (formula) at (7.5,0.5) {1-(1-base)(1-rule)};
-    
-    \node[result] (final) at (4.5,-1.5) {Score Final\\(0.0--1.0)};
-    
-    \draw[flow] (ml) -- (add1);
-    \draw[flow] (iso) -- node[right, weight] {×0.3} (add1);
-    \draw[flow] (add1) -- (base);
-    
-    \draw[flow] (base) -- (add2);
-    \draw[flow] (batch) -- node[right, weight] {×0.2} (add2);
-    \draw[flow] (add2) -- (inter);
-    
-    \draw[flow] (inter) -- (fuse);
-    \draw[flow] (rules) -- node[right, weight] {poids} (fuse);
-    \draw[flow] (fuse) -- (formula);
-    
-    \draw[flow] (formula) -- (final);
-    
-    \node[font=\footnotesize, align=center] at (4.5,-2.5) {Formule finale : round(1.0 - ((1.0 - base\_score) × (1.0 - rule\_score)), 4)};
-\end{tikzpicture}
-\caption{Fusion des scores ML, Isolation Forest, Batch Rules et Règles métier}
-\label{fig:score-fusion}
-\end{figure}
 
 \subsection{Variables du modèle}
 
-Les variables du modèle sont extraites dans \texttt{features.py}, notamment :
-
+Les variables utilisées par les modèles sont définies dans \texttt{features.py} et comprennent 13 features principales :
 \begin{itemize}
     \item \path{amount}, \path{oldbalanceOrg}, \path{newbalanceOrig}, \path{oldbalanceDest}, \path{newbalanceDest}
-    \item \path{sender_balance_error} et \path{receiver_balance_error}
-    \item \path{is_transfer} et \path{is_cash_out}
-    \item \path{hour_of_day}, \path{amount_to_avg_ratio}, \path{days_since_last_tx}, \path{beneficiary_tx_count}
+    \item \path{sender_balance_error}, \path{receiver_balance_error}
+    \item \path{is_transfer}, \path{is_cash_out}
+    \item \path{amount_to_avg_ratio}, \path{hour_of_day}, \path{days_since_last_tx}, \path{beneficiary_tx_count}
 \end{itemize}
 
 \subsection{Sources et données d'entraînement}
 
-Les modèles ML du projet utilisent différentes sources de données :
+Les modèles utilisent différentes sources de données :
+\begin{itemize}
+    \item \textbf{Dataset PaySim} : Pour l'entraînement XGBoost calibré (jusqu'à 1 million de lignes)
+    \item \textbf{Données synthétiques} : Pour l'entraînement Random Forest calibré (10 000 échantillons)
+    \item \textbf{Données de test} : Fichiers \texttt{sample.csv} et \texttt{sample\_camt.xml} pour les tests
+\end{itemize}
 
-\textbf{Dataset PaySim} : Utilisé pour l'entraînement XGBoost calibré (\texttt{train\_xgboost\_calibrated.py}). PaySim est un dataset synthétique de transactions bancaires généré par simulation [14]. Le script charge jusqu'à 1 million de lignes depuis \texttt{data/paysim.csv}.
+\textbf{Limites} : Les métriques précises d'entraînement (AUC-PR, précision, rappel) et les caractéristiques détaillées du jeu de données n'étaient pas toutes disponibles dans la documentation du projet.
 
-\textbf{Données synthétiques} : Utilisées pour l'entraînement Random Forest calibré (\texttt{train\_calibrated\_model.py}). La fonction \texttt{generate\_synthetic\_data()} crée 10 000 échantillons basés sur les 9 variables de \texttt{features.py}.
-
-\textbf{Données de test} : Les fichiers \texttt{sample.csv} et \texttt{sample\_camt.xml} dans \texttt{multi-banking/data/} sont utilisés pour les tests de parsing et d'intégration.
-
-\textbf{Limites des informations disponibles} : Les métriques précises d'entraînement (précision, rappel, AUC-PR) et les caractéristiques détaillées du jeu de données d'entraînement n'étaient pas toutes disponibles dans la documentation du projet. Ces éléments seraient nécessaires pour une évaluation complète de la performance du modèle.
-
+\clearpage
 \section{Analyse de graphes}
 
-Le système inclut un moteur de graphes avec Neo4j (fichier \texttt{graph\_engine.py}). La connexion est établie au démarrage dans \texttt{main.py}. Si Neo4j n'est pas disponible, le système fonctionne sans analyse de graphe (message d'avertissement dans les logs).
+J’ai également étudié le moteur de graphes basé sur Neo4j, implémenté dans \texttt{graph\_engine.py}. Il analyse les relations entre comptes, bénéficiaires et transactions afin d’identifier des schémas suspects, comme les flux circulaires ou les comptes mules. En cas d’indisponibilité de Neo4j, l’analyse par graphe est désactivée sans bloquer le système.
 
-L'analyse de graphes permet d'étudier les relations entre comptes, bénéficiaires et transactions pour détecter des schémas complexes comme des flux circulaires ou des comptes mules.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\textwidth]{frauddetection_graphe.png}
+\caption{Visualisation des réseaux de transactions dans le module Fraud Detection}
+\label{fig:fraud-graph-analysis}
+\end{figure}
 
-\section{Travail réalisé}
+\section{Analyse détaillée du moteur de règles}
 
-J'ai observé l'implémentation du moteur de règles dans \texttt{rules\_engine.py}. Les règles incluent :
+Au cours de mon travail, j’ai étudié le fonctionnement du moteur de règles défini dans \texttt{rules\_engine.py}. J’ai notamment examiné les différentes règles utilisées pour détecter les transactions présentant des caractéristiques inhabituelles, parmi lesquelles :
 
 \begin{itemize}
     \item \textbf{SEUIL\_REGLEMENTAIRE} : montant > 10\_000.0 EUR (poids 100) ;
@@ -1260,22 +1112,7 @@ Les seuils sont configurables via l'endpoint \texttt{/api/config/thresholds} et 
 
 \section{Sécurité des échanges}
 
-L'authentification inter-services est implémentée avec JWT. Dans \path{multi-banking/main.py}, le jeton est généré ainsi :
-
-\begin{verbatim}
-fraud_token_payload = {
-    "service": "multi-banking",
-    "type": "internal",
-    "tenant_id": tenant_id,
-}
-fraud_token = jwt.encode(
-    fraud_token_payload,
-    FRAUD_INTERNAL_SECRET,
-    algorithm="HS256",
-)
-\end{verbatim}
-
-Le secret partagé est défini dans \texttt{.env} : \texttt{FRAUD\_INTERNAL\_SECRET}. En développement, l'authentification peut être désactivée avec \texttt{DISABLE\_INTERNAL\_AUTH=true} (jamais en production).
+L'authentification inter-services est implémentée avec JWT (détaillé dans le chapitre 3). Le secret partagé est défini dans \texttt{.env} : \texttt{FRAUD\_INTERNAL\_SECRET}. En développement, l'authentification peut être désactivée avec \texttt{DISABLE\_INTERNAL\_AUTH=true} (jamais en production).
 
 \subsection{Limites et angles morts de sécurité}
 
@@ -1289,12 +1126,15 @@ Le secret partagé est défini dans \texttt{.env} : \texttt{FRAUD\_INTERNAL\_SEC
 
 \textbf{Choix de JWT} : HS256 a été retenu pour sa simplicité dans l'environnement actuel. Pour une architecture multi-tenant en production, l'utilisation de clés asymétriques pourrait offrir une meilleure gestion des clés.
 
+\textbf{Logging de secrets} : Le code contient actuellement un logging de variables de configuration sensibles dans \path{multi-banking/main.py}  qui expose potentiellement le secret. Ce log doit être supprimé avant un déploiement de production.
+
 \section{Intégration entre services}
 
-Les services communiquent via API REST. Multi-Banking appelle Fraud Detection avec \texttt{httpx.AsyncClient()} et un mécanisme de retry exponentiel : trois tentatives sont effectuées avec un délai initial de 0.5 seconde, doublé après chaque échec. Les codes 502, 503 et 504 déclenchent une nouvelle tentative ; les autres erreurs retournent une erreur 502 au client.
+Les services communiquent via API REST. Multi-Banking appelle Fraud Detection avec \texttt{httpx.AsyncClient()} et un mécanisme de retry exponentiel (détaillé dans le chapitre 4).
 
 \begin{figure}[H]
 \centering
+\resizebox{0.98\textwidth}{!}{%
 \begin{tikzpicture}[
     font=\small,
     participant/.style={rectangle, draw=blue!65!black, fill=blue!8, rounded corners,
@@ -1339,6 +1179,7 @@ Les services communiquent via API REST. Multi-Banking appelle Fraud Detection av
     \draw[return] (9,0.15) -- node[label, above] {Score + règles + SHAP} (4.4,0.15);
     \draw[return] (4.4,-0.4) -- node[label, above] {200 OK + statistiques} (0,-0.4);
 \end{tikzpicture}
+}
 \caption{Diagramme de séquence de l'intégration inter-services Multi-Banking ↔ Fraud Detection}
 \label{fig:sequence-diagram}
 \end{figure}
@@ -1358,57 +1199,43 @@ Les services sont containerisés avec Docker. Multi-Banking utilise le fichier \
 
 \section{Tests implémentés et distinction des types}
 
-J'ai écrit des tests d'intégration dans \texttt{test\_integration\_suite.py}. Les tests couvrent :
+J'ai écrit des tests d'intégration dans \texttt{test\_integration\_suite.py}. Les tests sont organisés par domaine fonctionnel :
 
-\textbf{Section 1 - CSV Parser} :
-\begin{itemize}
-    \item \texttt{test\_parse\_csv\_basic} : parsing CSV avec 2 transactions, vérifie amount = 150.0 et -500.0 ;
-    \item \texttt{test\_parse\_csv\_preserves\_iban} : vérifie que l'IBAN est correctement assigné ;
-    \item \texttt{test\_parse\_csv\_generates\_hash} : vérifie que le hash SHA-256 est généré (64 caractères) ;
-    \item \path{test_parse_csv_with_balance_fields} : parsing avec les colonnes de solde avant et après transaction.
-\end{itemize}
+\begin{table}[!htbp]
+\centering
+\caption{Organisation des tests par domaine}
+\label{tab:test-organization}
+\small
+\begin{tabularx}{0.95\textwidth}{|
+    >{\raggedright\arraybackslash}p{2.5cm}|
+    >{\centering\arraybackslash}p{1.2cm}|
+    >{\raggedright\arraybackslash}X|}
+\hline
+\textbf{Domaine} & \textbf{Tests} & \textbf{Objectif} \\
+\hline
+CSV Parser & 4 & Parsing et intégrité des données \\
+CAMT.053 Parser & 6 & Parsing XML et extraction des balises ISO 20022 \\
+MT940 Parser & 6 & Parsing avec regex et validation du bug fix \\
+PAIN.001 Parser & 5 & Support du format de paiement SEPA (intégration partielle) \\
+Validation & 8 & IBAN, date, montant, doublons avec tolérance \\
+Intégration & 4 & Pipeline complet et gestion d'erreurs \\
+\hline
+\end{tabularx}
+\end{table}
 
-\textbf{Section 2 - CAMT.053 Parser} :
+\textbf{Tests emblématiques} :
 \begin{itemize}
-    \item \texttt{test\_parse\_camt053\_basic} : parsing XML CAMT.053, vérifie extraction de 1 transaction avec amount = 2500.0 ;
-    \item \texttt{test\_parse\_camt053\_preserves\_iban} : vérifie extraction IBAN depuis XML.
-\end{itemize}
-
-\textbf{Section 3 - MT940 Parser} :
-\begin{itemize}
-    \item \texttt{test\_parse\_mt940\_basic} : parsing MT940 avec regex corrigée.
-\end{itemize}
-
-\textbf{Section 4 - PAIN.001 Parser} :
-\begin{itemize}
-    \item 5 tests unitaires PAIN.001 présents dans le dépôt (parsers PAIN.001 pour paiements SEPA)
-    \item Parser implémenté mais intégration complète à valider
-\end{itemize}
-
-\textbf{Section 4 - Validation Rules} :
-\begin{itemize}
-    \item \texttt{test\_valid\_transaction\_passes} : transaction valide sans erreurs ;
-    \item \texttt{test\_missing\_iban\_fails} : erreur si IBAN vide ;
-    \item \texttt{test\_invalid\_date\_format\_fails} : erreur si date non ISO 8601 ;
-    \item \texttt{test\_zero\_amount\_fails} : erreur si montant = 0 ;
-    \item \texttt{test\_exact\_duplicate\_detected} : détection doublon dans même batch ;
-    \item \texttt{test\_historical\_duplicate\_detected} : détection doublon dans historique ;
-    \item \texttt{test\_near\_duplicate\_within\_tolerance} : détection avec tolérance ±0.02 EUR ;
-    \item \texttt{test\_near\_duplicate\_outside\_tolerance} : pas de détection si écart > 0.02 EUR.
-\end{itemize}
-
-\textbf{Section 6 - Ingest Pipeline Integration} :
-\begin{itemize}
-    \item \texttt{test\_successful\_ingest\_returns\_results} : pipeline d'intégration simulé avec mock fraud service, vérifie response 200 et parsed\_count = 21 ;
-    \item \texttt{test\_ingest\_502\_when\_fraud\_service\_errors} : gestion erreur 502 si fraud service indisponible ;
-    \item \path{test_ingest_with_bankmatch_disabled} : vérifie un résultat nul lorsque l'intégration BankMatch est désactivée.
+    \item \texttt{test\_parse\_mt940\_basic} : validation du bug fix montant (1500.00 → 1500.00)
+    \item \texttt{test\_near\_duplicate\_within\_tolerance} : détection avec tolérance ±0.02 EUR
+    \item \texttt{test\_ingest\_502\_when\_fraud\_service\_errors} : gestion erreur 502
 \end{itemize}
 
 Les tests utilisent respx pour mocker les appels HTTP au service Fraud Detection et pytest pour l'exécution. La couverture de tests est mesurée avec pytest-cov.
 
 \section{Résultats de tests}
 
-Selon le document \texttt{TESTING\_FINDINGS\_AND\_RECOMMENDATIONS.md} du 18 août 2026, les résultats de tests sont les suivants :
+Pour compléter mes propres tests, j’ai également consulté le document {TESTING\_FINDINGS\_AND\_RECOMMENDATIONS.md}, qui regroupait les résultats de la suite de tests disponible dans le projet au cours du stage. Ces résultats m’ont permis de vérifier l’état général des différents modules et de comparer ces résultats avec les tests que j’avais réalisés sur la partie Multi-Banking.
+
 
 \begin{table}[!htbp]
 \centering
@@ -1435,7 +1262,7 @@ Frontend-Backend Integration & 35 & 24.61s & PASSED & Intégration (mocks) \\
 
 \textbf{Couverture par module} :
 \begin{itemize}
-    \item Multi-Banking : CSV parser (2 tests), CAMT.053 parser (6 tests), MT940 parser (6 tests), PAIN.001 parser (5 tests), Duplicate tolerance (6 tests), Ingestion integration (4 tests avec mock)
+    \item Multi-Banking : CSV parser (4 tests), CAMT.053 parser (6 tests), MT940 parser (6 tests), PAIN.001 parser (5 tests), Validation (8 tests), Ingestion integration (4 tests avec mock)
     \item Fraud Detection : Preprocessing features (9 tests), Rules engine (16 tests), Two-factor authentication (9 tests), Graph engine (6 tests), ML fusion (4 tests), Persistence (4 tests), Authentication (4 tests), API endpoints (19 tests)
     \item Frontend Integration : Multi-banking service (10 tests), Reports service (13 tests), Fraud alerts service (12 tests)
 \end{itemize}
@@ -1459,13 +1286,8 @@ CSV parser & Capacité d'extraction des colonnes account\_iban, value\_date, lab
 CAMT.053 parser & Gestion de la structure XML hiérarchique et extraction des balises ISO 20022 \\
 MT940 parser & Robustesse du parsing avec regex (validation du bug fix montant) \\
 PAIN.001 parser & Support du format de paiement SEPA (intégration partielle) \\
-Duplicate tolerance & Règle métier de détection ±0.02€ pour écarts d'arrondi \\
-Validation IBAN & Vérification de la présence obligatoire de l'IBAN \\
-Validation date & Conformité au format ISO 8601 \\
-Validation montant & Rejet des montants nuls \\
-Fraud mock & Respect du contrat d'intégration Multi-Banking → Fraud Detection \\
-Service indisponible & Gestion d'erreur 502 lors d'appel service défaillant \\
-BankMatch disabled & Comportement attendu lorsque l'intégration est désactivée \\
+Validation & IBAN, date ISO 8601, montant non nul, doublons avec tolérance ±0.02€ \\
+Intégration & Pipeline complet, mock Fraud service, gestion erreur 502 \\
 Rules engine & Application correcte des seuils et mots-clés sensibles \\
 ML fusion & Combinaison appropriée des scores ML, Isolation Forest et règles métier \\
 Authentication & Validation des tokens JWT internes \\
@@ -1488,28 +1310,11 @@ Graph engine & Connexion Neo4j et requêtes de graphe basiques \\
 
 \section{Difficultés techniques}
 
-\textbf{Bug du parser MT940} : Le groupe générique \verb|\w| de la regex originale acceptait les chiffres dans le "funds code" et faisait perdre le premier chiffre du montant. Le test \path{test_parse_mt940_basic} échouait pour un montant attendu de 1500.00, interprété comme 500.00. La correction restreint ce groupe aux lettres. Ce bug est documenté dans \path{mt940.py}.
-
-\begin{table}[!htbp]
-\centering
-\caption{Correction du bug MT940}
-\label{tab:mt940-fix}
-\begin{tabular}{|l|l|l|}
-\hline
-\textbf{Élément} & \textbf{Avant} & \textbf{Après} \\
-\hline
-Regex & \verb|\w| & \verb|[A-Za-z]| \\
-Problème & Accepte les chiffres & Accepte uniquement les lettres \\
-Exemple & 1500.00 → 500.00 & 1500.00 → 1500.00 \\
-Cause & Groupe funds code trop permissif & Expression contrainte \\
-Validation & Test parser & Test automatisé \\
-\hline
-\end{tabular}
-\end{table}
+\textbf{Bug du parser MT940} : Le groupe générique \verb|\w| de la regex originale acceptait les chiffres dans le "funds code" et faisait perdre le premier chiffre du montant. La correction restreint ce groupe aux lettres (détaillé dans le chapitre 4).
 
 \textbf{Intégration JWT} : La configuration de l'authentification inter-services a nécessité de comprendre le flux Multi-Banking → Fraud Detection. J'ai dû configurer les variables d'environnement \texttt{FRAUD\_INTERNAL\_SECRET} et \texttt{DISABLE\_INTERNAL\_AUTH}, et implémenter la génération de token avec \texttt{jwt.encode()}. En développement, l'authentification peut être désactivée, mais j'ai appris que cela ne doit jamais être activé en production.
 
-\textbf{Tolérance de doublons} : La détection de doublons avec tolérance ±0.02 EUR pour gérer les erreurs d'arrondi bancaire a été complexe à implémenter. J'ai dû comparer les montants avec une tolérance et vérifier le hash de base sans le montant pour détecter les transactions similaires. Le test \texttt{test\_near\_duplicate\_within\_tolerance} valide ce comportement.
+\textbf{Tolérance de doublons} : La détection de doublons avec tolérance ±0.02 EUR pour gérer les erreurs d'arrondi bancaire a été complexe à implémenter. J'ai dû comparer les montants avec une tolérance et vérifier le hash de base sans le montant pour détecter les transactions similaires.
 
 \section{Difficultés organisationnelles}
 
@@ -1526,24 +1331,7 @@ Avant le stage, je connaissais Python et FastAPI de manière théorique. Mainten
 En travaillant sur un système financier concret et en manipulant des fichiers bancaires de test représentatifs de situations rencontrées dans ce type de projet, j'ai développé des compétences techniques en parsing de fichiers, validation avec tolérances, authentification JWT, tests d'intégration et monitoring. J'ai aussi appris l'importance de la documentation technique et de la communication avec l'équipe.
 
 % ==========================================================
-% CHAPITRE 9 : CONCLUSION
-% ==========================================================
-\chapter{Conclusion}
-
-Pendant ce stage, j'ai développé les parsers pour les formats bancaires CSV, CAMT.053 et MT940 dans le module Multi-Banking. J'ai implémenté la validation des transactions avec détection de doublons (tolérance ±0.02 EUR) et configuré l'authentification JWT entre Multi-Banking et Fraud Detection. J'ai aussi corrigé un bug important dans le parser MT940 où la regex faisait perdre le premier chiffre du montant.
-
-Le travail technique réalisé inclut :
-\begin{itemize}
-    \item 3 parsers (csv\_bank.py, camt053.py, mt940.py) ;
-    \item validation avec tolérance dans validators.py ;
-    \item intégration JWT et retry exponentiel dans main.py ;
-    \item tests d'intégration dans test\_integration\_suite.py couvrant le pipeline complet.
-\end{itemize}
-
-En manipulant des données bancaires de test, en configurant une authentification inter-services et en écrivant des tests avec pytest et respx, j'ai pu passer de la théorie à la pratique. J'ai compris que la qualité des données est essentielle pour un système de détection de fraude.
-
-% ==========================================================
-% CHAPITRE 10 : BILAN ET PERSPECTIVES
+% CHAPITRE 9 : BILAN ET PERSPECTIVES
 % ==========================================================
 \chapter{Bilan et perspectives}
 
@@ -1558,6 +1346,8 @@ Il est important de préciser clairement les limites de mon intervention dans ce
 \begin{itemize}
     \item \textbf{BankMatch non activé} : L'intégration avec la plateforme BankMatch est implémentée dans le code mais désactivée par défaut (\path{BANKMATCH_INTEGRATION_ENABLED=false}) en attente de la finalisation du contrat API par l'équipe BankMatch.
     \item \textbf{Tests E2E non réalisés} : Les tests d'intégration utilisent des mocks (respx) pour simuler le service Fraud Detection. Un véritable test end-to-end avec les services réels n'a pas été réalisé.
+    \item \textbf{Moteur ML existant} : Les modèles de Machine Learning (Random Forest, XGBoost, Isolation Forest, SHAP, Neo4j) étaient déjà présents dans le projet. Mon travail a consisté à les étudier et à intégrer les données dans ce moteur existant.
+    \item \textbf{PAIN.001} : Le parser PAIN.001 a été développé et testé, mais son intégration complète dans le pipeline d'ingestion reste à valider.
 \end{itemize}
 
 \section{Limites actuelles du système}
@@ -1576,8 +1366,6 @@ Le système présente plusieurs limites techniques et fonctionnelles qu'il convi
 \subsection{Limites fonctionnelles}
 
 \begin{itemize}
-    \item \textbf{Intégration BankMatch} : L'intégration avec la plateforme BankMatch est implémentée dans le code mais désactivée par défaut (\texttt{BANKMATCH\_INTEGRATION\_ENABLED=false}) en attente de la finalisation du contrat API par l'équipe BankMatch. Le flux complet n'a pas pu être validé de bout en bout.
-    \item \textbf{Tests E2E} : Les tests d'intégration utilisent des mocks (respx) pour simuler le service Fraud Detection. Un véritable test end-to-end avec les services réels démarrés en Docker Compose n'a pas été réalisé.
     \item \textbf{Couverture de tests} : Le retry exponentiel n'est pas couvert par les tests automatisés. Certains scénarios d'erreur (timeouts, erreurs réseau spécifiques) ne sont pas testés.
 \end{itemize}
 
@@ -1599,7 +1387,29 @@ Le système présente plusieurs limites techniques et fonctionnelles qu'il convi
 \end{itemize}
 
 
-Les compétences techniques acquises incluent le parsing de formats bancaires, la validation de données avec tolérances, l'authentification JWT inter-services, les tests d'intégration et la documentation technique. Ce travail m'a fait passer de la théorie à la pratique et comprendre les contraintes réelles d'un système financier orienté données et sécurité.
+\section{Perspectives d'amélioration}
+
+Les améliorations prioritaires concernent la validation complète du système dans des conditions proches de la production :
+
+\begin{itemize}
+    \item finaliser le contrat API de BankMatch et activer l'intégration correspondante ;
+    \item réaliser des tests end-to-end avec les services réels exécutés via Docker Compose ;
+    \item intégrer complètement le parser PAIN.001 dans le pipeline d'ingestion ;
+    \item remplacer progressivement les montants en \texttt{float} par \texttt{Decimal} et rendre configurables la tolérance de déduplication ainsi que les paramètres de retry ;
+    \item renforcer la gestion des secrets JWT et sécuriser le parseur XML contre les attaques XXE ;
+    \item évaluer les modèles de fraude sur des données réelles anonymisées et documenter précisément leurs métriques de performance.
+\end{itemize}
+
+% ==========================================================
+% CHAPITRE 10 : CONCLUSION
+% ==========================================================
+\chapter{Conclusion}
+
+Au début de mon stage, la partie Multi-Banking n'était pas encore développée. J'ai donc pris en charge sa conception et son développement depuis le départ, en passant progressivement de l'analyse du besoin à la mise en place de l'architecture, du traitement des fichiers bancaires, des mécanismes de validation, de l'API, de la sécurité et des tests. Une grande partie de mon travail a ainsi consisté à construire un module capable de traiter les données bancaires de manière fiable et à l'intégrer progressivement dans l'écosystème de la plateforme.
+
+En parallèle, la partie Fraud Detection disposait déjà de plusieurs modèles de Machine Learning lorsque j'ai commencé mon stage. Je n'ai donc pas cherché à recréer ces modèles, mais plutôt à comprendre leur fonctionnement et la manière dont ils étaient utilisés dans le projet. Mon travail a surtout porté sur leur exploitation et sur la connexion entre les données produites par le module Multi-Banking que j'ai développé et les composants de détection de fraude existants. Cela m'a également permis de mieux comprendre comment un modèle de Machine Learning s'intègre dans une application réelle, au-delà de son simple entraînement.
+
+Cette distinction est importante pour présenter correctement ma contribution : j'ai développé le module Multi-Banking et les différents composants nécessaires à son fonctionnement, tandis que les modèles de détection de fraude constituaient un existant que j'ai étudié, exploité et intégré. Le stage m'a ainsi permis de travailler à la fois sur la construction complète d'un service backend et sur son intégration avec des composants de Machine Learning déjà disponibles.
 
 % ==========================================================
 % CHAPITRE 11 : RÉFÉRENCES
